@@ -568,48 +568,49 @@ function parseOFFLike(ean: string, data: any): CatalogHit | null {
 }
 
 /**
- * Real EAN lookup. Strategy:
- *  1. Local seed catalog (instant).
- *  2. Parallel race across Open Food / Beauty / Products Facts (one timeout
- *     covers all three). First non-null wins — typically <1s.
- *  3. Any failure → null, triggering the manual contingency in the UI.
+ * Real EAN lookup via Firecrawl scraping of Cosmos Bluesoft (server-side,
+ * bypasses Cloudflare). Strategy:
+ *  1. Local seed catalog (instant, offline).
+ *  2. Server function → Firecrawl scrape of cosmos.bluesoft.com.br/produtos/{ean}
+ *     with 4s server-side timeout.
+ *  3. Any failure / null → returns null, triggering yellow contingency card.
  */
 export async function lookupEan(ean: string): Promise<CatalogHit | null> {
-  console.log(`%c[lookupEan] iniciando busca para EAN="${ean}" (${ean.length} dígitos)`, "color:#10b981;font-weight:bold");
+  console.log(
+    `%c[lookupEan] EAN="${ean}" (${ean.length} dígitos) via Firecrawl/Cosmos`,
+    "color:#10b981;font-weight:bold",
+  );
+
   const local = EAN_CATALOG.find((c) => c.ean === ean);
   if (local) {
-    console.log("🎯 encontrado no catálogo LOCAL (seed):", local);
+    console.log("🎯 catálogo LOCAL:", local);
     return local;
   }
 
+  // Client-side hard timeout (server fn already has its own 4s, this guards
+  // network/RPC overhead on top).
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
+  const timer = setTimeout(() => controller.abort(), 4500);
 
   try {
-    const queries = [
-      fetchBrazilMarket(ean, controller.signal),
-      fetchOpenFoodFacts(ean, controller.signal),
-      fetchOpenBeautyFacts(ean, controller.signal),
-      fetchOpenProductsFacts(ean, controller.signal),
-    ];
-
-    const winner = await new Promise<CatalogHit | null>((resolve) => {
-      let pending = queries.length;
-      queries.forEach((q) =>
-        q.then((hit: CatalogHit | null) => {
-          if (hit) resolve(hit);
-          else if (--pending === 0) resolve(null);
-        }).catch(() => { if (--pending === 0) resolve(null); }),
-      );
+    const { scrapeEanCosmos } = await import("./ean-lookup.functions");
+    const racePromise = scrapeEanCosmos({ data: { ean } });
+    const abortPromise = new Promise<null>((resolve) => {
+      controller.signal.addEventListener("abort", () => resolve(null));
     });
+    const raw = await Promise.race([racePromise, abortPromise]);
 
-    console.log(winner ? "🏆 vencedor da corrida de APIs:" : "🚫 todas as APIs falharam ou retornaram null", winner);
-    return winner;
+    if (!raw) {
+      console.warn("🚫 Firecrawl/Cosmos retornou nulo — contingência manual");
+      return null;
+    }
+    console.log("🏆 Firecrawl/Cosmos:", raw);
+    return normalizeHit(ean, raw);
   } catch (err) {
-    console.error("[lookupEan] exceção geral:", err);
+    console.error("[lookupEan] exceção:", err);
     return null;
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(timer);
   }
 }
 
