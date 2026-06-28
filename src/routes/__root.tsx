@@ -1,6 +1,5 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
-
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -8,47 +7,30 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Cavalcanti Advogados — Defesa Criminal de Elite em São Paulo" },
-      { name: "description", content: "Advocacia criminal premium em São Paulo/SP. Habeas Corpus urgente, Tribunal do Júri, crimes financeiros e white collar. Atendimento 24h para emergências." },
-      { name: "author", content: "Cavalcanti Advogados" },
-      { property: "og:title", content: "Cavalcanti Advogados — Defesa Criminal de Elite em São Paulo" },
-      { property: "og:description", content: "Defesa criminal de elite. 834 avaliações 5 estrelas no Google. Paraíso, São Paulo/SP." },
+      { title: "Meu Saas — Controle de Estoque e Vendas B2B" },
+      { name: "description", content: "Meu Saas: ERP B2B para controle de estoque, PDV e vendas. Gestão de inventário, produtos, fornecedores e relatórios em tempo real para empresas de médio porte." },
+      { name: "author", content: "Meu Saas" },
+      { property: "og:site_name", content: "Meu Saas" },
+      { property: "og:title", content: "Meu Saas — Controle de Estoque e Vendas B2B" },
+      { property: "og:description", content: "Plataforma ERP B2B para gestão completa de estoque, vendas e inventário." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Cavalcanti Advogados — Advogado Criminalista em SP" },
-      { name: "twitter:description", content: "Defesa criminal estratégica e especializada em São Paulo/SP." },
     ],
     links: [
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Manrope:wght@300;400;500;600;700&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" },
+      { rel: "stylesheet", href: appCss },
     ],
     scripts: [
       {
         children: `
           (function() {
-            var theme = localStorage.getItem('continuum_theme');
-            if (!theme) {
-              theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-            }
-            if (theme === 'system') {
-              theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            }
-            if (theme === 'dark') document.documentElement.classList.add('dark');
+            try {
+              var t = localStorage.getItem('meusaas_theme') || 'dark';
+              if (t === 'dark') document.documentElement.classList.add('dark');
+            } catch(e) { document.documentElement.classList.add('dark'); }
           })();
         `,
       },
@@ -60,11 +42,11 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
-      <body className="pb-[env(safe-area-inset-bottom)]">
+      <body>
         {children}
         <Scripts />
       </body>
@@ -76,7 +58,7 @@ function RootComponent() {
   return (
     <>
       <Outlet />
-      <Toaster position="top-center" />
+      <Toaster position="top-right" />
     </>
   );
 }
