@@ -620,7 +620,40 @@ function VendasPage() {
       />
 
       <AlertDialog open={showCancel} onOpenChange={setShowCancel}>
-        <AlertDialogContent className="border-border bg-card">
+        <AlertDialogContent
+          className="border-border bg-card"
+          onOpenAutoFocus={(e) => {
+            // Foco inicial direto no botão de confirmação (vermelho).
+            e.preventDefault();
+            requestAnimationFrame(() => confirmCancelRef.current?.focus());
+          }}
+          onCloseAutoFocus={(e) => {
+            // Devolve o cursor ao campo de busca (F1) ao fechar.
+            e.preventDefault();
+            requestAnimationFrame(() => searchRef.current?.focus());
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              cancelSale();
+              return;
+            }
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              e.preventDefault();
+              const root = e.currentTarget as HTMLElement;
+              const btns = Array.from(
+                root.querySelectorAll<HTMLButtonElement>("button"),
+              ).filter((b) => !b.disabled);
+              if (btns.length < 2) return;
+              const active = document.activeElement as HTMLElement | null;
+              const idx = btns.findIndex((b) => b === active);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              const next = btns[(Math.max(0, idx) + dir + btns.length) % btns.length];
+              next?.focus();
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/15 text-primary">
@@ -635,6 +668,7 @@ function VendasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
+              ref={confirmCancelRef}
               onClick={cancelSale}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
