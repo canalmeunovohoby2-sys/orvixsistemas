@@ -95,7 +95,7 @@ function VendasPage() {
       toast.success(`+ ${product.name}`, { duration: 1400 });
     } else {
       setQ("");
-      toast.warning("⚠️ Produto com este código de barras não encontrado. Cadastre-o na aba de Produtos antes de vender.");
+      toast.warning("⚠️ Produto não cadastrado com este código de barras.");
     }
     // Mantém o foco para o próximo bip
     requestAnimationFrame(() => searchRef.current?.focus());
@@ -240,6 +240,9 @@ function VendasPage() {
               className="w-full h-11 pl-10 pr-3 rounded-md bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/60"
             />
           </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            (Para testar sem leitor, digite: <span className="font-mono">7891000100101</span>)
+          </p>
           <AnimatePresence>
             {results.length > 0 && (
               <motion.ul
