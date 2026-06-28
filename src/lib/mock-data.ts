@@ -568,16 +568,43 @@ function parseOFFLike(ean: string, data: any): CatalogHit | null {
 }
 
 /**
- * Real EAN lookup via Firecrawl scraping of Cosmos Bluesoft (server-side,
- * bypasses Cloudflare). Strategy:
- *  1. Local seed catalog (instant, offline).
- *  2. Server function → Firecrawl scrape of cosmos.bluesoft.com.br/produtos/{ean}
- *     with 4s server-side timeout.
- *  3. Any failure / null → returns null, triggering yellow contingency card.
+ * Parser genérico para o JSON do espelho VTEX público.
+ * Cobre formatos comuns: array com itens, objeto direto, ou wrapper { product }.
+ */
+function parseVtexLike(ean: string, data: any): CatalogHit | null {
+  if (!data) return null;
+  const p = Array.isArray(data) ? data[0] : (data.product || data.data || data);
+  if (!p || typeof p !== "object") return null;
+  const name =
+    p.productName || p.ProductName || p.description || p.Description ||
+    p.name || p.title || p.product_name || "";
+  if (!name) return null;
+  const brand =
+    p.brand || p.Brand || p.brandName || p.BrandName ||
+    p.manufacturer || p.Manufacturer || p.marca ||
+    name.split(" ")[0] || "";
+  return normalizeHit(ean, { name, brand, category: "" }); // categoria via inferência
+}
+
+/**
+ * VTEX público (catálogo comercial BR) via proxy CORS — URL pura, sem encode.
+ */
+async function fetchVtexPublic(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const url = `https://corsproxy.io/?https://api.vtex.com/public/products/ean/${ean}`;
+  const data = await fetchJson(url, signal);
+  return parseVtexLike(ean, data);
+}
+
+/**
+ * Lookup EAN universal: JSON puro, sem autenticação, sem scraping.
+ *  1. Catálogo local (instantâneo, offline).
+ *  2. VTEX público (BR) via corsproxy.io.
+ *  3. Fallback: Open Food Facts (CORS aberto, sem proxy).
+ *  4. Qualquer falha / timeout 4s → null → card amarelo + toast manual.
  */
 export async function lookupEan(ean: string): Promise<CatalogHit | null> {
   console.log(
-    `%c[lookupEan] EAN="${ean}" (${ean.length} dígitos) via Firecrawl/Cosmos`,
+    `%c[lookupEan] EAN="${ean}" (${ean.length} dígitos) — VTEX → OpenFoodFacts`,
     "color:#10b981;font-weight:bold",
   );
 
@@ -587,25 +614,24 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
     return local;
   }
 
-  // Client-side hard timeout (server fn already has its own 4s, this guards
-  // network/RPC overhead on top).
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 4500);
+  const timer = setTimeout(() => controller.abort(), 4000);
 
   try {
-    const { scrapeEanCosmos } = await import("./ean-lookup.functions");
-    const racePromise = scrapeEanCosmos({ data: { ean } });
-    const abortPromise = new Promise<null>((resolve) => {
-      controller.signal.addEventListener("abort", () => resolve(null));
-    });
-    const raw = await Promise.race([racePromise, abortPromise]);
-
-    if (!raw) {
-      console.warn("🚫 Firecrawl/Cosmos retornou nulo — contingência manual");
-      return null;
+    // 1) tentativa primária: VTEX público (BR)
+    const primary = await fetchVtexPublic(ean, controller.signal);
+    if (primary) {
+      console.log("🏆 VTEX público:", primary);
+      return primary;
     }
-    console.log("🏆 Firecrawl/Cosmos:", raw);
-    return normalizeHit(ean, raw);
+    // 2) fallback redundante: Open Food Facts (sem proxy, CORS liberado)
+    const fallback = await fetchOpenFoodFacts(ean, controller.signal);
+    if (fallback) {
+      console.log("🏆 Open Food Facts:", fallback);
+      return fallback;
+    }
+    console.warn("🚫 nenhuma base retornou — contingência manual");
+    return null;
   } catch (err) {
     console.error("[lookupEan] exceção:", err);
     return null;
