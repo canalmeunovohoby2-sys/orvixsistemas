@@ -86,10 +86,26 @@ export function HelpCenter() {
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F1</Key><span>Foca no campo de <strong className="text-foreground">busca de produtos</strong> (EAN ou nome).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F2</Key><span>Abre o painel de <strong className="text-foreground">desconto em R$</strong> (valor fixo abatido do total).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F4</Key><span>Destaca o bloco de <strong className="text-foreground">formas de pagamento</strong>.</span></li>
+                    <li className="flex items-center gap-3 px-3 py-2"><Key>F8</Key><span className="text-primary font-semibold">Cancela a venda em andamento</span><span>(abre confirmação crítica).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F12</Key><span className="text-foreground">Conclui a venda.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>Enter</Key><span>Conclui a venda quando o valor está <strong className="text-emerald-500">quitado</strong>.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>Esc</Key><span>Fecha qualquer painel aberto (desconto / pagamento).</span></li>
                   </ul>
+                </Section>
+
+                <Section title="Estorno e cancelamento">
+                  <Tip tone="danger">
+                    ❌ <strong className="text-foreground">Cancelar Venda Completa:</strong> pressione <Key>F8</Key> ou clique em
+                    <Badge variant="outline" className="mx-1 align-middle text-primary border-primary/60">Cancelar Venda</Badge>
+                    para limpar todo o caixa — itens, desconto e splits de pagamento são zerados após a confirmação no modal.
+                  </Tip>
+                  <Tip tone="warn">
+                    🗑️ <strong className="text-foreground">Remover Item do Carrinho:</strong> se o cliente desistir de apenas um
+                    produto, clique no ícone da <strong className="text-primary">lixeira vermelha</strong> na linha do item dentro
+                    do carrinho para estorná-lo individualmente. O sistema recalculará o valor total líquido na hora — e, se o
+                    novo total ficar menor do que o já recebido, os splits de pagamento são limpos automaticamente para que você
+                    reajuste o troco/recebimento.
+                  </Tip>
                 </Section>
 
                 <Section title="Leitor de código de barras">
