@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import { BRL, PRODUCTS, UNITS, addProduct, deleteProduct, formatQty, isFractional, lookupEan, type Product, type Unit } from "@/lib/mock-data";
