@@ -300,6 +300,72 @@ function VendasPage() {
           <h3 className="text-base font-semibold mb-1">Resumo da venda</h3>
           <p className="text-xs text-muted-foreground mb-5">{cart.reduce((a, c) => a + c.qty, 0).toLocaleString("pt-BR")} item(ns)</p>
 
+          {/* Customer selector */}
+          <div className="mb-4">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</label>
+            {customer ? (
+              <div className="mt-1 rounded-md border border-border bg-secondary/60 p-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{customer.name}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground">{customer.doc}</p>
+                  </div>
+                  <button onClick={() => { setCustomerId(""); setCustomerQuery(""); }} aria-label="Remover cliente" className="text-muted-foreground hover:text-primary">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {customer.creditLimit > 0 && (
+                  <div className="mt-2 text-[11px] flex items-center justify-between text-muted-foreground">
+                    <span>Crédito disponível</span>
+                    <span className={`font-semibold tabular-nums ${creditAvailable <= 0 ? "text-primary" : "text-emerald-500"}`}>
+                      {BRL(creditAvailable)} <span className="opacity-60">/ {BRL(customer.creditLimit)}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="relative mt-1">
+                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  value={customerQuery}
+                  onChange={(e) => { setCustomerQuery(e.target.value); setCustomerOpen(true); }}
+                  onFocus={() => setCustomerOpen(true)}
+                  onBlur={() => setTimeout(() => setCustomerOpen(false), 150)}
+                  placeholder="Consumidor (opcional)..."
+                  className="w-full h-9 pl-8 pr-3 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <AnimatePresence>
+                  {customerOpen && customerMatches.length > 0 && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="absolute z-10 mt-1 w-full rounded-md border border-border bg-card divide-y divide-border shadow-lg max-h-64 overflow-auto"
+                    >
+                      {customerMatches.map((c) => (
+                        <li key={c.id}>
+                          <button
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { setCustomerId(c.id); setCustomerQuery(""); setCustomerOpen(false); }}
+                            className="w-full text-left p-2.5 hover:bg-accent transition flex items-center justify-between gap-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{c.name}</p>
+                              <p className="text-[10px] font-mono text-muted-foreground">{c.doc}</p>
+                            </div>
+                            {c.currentDebt > 0 && (
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 tabular-nums">
+                                deve {BRL(c.currentDebt)}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="tabular-nums">{BRL(subtotal)}</dd></div>
             <div className="flex justify-between">
@@ -368,6 +434,15 @@ function VendasPage() {
             </ul>
           )}
 
+          {creditBlocked && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>
+                <strong>Limite de crédito excedido.</strong> O cliente {customer?.name} ultrapassou o limite de {BRL(customer?.creditLimit ?? 0)}. Solicite quitação parcial ou utilize outra forma de pagamento.
+              </p>
+            </div>
+          )}
+
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de pagamento</p>
@@ -378,7 +453,8 @@ function VendasPage() {
                 <button
                   key={id}
                   onClick={() => addSplit(id, remaining > 0 ? remaining : total)}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || (id === "Crediário" && (creditBlocked || !customer))}
+                  title={id === "Crediário" && !customer ? "Selecione um cliente" : id === "Crediário" && creditBlocked ? "Limite excedido" : undefined}
                   className={`flex flex-col items-center gap-1 py-2 rounded-md bg-secondary border text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${showPayment ? "border-primary/60 ring-1 ring-primary/40" : "border-border"} hover:border-primary hover:bg-accent`}
                 >
                   <Icon className="w-4 h-4" /> {id}
