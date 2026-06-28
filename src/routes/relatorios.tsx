@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { AppShell } from "@/components/AppShell";
-import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty } from "@/lib/mock-data";
+import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/lib/mock-data";
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
@@ -168,7 +168,7 @@ function CashClosing({ closing, totals }: { closing: PaymentRow[]; totals: Retur
 
 /* ─────────────── ABC curve ─────────────── */
 
-type ABCRow = { id: string; name: string; unit: PRODUCTS[number]["unit"]; qty: number; receita: number };
+type ABCRow = { id: string; name: string; unit: Product["unit"]; qty: number; receita: number };
 
 function CurvaABC({ abc }: { abc: { byVolume: ABCRow[]; byReceita: ABCRow[] } }) {
   return (
