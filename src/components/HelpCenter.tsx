@@ -107,7 +107,8 @@ export function HelpCenter() {
                   <p>
                     O campo de quantidade no carrinho respeita a <strong className="text-foreground">unidade de medida</strong> do produto.
                     Itens fracionáveis (<Code>m</Code>, <Code>m²</Code>, <Code>m³</Code>, <Code>kg</Code>, <Code>L</Code>) aceitam frações
-                    de até <Code>0.01</Code> — por exemplo, <Code>2.5</Code> metros de cabo. Itens em <Code>un</Code> travam em inteiros.
+                    de até <Code>0.01</Code> — por exemplo, <Code>1.250</Code> kg de produto a granel ou <Code>2.5</Code> m de tecido.
+                    Itens vendidos em caixas/unidades (<Code>un</Code>) travam em números inteiros.
                   </p>
                 </Section>
               </AccordionContent>
@@ -148,7 +149,7 @@ export function HelpCenter() {
                   <p>
                     Na tela de <strong className="text-foreground">Estoque</strong>, ative o interruptor
                     <Badge variant="destructive" className="mx-1 align-middle">⚠️ Necessita Reposição</Badge>
-                    para isolar em um clique apenas os insumos críticos e gerar a lista de pedidos para os fornecedores.
+                    para isolar em um clique apenas os produtos críticos e gerar a lista de pedidos para os fornecedores.
                   </p>
                 </Section>
               </AccordionContent>
