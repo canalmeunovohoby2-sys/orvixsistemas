@@ -98,7 +98,7 @@ function LandingPage() {
               animate={{ y: [0, -4, 0] }}
               transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
             >
-              <Scale className="w-5 h-5 text-[var(--c-bg)]" strokeWidth={2.4} />
+              <Scale className="w-5 h-5 text-[#0F0F0F]" strokeWidth={2.4} />
             </motion.div>
             <div className="font-[Playfair_Display,serif] leading-tight">
               <div className="text-base font-bold tracking-tight text-[var(--c-text)]">Cavalcanti</div>
@@ -116,7 +116,7 @@ function LandingPage() {
           </div>
 
           <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-            className="hidden md:inline-flex items-center gap-2 bg-[#C9A961] text-[var(--c-bg)] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[var(--c-text)] transition-all shadow-lg shadow-[#C9A961]/20">
+            className="hidden md:inline-flex items-center gap-2 bg-[#C9A961] text-[#0F0F0F] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[var(--c-text)] transition-all shadow-lg shadow-[#C9A961]/20">
             <Phone className="w-4 h-4" /> Consulta 24h
           </a>
 
@@ -138,7 +138,7 @@ function LandingPage() {
                   <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="py-2 text-[var(--c-text)]/80 border-b border-[#C9A961]/10">{l.label}</a>
                 ))}
                 <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-                  className="mt-2 inline-flex items-center justify-center gap-2 bg-[#C9A961] text-[var(--c-bg)] px-5 py-3 rounded-full text-sm font-medium">
+                  className="mt-2 inline-flex items-center justify-center gap-2 bg-[#C9A961] text-[#0F0F0F] px-5 py-3 rounded-full text-sm font-medium">
                   <Phone className="w-4 h-4" /> Falar Agora
                 </a>
               </div>
@@ -183,7 +183,7 @@ function LandingPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05, duration: 0.8 }}
             className="mt-10 flex flex-col sm:flex-row gap-4 items-start">
             <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-              className="group relative inline-flex items-center gap-3 bg-[#C9A961] text-[var(--c-bg)] px-8 py-4 rounded-full text-sm font-medium tracking-wide overflow-hidden shadow-[0_20px_50px_-12px_rgba(201,169,97,0.5)]">
+              className="group relative inline-flex items-center gap-3 bg-[#C9A961] text-[#0F0F0F] px-8 py-4 rounded-full text-sm font-medium tracking-wide overflow-hidden shadow-[0_20px_50px_-12px_rgba(201,169,97,0.5)]">
               <span className="absolute inset-0 bg-[var(--c-text)] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
               <span className="relative flex items-center gap-3">
                 Falar com a Defesa Agora
@@ -249,7 +249,7 @@ function LandingPage() {
               >
                 <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 4 + i, ease: "easeInOut", repeat: Infinity }}
                   className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#C9A961] to-[#8a6f3f] flex items-center justify-center mb-6 shadow-lg shadow-[#C9A961]/20">
-                  <d.icon className="w-6 h-6 text-[var(--c-bg)]" strokeWidth={2.2} />
+                  <d.icon className="w-6 h-6 text-[#0F0F0F]" strokeWidth={2.2} />
                 </motion.div>
                 <h3 className="font-[Playfair_Display,serif] text-xl text-[var(--c-text)] mb-3">{d.title}</h3>
                 <p className="text-sm text-[var(--c-text)]/65 leading-relaxed">{d.desc}</p>
@@ -416,7 +416,7 @@ function LandingPage() {
                   </label>
                 </div>
                 <button type="submit"
-                  className="group relative w-full inline-flex items-center justify-center gap-3 bg-[#C9A961] text-[var(--c-bg)] px-8 py-4 rounded-full text-sm font-medium tracking-wide overflow-hidden shadow-[0_20px_50px_-12px_rgba(201,169,97,0.5)]">
+                  className="group relative w-full inline-flex items-center justify-center gap-3 bg-[#C9A961] text-[#0F0F0F] px-8 py-4 rounded-full text-sm font-medium tracking-wide overflow-hidden shadow-[0_20px_50px_-12px_rgba(201,169,97,0.5)]">
                   <span className="absolute inset-0 bg-[var(--c-text)] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                   <span className="relative flex items-center gap-3">
                     Solicitar Consulta Reservada
@@ -457,7 +457,7 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#C9A961] to-[#8a6f3f] flex items-center justify-center">
-              <Scale className="w-4 h-4 text-[var(--c-bg)]" strokeWidth={2.4} />
+              <Scale className="w-4 h-4 text-[#0F0F0F]" strokeWidth={2.4} />
             </div>
             <div className="font-[Playfair_Display,serif] leading-tight">
               <div className="text-sm font-bold text-[var(--c-text)]">Cavalcanti Advogados</div>
