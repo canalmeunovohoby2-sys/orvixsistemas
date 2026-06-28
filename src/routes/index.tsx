@@ -610,7 +610,7 @@ function FluidBackground() {
       {ORBS.map((o, i) => (
         <motion.div
           key={`orb-${i}`}
-          className="absolute rounded-full filter blur-[130px] mix-blend-soft-light"
+          className="absolute rounded-full filter blur-[130px] mix-blend-screen"
           style={{
             width: o.size, height: o.size, top: o.top, left: o.left, opacity: o.opacity,
             background: `radial-gradient(circle, ${o.color} 0%, transparent 70%)`,
