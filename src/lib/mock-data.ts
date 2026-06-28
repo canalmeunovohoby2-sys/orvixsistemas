@@ -623,7 +623,7 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
 
   try {
     const queries = [
-      fetchCosmosBluesoft(ean, controller.signal),
+      fetchBrazilMarket(ean, controller.signal),
       fetchOpenFoodFacts(ean, controller.signal),
       fetchOpenBeautyFacts(ean, controller.signal),
       fetchOpenProductsFacts(ean, controller.signal),
@@ -632,7 +632,7 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
     const winner = await new Promise<CatalogHit | null>((resolve) => {
       let pending = queries.length;
       queries.forEach((q) =>
-        q.then((hit) => {
+        q.then((hit: CatalogHit | null) => {
           if (hit) resolve(hit);
           else if (--pending === 0) resolve(null);
         }).catch(() => { if (--pending === 0) resolve(null); }),
