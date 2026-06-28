@@ -18,6 +18,7 @@ export const formatQty = (qty: number, unit: Unit) =>
 
 export type Product = {
   id: string;
+  company_id: string;
   ean: string;
   name: string;
   category: string;
@@ -32,6 +33,7 @@ export type Product = {
 
 export type Sale = {
   id: string;
+  company_id: string;
   date: string;
   customer: string;
   total: number;
@@ -44,6 +46,7 @@ export type Sale = {
 
 export type Movement = {
   id: string;
+  company_id: string;
   date: string;
   product: string;
   type: "Entrada" | "Saída" | "Ajuste";
@@ -53,6 +56,7 @@ export type Movement = {
 
 export type Person = {
   id: string;
+  company_id: string;
   name: string;
   doc: string;
   email: string;
