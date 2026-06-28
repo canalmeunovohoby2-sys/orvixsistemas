@@ -28,8 +28,12 @@ export const Route = createRootRoute({
         children: `
           (function() {
             try {
-              var t = localStorage.getItem('meusaas_theme') || 'dark';
+              var t = localStorage.getItem('meusaas_theme');
+              if (!t) {
+                t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+              }
               if (t === 'dark') document.documentElement.classList.add('dark');
+              else document.documentElement.classList.remove('dark');
             } catch(e) { document.documentElement.classList.add('dark'); }
           })();
         `,
