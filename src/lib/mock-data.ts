@@ -244,9 +244,11 @@ export const CREDIT_DEBTS: CreditDebt[] = (() => {
 
 // Simple reactive layer so multiple routes/components re-render on changes.
 const __listeners = new Set<() => void>();
-export const subscribeMockStore = (fn: () => void) => {
+export const subscribeMockStore = (fn: () => void): (() => void) => {
   __listeners.add(fn);
-  return () => __listeners.delete(fn);
+  return () => {
+    __listeners.delete(fn);
+  };
 };
 const __emit = () => __listeners.forEach((l) => l());
 
