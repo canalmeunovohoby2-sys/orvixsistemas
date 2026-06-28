@@ -152,7 +152,8 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
   const decimalStep = isFractional(unit) ? "0.01" : "1";
 
   async function runLookup(code: string) {
-    if (code.length !== 13 || lastSearched.current === code) return;
+    // Padrões globais aceitos: EAN-8, UPC-A (12) e EAN-13. Sem trava de prefixo (país).
+    if (![8, 12, 13].includes(code.length) || lastSearched.current === code) return;
     lastSearched.current = code;
     setLookup("searching");
     const hit = await lookupEan(code);
@@ -177,11 +178,11 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
   function handleEanChange(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 13);
     setEan(digits);
-    if (digits.length < 13) {
+    if ([8, 12, 13].includes(digits.length)) {
+      runLookup(digits);
+    } else {
       setLookup("idle");
       lastSearched.current = "";
-    } else {
-      runLookup(digits);
     }
   }
 
@@ -250,7 +251,7 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
                 type="text"
                 inputMode="numeric"
                 autoFocus
-                placeholder="Bipe ou digite os 13 dígitos"
+                placeholder="Bipe ou digite o código (EAN-8, UPC-A ou EAN-13)"
                 value={ean}
                 onChange={(e) => handleEanChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runLookup(ean); } }}
