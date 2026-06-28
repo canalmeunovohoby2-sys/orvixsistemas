@@ -5,7 +5,8 @@ import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/l
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { Banknote, CreditCard, Download, QrCode, TrendingUp, Trophy, Wallet } from "lucide-react";
+import { Banknote, CreditCard, Download, QrCode, Sparkles, TrendingUp, Trophy, Wallet } from "lucide-react";
+import { useMockStore } from "@/hooks/use-mock-store";
 
 export const Route = createFileRoute("/relatorios")({
   head: () => ({
@@ -30,7 +31,8 @@ type PaymentRow = {
 };
 
 function RelatoriosPage() {
-  const { closing, totals, abc } = useMemo(() => computeReport(), []);
+  useMockStore();
+  const { closing, totals, abc, forecast } = useMemo(() => computeReport(), [SALES.length]);
 
   return (
     <AppShell title="Relatórios" breadcrumb={["Meu Saas", "Relatórios"]}>
@@ -47,6 +49,9 @@ function RelatoriosPage() {
 
       {/* ─── Fechamento de caixa ─── */}
       <CashClosing closing={closing} totals={totals} />
+
+      {/* ─── Previsão de recebimento futuro ─── */}
+      <Forecast forecast={forecast} />
 
       {/* ─── Curva ABC ─── */}
       <CurvaABC abc={abc} />
@@ -95,6 +100,69 @@ function RelatoriosPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+/* ─────────────── Future receivables forecast ─────────────── */
+
+type ForecastMonth = { key: string; label: string; amount: number; saleCount: number };
+
+function Forecast({ forecast }: { forecast: { months: ForecastMonth[]; total: number; salesParceladas: number } }) {
+  const { months, total, salesParceladas } = forecast;
+  const max = Math.max(1, ...months.map((m) => m.amount));
+  return (
+    <section aria-labelledby="forecast" className="glass rounded-xl p-5 mb-6 border border-border">
+      <header className="flex flex-wrap items-end justify-between gap-3 mb-5">
+        <div>
+          <h2 id="forecast" className="text-base font-semibold inline-flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" /> 🔮 Previsão de Recebimento Futuro
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Parcelas líquidas de cartão de crédito já garantidas pelas vendas concluídas · {salesParceladas} venda(s) parcelada(s)
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">A receber (total)</p>
+          <p className="text-xl font-bold tabular-nums text-emerald-500">{BRL(total)}</p>
+        </div>
+      </header>
+
+      {months.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic px-1">
+          Nenhuma venda parcelada no crédito ainda. Ao registrar uma venda em <strong className="not-italic text-foreground">2x ou mais</strong> no PDV,
+          o fluxo futuro aparece automaticamente aqui.
+        </p>
+      ) : (
+        <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {months.map((m) => {
+            const pct = (m.amount / max) * 100;
+            return (
+              <li key={m.key} className="p-3 rounded-lg bg-secondary/50 border border-border flex flex-col gap-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{m.label}</p>
+                  <p className="text-[10px] tabular-nums text-muted-foreground">{m.saleCount}×</p>
+                </div>
+                <p className="text-sm font-bold tabular-nums text-emerald-500">{BRL(m.amount)}</p>
+                <div className="h-1.5 w-full bg-background/60 rounded-full overflow-hidden border border-border">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500/60 to-emerald-500 rounded-full transition-all"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="mt-4 text-[11px] text-muted-foreground italic">
+        Cálculo simulado: valor líquido (bruto − taxa de crédito 3,2%) dividido pelas parcelas, com cada parcela caindo a cada 30 dias.
+      </p>
+    </section>
   );
 }
 
@@ -308,5 +376,48 @@ function computeReport() {
     closing,
     totals: { bruto, liquido, qtdVendas, ticketMedio, lucroOp: liquido * 0.324 },
     abc: { byVolume, byReceita },
+    forecast: computeForecast(),
   };
+}
+
+function computeForecast(): { months: ForecastMonth[]; total: number; salesParceladas: number } {
+  const now = new Date();
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const buckets = new Map<string, { amount: number; saleCount: number; date: Date }>();
+  let salesParceladas = 0;
+
+  for (const s of SALES) {
+    if (s.status !== "concluida") continue;
+    if (s.payment !== "Cartão") continue;
+    const n = s.installments ?? 1;
+    if (n <= 1) continue;
+    salesParceladas += 1;
+    const liquido = s.total * (1 - 0.032);
+    const perParcel = +(liquido / n).toFixed(2);
+    const saleDate = new Date(s.date);
+    for (let i = 1; i <= n; i++) {
+      const due = new Date(saleDate);
+      due.setMonth(due.getMonth() + i);
+      const key = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}`;
+      // Apenas meses futuros (descarta parcelas que já venceram).
+      if (key <= thisMonthKey) continue;
+      const b = buckets.get(key) ?? { amount: 0, saleCount: 0, date: new Date(due.getFullYear(), due.getMonth(), 1) };
+      b.amount = +(b.amount + perParcel).toFixed(2);
+      b.saleCount += 1;
+      buckets.set(key, b);
+    }
+  }
+
+  const months: ForecastMonth[] = [...buckets.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 12)
+    .map(([key, v]) => ({
+      key,
+      label: v.date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", ""),
+      amount: v.amount,
+      saleCount: v.saleCount,
+    }));
+
+  const total = months.reduce((a, m) => a + m.amount, 0);
+  return { months, total, salesParceladas };
 }

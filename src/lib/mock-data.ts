@@ -38,6 +38,8 @@ export type Sale = {
   items: number;
   payment: "Dinheiro" | "Cartão" | "Pix";
   status: "concluida" | "pendente" | "cancelada";
+  /** Parcelas no crédito (1 = à vista). Definido apenas quando payment === "Cartão". */
+  installments?: number;
 };
 
 export type Movement = {
@@ -160,13 +162,20 @@ export const SUPPLIERS: Person[] = SUPS.map((name, i) => ({
 export const SALES: Sale[] = Array.from({ length: 28 }, (_, i) => {
   const d = new Date();
   d.setDate(d.getDate() - i);
+  const payment = pick(["Dinheiro", "Cartão", "Pix"] as const);
+  // Cerca de 60% das vendas no Cartão saem parceladas em 2x–12x; o resto, à vista.
+  const installments =
+    payment === "Cartão"
+      ? (r() > 0.4 ? pick([2, 3, 4, 6, 10, 12] as const) : 1)
+      : undefined;
   return {
     id: `V${String(20240 + i).padStart(5, "0")}`,
     date: d.toISOString(),
     customer: pick(CUST_NAMES),
     total: +(num(80, 4500) + r()).toFixed(2),
     items: num(1, 12),
-    payment: pick(["Dinheiro", "Cartão", "Pix"] as const),
+    payment,
+    installments,
     status: r() > 0.12 ? "concluida" : r() > 0.5 ? "pendente" : "cancelada",
   };
 });
@@ -270,6 +279,34 @@ export const subscribeMockStore = (fn: () => void): (() => void) => {
 const __emit = () => __listeners.forEach((l) => l());
 
 let __debtSeq = 9500;
+
+/* ---------------------------------------------------------------- */
+/*  Sales registration (PDV → SALES history + reactive emit)         */
+/* ---------------------------------------------------------------- */
+
+let __saleSeq = 20300;
+export function registerSale(input: {
+  total: number;
+  items: number;
+  payment: Sale["payment"];
+  customer?: string;
+  installments?: number;
+}): Sale {
+  const sale: Sale = {
+    id: `V${String(__saleSeq++).padStart(5, "0")}`,
+    date: new Date().toISOString(),
+    customer: input.customer || "Consumidor",
+    total: +input.total.toFixed(2),
+    items: input.items,
+    payment: input.payment,
+    status: "concluida",
+    installments: input.payment === "Cartão" ? Math.max(1, Math.min(12, input.installments ?? 1)) : undefined,
+  };
+  SALES.unshift(sale);
+  __emit();
+  return sale;
+}
+
 export function addCreditDebt(customerId: string, amount: number, ref?: string): CreditDebt | null {
   const c = CUSTOMERS.find((p) => p.id === customerId);
   if (!c || amount <= 0) return null;

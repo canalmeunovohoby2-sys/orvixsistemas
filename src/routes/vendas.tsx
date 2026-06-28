@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
-  BRL, PRODUCTS, SALES,
+  BRL, PRODUCTS, SALES, registerSale,
   formatQty, isFractional,
   type Product, type Sale,
 } from "@/lib/mock-data";
@@ -43,7 +43,9 @@ const PAYMENT_METHODS: { id: PaymentMethod; icon: typeof Banknote }[] = [
   { id: "Débito", icon: CreditCard },
 ];
 
-type Split = { method: PaymentMethod; amount: number };
+type Split = { method: PaymentMethod; amount: number; installments?: number };
+
+const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function VendasPage() {
   useMockStore();
@@ -101,8 +103,20 @@ function VendasPage() {
       if (p) p.stock = +Math.max(0, p.stock - item.qty).toFixed(3);
     });
 
+    // Register sale into mock history (so Relatórios → Previsão captura parcelas).
+    const credSplit = splits.find((s) => s.method === "Crédito");
+    const primary = splits[0]?.method ?? "Dinheiro";
+    const mappedPayment: Sale["payment"] =
+      primary === "Crédito" || primary === "Débito" ? "Cartão" : primary;
+    registerSale({
+      total,
+      items: cart.length,
+      payment: mappedPayment,
+      installments: credSplit?.installments ?? 1,
+    });
+
     toast.success(`Venda concluída — ${BRL(total)}`, {
-      description: `${cart.length} item(ns) · ${splits.map((s) => s.method).join(" + ") || "—"}`,
+      description: `${cart.length} item(ns) · ${splits.map((s) => s.method === "Crédito" && s.installments && s.installments > 1 ? `Crédito ${s.installments}x` : s.method).join(" + ") || "—"}`,
     });
     setCart([]);
     setSplits([]);
@@ -145,7 +159,14 @@ function VendasPage() {
 
   const addSplit = (method: PaymentMethod, amount: number) => {
     if (amount <= 0) return;
-    setSplits((s) => [...s, { method, amount: +amount.toFixed(2) }]);
+    setSplits((s) => [
+      ...s,
+      { method, amount: +amount.toFixed(2), ...(method === "Crédito" ? { installments: 1 } : {}) },
+    ]);
+  };
+
+  const setSplitInstallments = (idx: number, n: number) => {
+    setSplits((arr) => arr.map((s, i) => (i === idx ? { ...s, installments: n } : s)));
   };
 
   const cols: Column<Sale>[] = [
@@ -296,9 +317,24 @@ function VendasPage() {
           {splits.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {splits.map((s, i) => (
-                <li key={i} className="flex items-center justify-between text-xs bg-secondary/60 border border-border rounded px-2.5 py-1.5">
-                  <span className="font-semibold">{s.method}</span>
-                  <span className="flex items-center gap-2 tabular-nums">
+                <li key={i} className="flex items-center justify-between gap-2 text-xs bg-secondary/60 border border-border rounded px-2.5 py-1.5">
+                  <span className="font-semibold shrink-0">{s.method}</span>
+                  {s.method === "Crédito" && (
+                    <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="uppercase tracking-wider font-semibold">Parcelas</span>
+                      <select
+                        value={s.installments ?? 1}
+                        onChange={(e) => setSplitInstallments(i, parseInt(e.target.value, 10))}
+                        aria-label="Parcelas no crédito"
+                        className="h-6 px-1.5 rounded border border-border bg-card text-foreground text-[11px] font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+                      >
+                        {INSTALLMENT_OPTIONS.map((n) => (
+                          <option key={n} value={n}>{n}x{n > 1 ? ` · ${BRL(s.amount / n)}` : " à vista"}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <span className="flex items-center gap-2 tabular-nums ml-auto">
                     {BRL(s.amount)}
                     <button onClick={() => setSplits((arr) => arr.filter((_, j) => j !== i))} aria-label="Remover" className="text-muted-foreground hover:text-primary">
                       <X className="w-3 h-3" />
