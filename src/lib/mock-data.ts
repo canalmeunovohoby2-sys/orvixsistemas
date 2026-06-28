@@ -596,15 +596,25 @@ async function fetchVtexPublic(ean: string, signal: AbortSignal): Promise<Catalo
 }
 
 /**
- * Lookup EAN universal: JSON puro, sem autenticação, sem scraping.
- *  1. Catálogo local (instantâneo, offline).
- *  2. VTEX público (BR) via corsproxy.io.
- *  3. Fallback: Open Food Facts (CORS aberto, sem proxy).
- *  4. Qualquer falha / timeout 4s → null → card amarelo + toast manual.
+ * Mapa de interceptação de demonstração comercial — códigos reais de mercado
+ * com dados estruturados injetados instantaneamente (pitch de vendas).
+ */
+const DEMO_EAN_MAP: Record<string, { name: string; brand: string; category: string }> = {
+  "7896098909751": { name: "Sabão em Pó Tixan Ypê Primavera 1kg", brand: "Ypê", category: "Limpeza" },
+  "7891350037809": { name: "Desodorante Aerosol Avanço Reg regular 150ml", brand: "Avanço", category: "Higiene" },
+  "7894900011517": { name: "Coca-Cola Original 2L", brand: "Coca-Cola", category: "Bebidas" },
+  "7891000100101": { name: "Refrigerante Coca-Cola Lata 350ml", brand: "Coca-Cola", category: "Bebidas" },
+};
+
+/**
+ * Lookup EAN — Interceptador Híbrido:
+ *  1. Catálogo local (instantâneo).
+ *  2. Mapa de demonstração → delay de 1s simulando cloud → sucesso garantido.
+ *  3. APIs públicas (OpenFoodFacts) com timeout de 2s → null para contingência.
  */
 export async function lookupEan(ean: string): Promise<CatalogHit | null> {
   console.log(
-    `%c[lookupEan] EAN="${ean}" (${ean.length} dígitos) — VTEX → OpenFoodFacts`,
+    `%c[lookupEan] EAN="${ean}" (${ean.length} dígitos)`,
     "color:#10b981;font-weight:bold",
   );
 
@@ -614,23 +624,24 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
     return local;
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 4000);
+  // Interceptador de demonstração — simula latência de cloud (1s) e retorna sucesso.
+  const demo = DEMO_EAN_MAP[ean];
+  if (demo) {
+    console.log("🎬 demo intercept (1s simulado):", demo);
+    await new Promise((r) => setTimeout(r, 1000));
+    return normalizeHit(ean, demo);
+  }
 
+  // Fora do mapa: tenta APIs JSON públicas com timeout de 2s.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2000);
   try {
-    // 1) tentativa primária: VTEX público (BR)
-    const primary = await fetchVtexPublic(ean, controller.signal);
-    if (primary) {
-      console.log("🏆 VTEX público:", primary);
-      return primary;
+    const hit = await fetchOpenFoodFacts(ean, controller.signal);
+    if (hit) {
+      console.log("🏆 Open Food Facts:", hit);
+      return hit;
     }
-    // 2) fallback redundante: Open Food Facts (sem proxy, CORS liberado)
-    const fallback = await fetchOpenFoodFacts(ean, controller.signal);
-    if (fallback) {
-      console.log("🏆 Open Food Facts:", fallback);
-      return fallback;
-    }
-    console.warn("🚫 nenhuma base retornou — contingência manual");
+    console.warn("🚫 não encontrado em base pública — contingência manual");
     return null;
   } catch (err) {
     console.error("[lookupEan] exceção:", err);
