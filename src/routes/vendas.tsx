@@ -70,6 +70,7 @@ function VendasPage() {
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [highlight, setHighlight] = useState(0);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
@@ -80,6 +81,9 @@ function VendasPage() {
     const n = q.toLowerCase();
     return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q)).slice(0, 6);
   }, [q]);
+
+  // Reset do índice destacado sempre que a lista filtrada mudar.
+  useEffect(() => { setHighlight(0); }, [q]);
 
   const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
   const discountValue = Math.min(subtotal, discount);
@@ -325,12 +329,37 @@ function VendasPage() {
                 if (/^\d{13}$/.test(v.trim())) tryScanBarcode(v);
               }}
               onKeyDown={(e) => {
+                // Navegação por setas dentro do dropdown de sugestões
+                if (results.length > 0 && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+                  e.preventDefault();
+                  setHighlight((h) => {
+                    const len = results.length;
+                    return e.key === "ArrowDown" ? (h + 1) % len : (h - 1 + len) % len;
+                  });
+                  return;
+                }
+                if (e.key === "Escape") {
+                  if (q) {
+                    e.preventDefault();
+                    setQ("");
+                  }
+                  return;
+                }
                 if (e.key !== "Enter") return;
                 e.preventDefault();
-                // 1) Enter de leitor (string só de dígitos, 8–14 chars)
-                if (tryScanBarcode(q)) return;
-                // 2) Enter manual: usa o primeiro resultado da busca por nome
-                if (results[0]) add(results[0]);
+                // 1) EAN-13 válido → busca direta por código de barras
+                if (/^\d{13}$/.test(q.trim())) {
+                  tryScanBarcode(q);
+                  return;
+                }
+                // 2) Item destacado no dropdown → insere imediatamente
+                if (results.length > 0) {
+                  add(results[highlight] ?? results[0]);
+                  requestAnimationFrame(() => searchRef.current?.focus());
+                  return;
+                }
+                // 3) Fallback: tenta tratar como código de barras de outro tamanho
+                tryScanBarcode(q);
               }}
               placeholder="Bipe o código de barras ou digite o nome... (F1)"
               aria-label="Buscar produto ou bipar código de barras"
@@ -344,9 +373,14 @@ function VendasPage() {
                 initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="mt-2 rounded-lg border border-border bg-card divide-y divide-border max-h-72 overflow-auto"
               >
-                {results.map((p) => (
+                {results.map((p, idx) => (
                   <li key={p.id}>
-                    <button onClick={() => add(p)} className="w-full flex items-center justify-between p-3 text-left hover:bg-accent/60 transition">
+                    <button
+                      onClick={() => add(p)}
+                      onMouseEnter={() => setHighlight(idx)}
+                      data-active={idx === highlight}
+                      className="w-full flex items-center justify-between p-3 text-left transition data-[active=true]:bg-primary/15 data-[active=true]:text-primary hover:bg-accent/60"
+                    >
                       <div className="min-w-0">
                         <p className="font-medium truncate">{p.name}</p>
                         <p className="text-xs text-muted-foreground font-mono">
