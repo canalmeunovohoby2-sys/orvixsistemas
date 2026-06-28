@@ -252,8 +252,18 @@ function VendasPage() {
         searchRef.current?.focus();
         searchRef.current?.select();
       } else if (e.key === "F2") {
-        setShowDiscount(true);
-        setTimeout(() => discountRef.current?.focus(), 50);
+        // Toggle bidirecional: abre + foca, ou fecha + devolve foco ao F1.
+        setShowDiscount((open) => {
+          if (open) {
+            requestAnimationFrame(() => searchRef.current?.focus());
+            return false;
+          }
+          setTimeout(() => {
+            discountRef.current?.focus();
+            discountRef.current?.select();
+          }, 50);
+          return true;
+        });
       } else if (e.key === "F4") {
         setShowPayment((v) => !v);
       } else if (e.key === "F12") {
@@ -295,7 +305,10 @@ function VendasPage() {
           setShowPayment(false);
           requestAnimationFrame(() => searchRef.current?.focus());
         }
-        setShowDiscount(false);
+        if (showDiscount) {
+          setShowDiscount(false);
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }
         setShowCancel(false);
       }
     };
