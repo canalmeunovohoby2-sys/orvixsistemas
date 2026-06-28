@@ -2,9 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, PRODUCTS, UNITS, formatQty, isFractional, type Product, type Unit } from "@/lib/mock-data";
+import { BRL, PRODUCTS, UNITS, deleteProduct, formatQty, isFractional, type Product, type Unit } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Plus, X } from "lucide-react";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { useMockStore } from "@/hooks/use-mock-store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/produtos")({
   head: () => ({
@@ -21,6 +24,7 @@ export const Route = createFileRoute("/produtos")({
 });
 
 function ProdutosPage() {
+  useMockStore();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "low" | "inactive">("all");
 
@@ -57,6 +61,26 @@ function ProdutosPage() {
         <StatusBadge kind={r.status === "ativo" ? "success" : "warn"}>
           {r.status === "ativo" ? "Ativo" : "Inativo"}
         </StatusBadge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "",
+      align: "right",
+      render: (r) => (
+        <div className="flex justify-end">
+          <ConfirmDelete
+            triggerAriaLabel={`Remover ${r.name}`}
+            triggerTitle="Remover produto"
+            title="Remover produto?"
+            description={<>Deseja mesmo excluir o produto <strong className="text-foreground">{r.name}</strong>? Esta ação não poderá ser desfeita e ele será removido do inventário.</>}
+            confirmLabel="Sim, excluir produto"
+            onConfirm={() => {
+              const name = r.name;
+              if (deleteProduct(r.id)) toast.success(`Produto "${name}" excluído.`);
+            }}
+          />
+        </div>
       ),
     },
   ];
