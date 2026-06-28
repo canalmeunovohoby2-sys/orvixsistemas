@@ -442,14 +442,64 @@ export const EAN_CATALOG: CatalogHit[] = [
   { ean: "7891035001119", name: "Creme Dental Colgate Total 12 90g", brand: "Colgate", category: "Higiene", unit: "un" },
 ];
 
-/** Simulated commercial catalog lookup. Returns the hit (or null) after a small delay. */
-export function lookupEan(ean: string, delayMs = 700): Promise<CatalogHit | null> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const hit = EAN_CATALOG.find((c) => c.ean === ean) || null;
-      resolve(hit);
-    }, delayMs);
-  });
+/** Cleans a category tag from Open Food Facts (e.g. "en:beverages" → "Beverages"). */
+function cleanCategory(raw: string): string {
+  const stripped = raw.includes(":") ? raw.split(":").pop()! : raw;
+  return stripped
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** Picks the most specific (last) human category from Open Food Facts arrays. */
+function pickCategory(p: any): string {
+  if (Array.isArray(p?.categories_tags) && p.categories_tags.length) {
+    return cleanCategory(p.categories_tags[p.categories_tags.length - 1]);
+  }
+  if (typeof p?.categories === "string" && p.categories.trim()) {
+    const parts = p.categories.split(",").map((s: string) => s.trim()).filter(Boolean);
+    if (parts.length) return cleanCategory(parts[parts.length - 1]);
+  }
+  return "Geral";
+}
+
+async function fetchOpenFoodFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const url = `https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
+  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.status !== 1 || !data?.product) return null;
+  const p = data.product;
+  const name: string = (p.product_name_pt || p.product_name || "").trim();
+  const brand: string = (typeof p.brands === "string" ? p.brands.split(",")[0] : "").trim();
+  if (!name && !brand) return null;
+  return {
+    ean,
+    name: name || (brand ? `${brand} (${ean})` : `Produto ${ean}`),
+    brand: brand || "—",
+    category: pickCategory(p),
+    unit: "un",
+  };
+}
+
+/**
+ * Real EAN lookup. First checks our local seed catalog (instant), then queries
+ * the free public Open Food Facts API. Times out after 4s and resolves to null
+ * on any failure, triggering the manual-registration contingency in the UI.
+ */
+export async function lookupEan(ean: string): Promise<CatalogHit | null> {
+  const local = EAN_CATALOG.find((c) => c.ean === ean);
+  if (local) return local;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    return await fetchOpenFoodFacts(ean, controller.signal);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /* ---------------------------------------------------------------- */
