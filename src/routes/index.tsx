@@ -627,7 +627,7 @@ function FluidBackground() {
           className="absolute text-[#C9A961]"
           style={{
             width: f.size, height: f.size, top: f.top, left: f.left,
-            opacity: 0.055, filter: "blur(0.4px) drop-shadow(0 0 22px rgba(201,169,97,0.25))",
+            opacity: 0.16, filter: "drop-shadow(0 0 28px rgba(201,169,97,0.5))",
           }}
           animate={{ x: f.x, y: f.y, rotate: f.rotate }}
           transition={{ duration: f.duration, ease: "easeInOut", repeat: Infinity }}
