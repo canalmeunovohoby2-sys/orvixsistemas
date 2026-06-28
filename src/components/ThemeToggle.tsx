@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 
-const STORAGE_KEY = "continuum_theme";
+const STORAGE_KEY = "meusaas_theme";
 type Theme = "light" | "dark";
 
 function getInitial(): Theme {
@@ -36,7 +36,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={toggle}
       aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
       title={isDark ? "Modo claro" : "Modo escuro"}
-      className={`relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-[#C9A961]/30 bg-[var(--c-surface)]/40 backdrop-blur-md text-[#C9A961] hover:border-[#C9A961]/70 hover:shadow-[0_0_24px_-4px_rgba(201,169,97,0.6)] transition-all overflow-hidden ${className}`}
+      className={`relative inline-flex items-center justify-center w-10 h-10 rounded-md border border-border bg-secondary text-foreground hover:border-primary/60 hover:text-primary hover:shadow-[0_0_20px_-6px_var(--color-primary)] transition-all overflow-hidden ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         {mounted && (
@@ -48,7 +48,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0 flex items-center justify-center"
           >
-            {isDark ? <Moon className="w-4 h-4" strokeWidth={2} /> : <Sun className="w-4 h-4" strokeWidth={2} />}
+            {isDark ? <Moon className="w-[18px] h-[18px]" strokeWidth={2} /> : <Sun className="w-[18px] h-[18px]" strokeWidth={2} />}
           </motion.span>
         )}
       </AnimatePresence>
