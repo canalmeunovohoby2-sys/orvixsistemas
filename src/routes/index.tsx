@@ -596,12 +596,12 @@ function FluidBackground() {
 
   // Esferas de "névoa dourada" — atmosfera de autoridade.
   const ORBS = [
-    { size: 800, top: "-10%", left: "-5%", color: "#C9A961", opacity: 0.18, x: [0, 120, -60, 0], y: [0, -80, 50, 0], scale: [1, 1.12, 0.92, 1], d: 28 },
-    { size: 720, top: "15%", left: "78%", color: "#1F2937", opacity: 0.16, x: [0, -110, 70, 0], y: [0, 90, -50, 0], scale: [1, 0.9, 1.1, 1], d: 22 },
-    { size: 640, top: "60%", left: "12%", color: "#C9A961", opacity: 0.14, x: [0, 90, -70, 0], y: [0, -60, 40, 0], scale: [1, 1.1, 0.95, 1], d: 32 },
-    { size: 780, top: "70%", left: "70%", color: "#1F2937", opacity: 0.13, x: [0, -120, 80, 0], y: [0, 70, -40, 0], scale: [1, 1.06, 0.9, 1], d: 35 },
-    { size: 520, top: "40%", left: "38%", color: "#C9A961", opacity: 0.12, x: [0, 70, -90, 0], y: [0, -60, 80, 0], scale: [1, 1.14, 0.96, 1], d: 25 },
-    { size: 560, top: "5%", left: "55%", color: "#1F2937", opacity: 0.10, x: [0, 100, -70, 0], y: [0, 90, -50, 0], scale: [1, 0.94, 1.12, 1], d: 20 },
+    { size: 800, top: "-10%", left: "-5%", color: "#C9A961", opacity: 0.55, x: [0, 120, -60, 0], y: [0, -80, 50, 0], scale: [1, 1.12, 0.92, 1], d: 28 },
+    { size: 720, top: "15%", left: "78%", color: "#8B6F2E", opacity: 0.5, x: [0, -110, 70, 0], y: [0, 90, -50, 0], scale: [1, 0.9, 1.1, 1], d: 22 },
+    { size: 640, top: "60%", left: "12%", color: "#C9A961", opacity: 0.5, x: [0, 90, -70, 0], y: [0, -60, 40, 0], scale: [1, 1.1, 0.95, 1], d: 32 },
+    { size: 780, top: "70%", left: "70%", color: "#5C4A1F", opacity: 0.45, x: [0, -120, 80, 0], y: [0, 70, -40, 0], scale: [1, 1.06, 0.9, 1], d: 35 },
+    { size: 520, top: "40%", left: "38%", color: "#C9A961", opacity: 0.4, x: [0, 70, -90, 0], y: [0, -60, 80, 0], scale: [1, 1.14, 0.96, 1], d: 25 },
+    { size: 560, top: "5%", left: "55%", color: "#8B6F2E", opacity: 0.45, x: [0, 100, -70, 0], y: [0, 90, -50, 0], scale: [1, 0.94, 1.12, 1], d: 20 },
   ];
 
   return (
@@ -610,7 +610,7 @@ function FluidBackground() {
       {ORBS.map((o, i) => (
         <motion.div
           key={`orb-${i}`}
-          className="absolute rounded-full filter blur-[130px] mix-blend-soft-light"
+          className="absolute rounded-full filter blur-[130px] mix-blend-screen"
           style={{
             width: o.size, height: o.size, top: o.top, left: o.left, opacity: o.opacity,
             background: `radial-gradient(circle, ${o.color} 0%, transparent 70%)`,
@@ -627,7 +627,7 @@ function FluidBackground() {
           className="absolute text-[#C9A961]"
           style={{
             width: f.size, height: f.size, top: f.top, left: f.left,
-            opacity: 0.055, filter: "blur(0.4px) drop-shadow(0 0 22px rgba(201,169,97,0.25))",
+            opacity: 0.16, filter: "drop-shadow(0 0 28px rgba(201,169,97,0.5))",
           }}
           animate={{ x: f.x, y: f.y, rotate: f.rotate }}
           transition={{ duration: f.duration, ease: "easeInOut", repeat: Infinity }}
