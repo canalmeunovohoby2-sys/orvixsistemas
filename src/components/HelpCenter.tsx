@@ -187,6 +187,19 @@ export function HelpCenter() {
                 </span>
               </AccordionTrigger>
               <AccordionContent className="pb-5 space-y-5 text-sm text-muted-foreground">
+                <Section title="Cadastro rápido por código de barras">
+                  <Tip tone="ok">
+                    ⚡ <strong className="text-foreground">Cadastro em Segundos:</strong> no formulário de Novo Produto,
+                    bipe o código de barras ou clique no ícone da <strong className="text-foreground">câmera</strong> para
+                    escanear pelo celular. O sistema consultará o catálogo online e preencherá <strong className="text-foreground">Nome, Marca
+                    e Categoria</strong> automaticamente. Você só precisa definir os preços e a quantidade de estoque!
+                  </Tip>
+                  <Tip tone="warn">
+                    Se o código não estiver na base pública, o sistema avisa: <em>"Produto não encontrado na base pública.
+                    Deseja cadastrar manualmente?"</em> — todos os campos ficam liberados para você concluir o cadastro sem travar.
+                  </Tip>
+                </Section>
+
                 <Section title="Unidades de medida cadastradas">
                   <p>O cadastro de produto exige <strong className="text-foreground">obrigatoriamente</strong> uma unidade de medida.</p>
                   <div className="flex flex-wrap gap-1.5">

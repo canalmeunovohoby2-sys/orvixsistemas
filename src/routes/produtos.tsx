@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, PRODUCTS, UNITS, deleteProduct, formatQty, isFractional, type Product, type Unit } from "@/lib/mock-data";
+import { BRL, PRODUCTS, UNITS, addProduct, deleteProduct, formatQty, isFractional, lookupEan, type Product, type Unit } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Plus, X } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Loader2, Plus, ScanLine, X } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { toast } from "sonner";
@@ -127,9 +127,98 @@ function ProdutosPage() {
   );
 }
 
+type LookupState = "idle" | "searching" | "found" | "notfound";
+
 function ProductDrawer({ onClose }: { onClose: () => void }) {
+  const [ean, setEan] = useState("");
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [desc, setDesc] = useState("");
   const [unit, setUnit] = useState<Unit>("un");
+  const [costPrice, setCostPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [minStock, setMinStock] = useState("");
+
+  const [lookup, setLookup] = useState<LookupState>("idle");
+  const [autoFilled, setAutoFilled] = useState<Set<"name" | "brand" | "category" | "unit">>(new Set());
+  const [scanning, setScanning] = useState(false);
+
+  const costRef = useRef<HTMLInputElement>(null);
+  const lastSearched = useRef<string>("");
+
   const decimalStep = isFractional(unit) ? "0.01" : "1";
+
+  async function runLookup(code: string) {
+    if (code.length !== 13 || lastSearched.current === code) return;
+    lastSearched.current = code;
+    setLookup("searching");
+    const hit = await lookupEan(code);
+    if (hit) {
+      setName(hit.name);
+      setBrand(hit.brand);
+      setCategory(hit.category);
+      setUnit(hit.unit);
+      setAutoFilled(new Set(["name", "brand", "category", "unit"]));
+      setLookup("found");
+      toast.success(`Produto encontrado: ${hit.name}`, { description: `Marca: ${hit.brand} · Categoria: ${hit.category}` });
+      setTimeout(() => costRef.current?.focus(), 60);
+    } else {
+      setLookup("notfound");
+      setAutoFilled(new Set());
+      toast.warning("Produto não encontrado na base pública.", {
+        description: "Você pode cadastrá-lo manualmente abaixo — todos os campos estão liberados.",
+      });
+    }
+  }
+
+  function handleEanChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 13);
+    setEan(digits);
+    if (digits.length < 13) {
+      setLookup("idle");
+      lastSearched.current = "";
+    } else {
+      runLookup(digits);
+    }
+  }
+
+  function startCameraScan() {
+    if (scanning) return;
+    setScanning(true);
+    setTimeout(() => {
+      setScanning(false);
+      // pega o primeiro EAN do catálogo público como simulação de leitura bem-sucedida
+      const demoEan = "7894900011517";
+      setEan(demoEan);
+      runLookup(demoEan);
+    }, 1500);
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ean || !name || !category) {
+      toast.error("Preencha código, nome e categoria do produto.");
+      return;
+    }
+    const p = addProduct({
+      ean,
+      name,
+      brand: brand || undefined,
+      category,
+      unit,
+      costPrice: parseFloat(costPrice) || 0,
+      salePrice: parseFloat(salePrice) || 0,
+      stock: parseFloat(stock) || 0,
+      minStock: parseFloat(minStock) || 0,
+      supplier: supplier || undefined,
+    });
+    toast.success(`Produto "${p.name}" cadastrado.`);
+    onClose();
+  }
+
   return (
     <>
       <motion.div
@@ -149,26 +238,95 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
             <X className="w-4 h-4" />
           </button>
         </header>
-        <form className="flex-1 overflow-y-auto p-5 space-y-4" onSubmit={(e) => { e.preventDefault(); onClose(); }}>
-          {[
-            { id: "name", label: "Nome do produto", type: "text", placeholder: "Ex: Produto ou Item Comercial" },
-            { id: "ean", label: "Código EAN", type: "text", placeholder: "7891234567890" },
-            { id: "desc", label: "Descrição", type: "textarea" },
-            { id: "cat", label: "Categoria", type: "text", placeholder: "Ex: Alimentos, Papelaria, Eletrônicos…" },
-            { id: "sup", label: "Fornecedor", type: "text" },
-          ].map((f) => (
-            <Field key={f.id} {...f} />
-          ))}
+        <form className="flex-1 overflow-y-auto p-5 space-y-4" onSubmit={submit}>
+          {/* CÓDIGO EAN + CÂMERA */}
+          <div>
+            <label htmlFor="ean" className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+              Código EAN <span className="text-primary">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="ean"
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                placeholder="Bipe ou digite os 13 dígitos"
+                value={ean}
+                onChange={(e) => handleEanChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runLookup(ean); } }}
+                className="flex-1 px-3 py-2 rounded-md bg-secondary border border-border text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60"
+              />
+              <button
+                type="button"
+                onClick={startCameraScan}
+                disabled={scanning}
+                title="Escanear pela câmera do celular"
+                className="h-10 w-10 grid place-items-center rounded-md border border-border bg-secondary hover:bg-accent disabled:opacity-60"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Simulação de câmera */}
+            <AnimatePresence>
+              {scanning && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 overflow-hidden rounded-md border border-emerald-500/40 bg-black/85"
+                >
+                  <div className="relative h-32 overflow-hidden">
+                    <div className="absolute inset-0 grid place-items-center text-emerald-400/80 text-xs font-mono uppercase tracking-widest">
+                      <span className="flex items-center gap-2"><ScanLine className="w-3.5 h-3.5" /> escaneando código…</span>
+                    </div>
+                    <motion.div
+                      initial={{ top: "8%" }}
+                      animate={{ top: "92%" }}
+                      transition={{ duration: 0.9, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                      className="absolute left-4 right-4 h-[2px] bg-emerald-400 shadow-[0_0_12px_2px_rgba(16,185,129,0.85)]"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Feedback do lookup */}
+            {lookup === "searching" && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                🔍 Consultando produto na base comercial…
+              </div>
+            )}
+            {lookup === "found" && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-500 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Produto identificado — defina apenas os valores financeiros.
+              </div>
+            )}
+            {lookup === "notfound" && (
+              <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-[12px] text-foreground">
+                ⚠️ Produto não encontrado na base pública. Deseja cadastrá-lo manualmente? Todos os campos estão liberados abaixo.
+              </div>
+            )}
+          </div>
+
+          <FieldText id="name" label="Nome do produto" value={name} onChange={setName} highlight={autoFilled.has("name")} required />
+          <FieldText id="brand" label="Marca" value={brand} onChange={setBrand} highlight={autoFilled.has("brand")} placeholder="Ex: Coca-Cola, Tramontina, Nestlé…" />
+          <FieldText id="cat" label="Categoria" value={category} onChange={setCategory} highlight={autoFilled.has("category")} placeholder="Ex: Bebidas, Ferramentas, Higiene…" required />
+          <FieldTextarea id="desc" label="Descrição" value={desc} onChange={setDesc} />
+          <FieldText id="sup" label="Fornecedor" value={supplier} onChange={setSupplier} placeholder="Opcional" />
           <div>
             <label htmlFor="unit" className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
               Unidade de medida <span className="text-primary">*</span>
+              {autoFilled.has("unit") && <span className="ml-2 text-[10px] font-medium text-emerald-500 normal-case tracking-normal">· preenchido automaticamente</span>}
             </label>
             <select
               id="unit"
               required
               value={unit}
               onChange={(e) => setUnit(e.target.value as Unit)}
-              className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60"
+              className={`w-full px-3 py-2 rounded-md bg-secondary border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60 ${autoFilled.has("unit") ? "border-emerald-500/40" : "border-border"}`}
             >
               {UNITS.map((u) => (
                 <option key={u.value} value={u.value}>{u.label}</option>
@@ -181,10 +339,10 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field id="cost" label="Preço de custo (R$)" type="number" />
-            <Field id="sale" label="Preço de venda (R$)" type="number" step="0.01" min="0" />
-            <Field id="stock" label={`Estoque inicial (${unit})`} type="number" step={decimalStep} min="0" />
-            <Field id="min" label={`Estoque mínimo (${unit})`} type="number" step={decimalStep} min="0" />
+            <FieldNumber id="cost" label="Preço de custo (R$)" value={costPrice} onChange={setCostPrice} step="0.01" min="0" inputRef={costRef} />
+            <FieldNumber id="sale" label="Preço de venda (R$)" value={salePrice} onChange={setSalePrice} step="0.01" min="0" />
+            <FieldNumber id="stock" label={`Estoque inicial (${unit})`} value={stock} onChange={setStock} step={decimalStep} min="0" />
+            <FieldNumber id="min" label={`Estoque mínimo (${unit})`} value={minStock} onChange={setMinStock} step={decimalStep} min="0" />
           </div>
           <div className="pt-4 flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 h-10 rounded-md border border-border hover:bg-accent text-sm font-medium">Cancelar</button>
@@ -196,20 +354,52 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Field({ id, label, type, placeholder, options, step, min }: { id: string; label: string; type: string; placeholder?: string; options?: string[]; step?: string; min?: string }) {
-  const base = "w-full px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60";
+const baseInputCls =
+  "w-full px-3 py-2 rounded-md bg-secondary border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60";
+
+function FieldText({ id, label, value, onChange, placeholder, highlight, required }: { id: string; label: string; value: string; onChange: (v: string) => void; placeholder?: string; highlight?: boolean; required?: boolean }) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+        {label}{required && <span className="text-primary"> *</span>}
+        {highlight && <span className="ml-2 text-[10px] font-medium text-emerald-500 normal-case tracking-normal">· auto</span>}
+      </label>
+      <input
+        id={id}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${baseInputCls} ${highlight ? "border-emerald-500/40" : "border-border"}`}
+      />
+    </div>
+  );
+}
+
+function FieldTextarea({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
       <label htmlFor={id} className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">{label}</label>
-      {type === "textarea" ? (
-        <textarea id={id} rows={3} className={base} />
-      ) : type === "select" ? (
-        <select id={id} className={base}>
-          {options!.map((o) => <option key={o}>{o}</option>)}
-        </select>
-      ) : (
-        <input id={id} type={type} placeholder={placeholder} step={step} min={min} inputMode={type === "number" ? "decimal" : undefined} className={base} />
-      )}
+      <textarea id={id} rows={3} value={value} onChange={(e) => onChange(e.target.value)} className={`${baseInputCls} border-border`} />
+    </div>
+  );
+}
+
+function FieldNumber({ id, label, value, onChange, step, min, inputRef }: { id: string; label: string; value: string; onChange: (v: string) => void; step?: string; min?: string; inputRef?: React.Ref<HTMLInputElement> }) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">{label}</label>
+      <input
+        ref={inputRef}
+        id={id}
+        type="number"
+        value={value}
+        step={step}
+        min={min}
+        inputMode="decimal"
+        onChange={(e) => onChange(e.target.value)}
+        className={`${baseInputCls} border-border`}
+      />
     </div>
   );
 }

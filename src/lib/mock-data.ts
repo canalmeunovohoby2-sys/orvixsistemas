@@ -418,3 +418,71 @@ export function deleteMovement(id: string): boolean {
   if (ok) __emit();
   return ok;
 }
+
+/* ---------------------------------------------------------------- */
+/*  Public EAN catalog (mock — simulates a commercial GTIN lookup)  */
+/* ---------------------------------------------------------------- */
+
+export type CatalogHit = {
+  ean: string;
+  name: string;
+  brand: string;
+  category: string;
+  unit: Unit;
+};
+
+export const EAN_CATALOG: CatalogHit[] = [
+  { ean: "7894900011517", name: "Coca-Cola Original 2L", brand: "Coca-Cola", category: "Bebidas", unit: "un" },
+  { ean: "7891000100101", name: "Refrigerante Coca-Cola Lata 350ml", brand: "Coca-Cola", category: "Bebidas", unit: "un" },
+  { ean: "7892000200202", name: "Martelo de Unha Polido 27mm", brand: "Tramontina", category: "Ferramentas", unit: "un" },
+  { ean: "7891910000197", name: "Leite Integral Italac 1L", brand: "Italac", category: "Laticínios", unit: "un" },
+  { ean: "7891000053508", name: "Café Solúvel Nescafé 100g", brand: "Nescafé", category: "Mercearia", unit: "un" },
+  { ean: "7896005800010", name: "Biscoito Recheado Bono Chocolate 90g", brand: "Bono", category: "Biscoitos", unit: "un" },
+  { ean: "7891150056756", name: "Sabão em Pó Omo Lavagem Perfeita 1.6kg", brand: "Omo", category: "Limpeza", unit: "un" },
+  { ean: "7891035001119", name: "Creme Dental Colgate Total 12 90g", brand: "Colgate", category: "Higiene", unit: "un" },
+];
+
+/** Simulated commercial catalog lookup. Returns the hit (or null) after a small delay. */
+export function lookupEan(ean: string, delayMs = 700): Promise<CatalogHit | null> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const hit = EAN_CATALOG.find((c) => c.ean === ean) || null;
+      resolve(hit);
+    }, delayMs);
+  });
+}
+
+/* ---------------------------------------------------------------- */
+/*  Product registration (Cadastro rápido → PRODUCTS + reactive)    */
+/* ---------------------------------------------------------------- */
+
+let __prodSeq = PRODUCTS.length + 1;
+export function addProduct(input: {
+  ean: string;
+  name: string;
+  brand?: string;
+  category: string;
+  unit: Unit;
+  costPrice: number;
+  salePrice: number;
+  stock: number;
+  minStock: number;
+  supplier?: string;
+}): Product {
+  const p: Product = {
+    id: `P${String(__prodSeq++).padStart(4, "0")}`,
+    ean: input.ean,
+    name: input.brand ? `${input.name}${input.name.toLowerCase().includes(input.brand.toLowerCase()) ? "" : ` — ${input.brand}`}` : input.name,
+    category: input.category,
+    costPrice: +input.costPrice.toFixed(2),
+    salePrice: +input.salePrice.toFixed(2),
+    stock: +input.stock.toFixed(3),
+    minStock: +input.minStock.toFixed(3),
+    unit: input.unit,
+    supplier: input.supplier || SUPS[0],
+    status: "ativo",
+  };
+  PRODUCTS.unshift(p);
+  __emit();
+  return p;
+}
