@@ -152,6 +152,14 @@ export function HelpCenter() {
                     para isolar em um clique apenas os produtos críticos e gerar a lista de pedidos para os fornecedores.
                   </p>
                 </Section>
+
+                <Section title="Como remover registros">
+                  <Tip tone="danger">
+                    💡 <strong className="text-foreground">Como remover registros:</strong> para excluir um produto, clique no
+                    ícone da <strong className="text-primary">lixeira vermelha</strong> na linha correspondente e confirme no
+                    aviso de segurança. A ação é permanente e o item sai do inventário imediatamente.
+                  </Tip>
+                </Section>
               </AccordionContent>
             </AccordionItem>
 
@@ -188,6 +196,15 @@ export function HelpCenter() {
                     Use o atalho <Badge variant="outline" className="mx-1 align-middle">Quitar tudo</Badge> para liquidar
                     todo o saldo devedor em um clique.
                   </p>
+                </Section>
+
+                <Section title="Como remover registros">
+                  <Tip tone="danger">
+                    💡 <strong className="text-foreground">Como remover registros:</strong> para excluir um cliente, clique no
+                    ícone da <strong className="text-primary">lixeira vermelha</strong> na linha correspondente e confirme no
+                    aviso de segurança. <strong className="text-foreground">Atenção:</strong> clientes com dívidas ativas exibirão
+                    um alerta financeiro crítico antes da confirmação — a remoção apaga o histórico de débitos permanentemente.
+                  </Tip>
                 </Section>
               </AccordionContent>
             </AccordionItem>

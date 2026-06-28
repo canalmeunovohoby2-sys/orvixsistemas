@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, type Column } from "@/components/DataTable";
-import { SUPPLIERS, type Person } from "@/lib/mock-data";
+import { SUPPLIERS, deleteSupplier, type Person } from "@/lib/mock-data";
 import { Plus } from "lucide-react";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { useMockStore } from "@/hooks/use-mock-store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/fornecedores")({
   head: () => ({
@@ -19,6 +22,7 @@ export const Route = createFileRoute("/fornecedores")({
 });
 
 function FornecedoresPage() {
+  useMockStore();
   const cols: Column<Person>[] = [
     { key: "id", label: "Código", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
     { key: "name", label: "Razão social", render: (r) => <span className="font-medium">{r.name}</span> },
@@ -26,6 +30,26 @@ function FornecedoresPage() {
     { key: "email", label: "E-mail", render: (r) => <a href={`mailto:${r.email}`} className="text-sky-500 hover:underline">{r.email}</a> },
     { key: "phone", label: "Telefone" },
     { key: "city", label: "Cidade" },
+    {
+      key: "actions",
+      label: "",
+      align: "right",
+      render: (r) => (
+        <div className="flex justify-end">
+          <ConfirmDelete
+            triggerAriaLabel={`Remover ${r.name}`}
+            triggerTitle="Remover fornecedor"
+            title="Remover fornecedor?"
+            description={<>Deseja remover o fornecedor <strong className="text-foreground">{r.name}</strong> ({r.doc})? Esta ação é permanente e não poderá ser desfeita.</>}
+            confirmLabel="Sim, remover fornecedor"
+            onConfirm={() => {
+              const name = r.name;
+              if (deleteSupplier(r.id)) toast.success(`Fornecedor "${name}" removido.`);
+            }}
+          />
+        </div>
+      ),
+    },
   ];
   return (
     <AppShell title="Fornecedores" breadcrumb={["Meu Saas", "Fornecedores"]}>

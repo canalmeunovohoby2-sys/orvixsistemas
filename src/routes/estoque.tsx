@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { MOVEMENTS, PRODUCTS, formatQty, type Movement } from "@/lib/mock-data";
+import { MOVEMENTS, PRODUCTS, deleteMovement, formatQty, type Movement } from "@/lib/mock-data";
 import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw } from "lucide-react";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { useMockStore } from "@/hooks/use-mock-store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/estoque")({
   head: () => ({
@@ -20,6 +23,7 @@ export const Route = createFileRoute("/estoque")({
 });
 
 function EstoquePage() {
+  useMockStore();
   const totalEntradas = MOVEMENTS.filter(m => m.type === "Entrada").reduce((a, m) => a + m.qty, 0);
   const totalSaidas = MOVEMENTS.filter(m => m.type === "Saída").reduce((a, m) => a + m.qty, 0);
   const totalAjustes = MOVEMENTS.filter(m => m.type === "Ajuste").length;
@@ -33,6 +37,25 @@ function EstoquePage() {
       ) },
     { key: "qty", label: "Quantidade", align: "right", render: (r) => <span className="font-semibold">{r.qty}</span> },
     { key: "user", label: "Usuário", render: (r) => <span className="text-muted-foreground">{r.user}</span> },
+    {
+      key: "actions",
+      label: "",
+      align: "right",
+      render: (r) => (
+        <div className="flex justify-end">
+          <ConfirmDelete
+            triggerAriaLabel={`Remover movimentação ${r.id}`}
+            triggerTitle="Remover movimentação"
+            title="Expurgar movimentação?"
+            description={<>Deseja remover a movimentação <strong className="text-foreground">{r.id}</strong> ({r.type} · {r.product})? Esta ação é permanente e não poderá ser desfeita.</>}
+            confirmLabel="Sim, remover registro"
+            onConfirm={() => {
+              if (deleteMovement(r.id)) toast.success(`Movimentação ${r.id} removida.`);
+            }}
+          />
+        </div>
+      ),
+    },
   ];
 
   return (

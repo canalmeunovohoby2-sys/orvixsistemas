@@ -7,6 +7,7 @@ import {
   CUSTOMERS,
   CREDIT_DEBTS,
   applyCreditPayment,
+  deleteCustomer,
   updateCustomer,
   type Person,
   type CreditDebt,
@@ -15,6 +16,7 @@ import { useMockStore } from "@/hooks/use-mock-store";
 import { AlertTriangle, HandCoins, Pencil, Plus, ShieldCheck, Wallet, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -74,6 +76,20 @@ function ClientesPage() {
           <button onClick={() => setEditing(r)} aria-label="Editar" className="w-8 h-8 grid place-items-center rounded-md border border-border bg-secondary hover:bg-accent">
             <Pencil className="w-3.5 h-3.5" />
           </button>
+          <ConfirmDelete
+            triggerAriaLabel={`Remover ${r.name}`}
+            triggerTitle="Remover cliente"
+            title="Remover cliente?"
+            description={<>Você está prestes a remover <strong className="text-foreground">{r.name}</strong> ({r.id}). Esta ação é permanente e não poderá ser desfeita.</>}
+            criticalWarning={r.currentDebt > 0 ? (
+              <>⚠️ <strong>ATENÇÃO:</strong> Este cliente possui débitos ativos no Crediário ({BRL(r.currentDebt)})! Se você removê-lo, a dívida será perdida permanentemente.</>
+            ) : undefined}
+            confirmLabel="Sim, remover cliente"
+            onConfirm={() => {
+              const name = r.name;
+              if (deleteCustomer(r.id)) toast.success(`Cliente "${name}" removido.`);
+            }}
+          />
         </div>
       ), align: "right" },
   ];
