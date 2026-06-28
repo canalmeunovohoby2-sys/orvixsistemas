@@ -163,52 +163,6 @@ export function HelpCenter() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* Clientes / Crediário */}
-            <AccordionItem value="crediario" className="border border-border rounded-lg bg-card px-4">
-              <AccordionTrigger className="text-left hover:no-underline py-4">
-                <span className="flex items-center gap-2 font-semibold">
-                  <span aria-hidden>👥</span> Clientes &amp; Regras do Crediário
-                  <Badge variant="secondary" className="ml-2 font-mono text-[10px]">fiado seguro</Badge>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="pb-5 space-y-5 text-sm text-muted-foreground">
-                <Section title="Vendas no Crediário">
-                  <p>
-                    Para vender no fiado o operador <strong className="text-foreground">deve obrigatoriamente</strong> buscar e vincular o cliente
-                    (por nome ou CNPJ) no PDV antes de fechar a transação. O sistema lê o
-                    <strong className="text-foreground"> saldo devedor</strong> e o <strong className="text-foreground">limite disponível</strong> em tempo real.
-                  </p>
-                </Section>
-
-                <Section title="Bloqueio automático de limite">
-                  <Tip tone="danger">
-                    Se a venda atual <strong>estourar o limite de crédito</strong> configurado para o cliente, o botão
-                    <Badge variant="destructive" className="mx-1 align-middle">Crediário</Badge> é desabilitado e o sistema
-                    bloqueia a transação emitindo um toast crítico com o valor disponível restante.
-                  </Tip>
-                </Section>
-
-                <Section title="Amortização FIFO e quitação">
-                  <p>
-                    Na aba <strong className="text-foreground">Clientes</strong>, ao clicar no nome do devedor, um drawer abre o histórico de débitos.
-                    O botão <Badge className="mx-1 align-middle">💸 Receber Pagamento</Badge> abate o saldo seguindo a regra
-                    <strong className="text-foreground"> FIFO</strong> — pagando a dívida mais antiga primeiro.
-                    Use o atalho <Badge variant="outline" className="mx-1 align-middle">Quitar tudo</Badge> para liquidar
-                    todo o saldo devedor em um clique.
-                  </p>
-                </Section>
-
-                <Section title="Como remover registros">
-                  <Tip tone="danger">
-                    💡 <strong className="text-foreground">Como remover registros:</strong> para excluir um cliente, clique no
-                    ícone da <strong className="text-primary">lixeira vermelha</strong> na linha correspondente e confirme no
-                    aviso de segurança. <strong className="text-foreground">Atenção:</strong> clientes com dívidas ativas exibirão
-                    um alerta financeiro crítico antes da confirmação — a remoção apaga o histórico de débitos permanentemente.
-                  </Tip>
-                </Section>
-              </AccordionContent>
-            </AccordionItem>
-
             {/* Relatórios */}
             <AccordionItem value="relatorios" className="border border-border rounded-lg bg-card px-4">
               <AccordionTrigger className="text-left hover:no-underline py-4">
@@ -228,7 +182,7 @@ export function HelpCenter() {
                     <li className="flex items-center justify-between px-3 py-2"><span>💳 Cartão de Crédito</span><Badge variant="destructive" className="font-mono">−3.2%</Badge></li>
                     <li className="flex items-center justify-between px-3 py-2"><span>💳 Cartão de Débito</span><Badge variant="destructive" className="font-mono">−1.5%</Badge></li>
                     <li className="flex items-center justify-between px-3 py-2"><span>📲 Pix</span><Badge variant="destructive" className="font-mono">−0.99%</Badge></li>
-                    <li className="flex items-center justify-between px-3 py-2"><span>💵 Dinheiro / Crediário</span><Badge variant="outline" className="font-mono">sem taxa</Badge></li>
+                    <li className="flex items-center justify-between px-3 py-2"><span>💵 Dinheiro</span><Badge variant="outline" className="font-mono">sem taxa</Badge></li>
                   </ul>
                 </Section>
 
