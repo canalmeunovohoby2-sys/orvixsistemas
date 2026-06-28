@@ -54,6 +54,9 @@ const PAYMENT_METHODS: { id: PaymentMethod; icon: typeof Banknote }[] = [
   { id: "Débito", icon: CreditCard },
 ];
 
+// Ordem oficial dos sub-atalhos de pagamento (teclas 1–4 após F4).
+const PAYMENT_HOTKEYS = ["1", "2", "3", "4"] as const;
+
 type Split = { method: PaymentMethod; amount: number; installments?: number };
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -180,6 +183,34 @@ function VendasPage() {
     }
   }, [total, paid, splits.length]);
 
+  const addSplit = (method: PaymentMethod, amount: number) => {
+    if (amount <= 0) return;
+    setSplits((s) => [
+      ...s,
+      { method, amount: +amount.toFixed(2), ...(method === "Crédito" ? { installments: 1 } : {}) },
+    ]);
+  };
+
+  // Sub-atalho numérico após F4: insere o split com o saldo restante e
+  // devolve o foco ao leitor (F1). Funciona com numpad e alfanumérico.
+  const pickPaymentByHotkey = useCallback((idx: number) => {
+    const method = PAYMENT_METHODS[idx]?.id;
+    if (!method) return;
+    if (cart.length === 0) {
+      toast.info("Carrinho vazio — adicione um item antes de escolher a forma de pagamento.");
+      return;
+    }
+    const amount = remaining > 0.01 ? remaining : total;
+    if (amount <= 0) {
+      toast.info("Venda já está quitada. Pressione F12 para concluir.");
+      return;
+    }
+    addSplit(method, amount);
+    toast.success(`+ ${method} · ${BRL(amount)}`, { duration: 1400 });
+    setShowPayment(false);
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, [cart.length, remaining, total]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -203,7 +234,7 @@ function VendasPage() {
         setShowDiscount(true);
         setTimeout(() => discountRef.current?.focus(), 50);
       } else if (e.key === "F4") {
-        setShowPayment(true);
+        setShowPayment((v) => !v);
       } else if (e.key === "F12") {
         finalize();
       } else if (e.key === "F8") {
@@ -227,12 +258,23 @@ function VendasPage() {
         setCart((c) => c.slice(0, -1));
         toast.warning(`Último item estornado: ${last.name}`, { duration: 1600 });
         requestAnimationFrame(() => searchRef.current?.focus());
+      } else if (
+        showPayment && !isTyping &&
+        (PAYMENT_HOTKEYS as readonly string[]).includes(e.key)
+      ) {
+        // Sub-atalhos 1–4 (alfanumérico ou numpad — e.key normaliza ambos).
+        e.preventDefault();
+        e.stopPropagation();
+        pickPaymentByHotkey(PAYMENT_HOTKEYS.indexOf(e.key as typeof PAYMENT_HOTKEYS[number]));
       } else if (e.key === "Enter" && !isTyping && cart.length > 0 && remaining <= 0.01) {
         e.preventDefault();
         finalize();
       } else if (e.key === "Escape") {
+        if (showPayment) {
+          setShowPayment(false);
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }
         setShowDiscount(false);
-        setShowPayment(false);
         setShowCancel(false);
       }
     };
@@ -240,15 +282,7 @@ function VendasPage() {
     // qualquer outro listener da página e antes do atalho nativo do browser.
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
-  }, [finalize, cart, remaining, splits.length, discount]);
-
-  const addSplit = (method: PaymentMethod, amount: number) => {
-    if (amount <= 0) return;
-    setSplits((s) => [
-      ...s,
-      { method, amount: +amount.toFixed(2), ...(method === "Crédito" ? { installments: 1 } : {}) },
-    ]);
-  };
+  }, [finalize, cart, remaining, splits.length, discount, showPayment, pickPaymentByHotkey]);
 
   const setSplitInstallments = (idx: number, n: number) => {
     setSplits((arr) => arr.map((s, i) => (i === idx ? { ...s, installments: n } : s)));
@@ -469,17 +503,30 @@ function VendasPage() {
               <kbd className="px-2 py-0.5 rounded bg-secondary border border-border text-[10px] font-mono text-muted-foreground">F4</kbd>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              {PAYMENT_METHODS.map(({ id, icon: Icon }) => (
+              {PAYMENT_METHODS.map(({ id, icon: Icon }, idx) => (
                 <button
                   key={id}
                   onClick={() => addSplit(id, remaining > 0 ? remaining : total)}
                   disabled={cart.length === 0}
-                  className={`flex flex-col items-center gap-1 py-2 rounded-md bg-secondary border text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${showPayment ? "border-primary/60 ring-1 ring-primary/40" : "border-border"} hover:border-primary hover:bg-accent`}
+                  className={`relative flex flex-col items-center gap-1 py-2 rounded-md bg-secondary border text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${showPayment ? "border-primary/60 ring-1 ring-primary/40" : "border-border"} hover:border-primary hover:bg-accent`}
                 >
+                  {showPayment && (
+                    <kbd
+                      aria-hidden
+                      className="absolute top-1 right-1 px-1 min-w-[16px] h-4 grid place-items-center rounded bg-primary text-primary-foreground text-[9px] font-mono font-bold shadow-sm"
+                    >
+                      {PAYMENT_HOTKEYS[idx]}
+                    </kbd>
+                  )}
                   <Icon className="w-4 h-4" /> {id}
                 </button>
               ))}
             </div>
+            {showPayment && (
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                Modo seleção ativo — tecle <kbd className="px-1 rounded bg-secondary border border-border font-mono">1–4</kbd> para escolher · <kbd className="px-1 rounded bg-secondary border border-border font-mono">Esc</kbd> cancela
+              </p>
+            )}
           </div>
 
           <button
