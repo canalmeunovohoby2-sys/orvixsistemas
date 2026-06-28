@@ -233,6 +233,11 @@ function VendasPage() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isTyping = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
+      // Enquanto o modal de cancelamento está aberto, o próprio AlertDialog
+      // controla Enter/Esc/Setas — não deixamos atalhos globais (F12/Enter)
+      // dispararem ações concorrentes no caixa.
+      if (showCancel) return;
+
       // 🛡️ Blindagem: bloqueia o comportamento nativo do navegador para TODAS
       // as teclas de função usadas pelo PDV antes de qualquer ramificação —
       // evita que Chrome/Firefox abram "Localizar na página" (F3), Ajuda (F1),
