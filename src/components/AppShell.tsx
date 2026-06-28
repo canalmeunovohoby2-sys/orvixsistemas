@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Warehouse, Users, Truck, BarChart3,
   Bell, Search, ChevronLeft, ChevronRight, LogOut, Menu, X, Settings, HelpCircle,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type NavItem = {
   label: string;
@@ -144,6 +145,8 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
             <Bell className="w-5 h-5" />
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse-dot" />
           </button>
+
+          <ThemeToggle />
 
           <div className="flex items-center gap-3 pl-3 ml-1 border-l border-border">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-[#5A0000] grid place-items-center text-white font-bold text-sm">
