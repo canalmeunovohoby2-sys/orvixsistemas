@@ -70,6 +70,7 @@ function VendasPage() {
 
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
+  const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const results = useMemo(() => {
     if (!q) return [] as Product[];
@@ -202,6 +203,27 @@ function VendasPage() {
       } else if (e.key === "F8") {
         e.preventDefault();
         if (cart.length > 0 || splits.length > 0 || discount > 0) setShowCancel(true);
+      } else if (e.key === "F3") {
+        e.preventDefault();
+        const last = cart[cart.length - 1];
+        if (!last) {
+          toast.info("Carrinho vazio — adicione um item antes de ajustar a quantidade.");
+          return;
+        }
+        requestAnimationFrame(() => {
+          const el = qtyRefs.current[last.id];
+          if (el) {
+            el.focus();
+            el.select();
+          }
+        });
+      } else if (e.key === "F9") {
+        e.preventDefault();
+        if (cart.length === 0) return;
+        const last = cart[cart.length - 1];
+        setCart((c) => c.slice(0, -1));
+        toast.warning(`Último item estornado: ${last.name}`, { duration: 1600 });
+        requestAnimationFrame(() => searchRef.current?.focus());
       } else if (e.key === "Enter" && !isTyping && cart.length > 0 && remaining <= 0.01) {
         e.preventDefault();
         finalize();
@@ -213,7 +235,7 @@ function VendasPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [finalize, cart.length, remaining, splits.length, discount]);
+  }, [finalize, cart, remaining, splits.length, discount]);
 
   const addSplit = (method: PaymentMethod, amount: number) => {
     if (amount <= 0) return;
@@ -313,11 +335,19 @@ function VendasPage() {
                   <div className="flex items-center gap-1.5">
                     <input
                       type="number"
+                      ref={(el) => { qtyRefs.current[item.id] = el; }}
                       value={item.qty}
                       step={isFractional(item.unit) ? "0.01" : "1"}
                       min={isFractional(item.unit) ? "0" : "1"}
                       inputMode="decimal"
                       onChange={(e) => setQty(item.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLInputElement).blur();
+                          requestAnimationFrame(() => searchRef.current?.focus());
+                        }
+                      }}
                       aria-label={`Quantidade em ${item.unit}`}
                       className="w-20 h-8 text-right tabular-nums px-2 rounded border border-border bg-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
                     />
@@ -473,8 +503,10 @@ function VendasPage() {
         <span className="inline-flex items-center gap-1.5 font-semibold text-foreground"><Receipt className="w-3.5 h-3.5" /> Atalhos:</span>
         <Shortcut keyLabel="F1" desc="Buscar" />
         <Shortcut keyLabel="F2" desc="Desconto" />
+        <Shortcut keyLabel="F3" desc="Quantidade" />
         <Shortcut keyLabel="F4" desc="Pagamento" />
         <Shortcut keyLabel="F8" desc="Cancelar Venda" />
+        <Shortcut keyLabel="F9" desc="Estornar Último Item" />
         <Shortcut keyLabel="F12" desc="Concluir" />
         <Shortcut keyLabel="Enter" desc="Concluir (quitado)" />
         <Shortcut keyLabel="Esc" desc="Fechar painel" />
