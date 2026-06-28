@@ -60,8 +60,8 @@ export type Person = {
   currentDebt: number;
 };
 
-const CATS = ["Cimento", "Tintas", "Hidráulica", "Elétrica", "Ferragens", "Madeiras", "Pisos", "Ferramentas"];
-const SUPS = ["Votorantim Cimentos", "Suvinil Distribuidora", "Tigre Tubos", "Tramontina SA", "Gerdau Aços", "Eucatex"];
+const CATS = ["Alimentos", "Bebidas", "Limpeza", "Higiene", "Hortifruti", "Papelaria", "Eletrônicos", "Utilidades", "Vestuário", "Variedades"];
+const SUPS = ["Distribuidora Central LTDA", "Atacado União", "Comercial Brasil", "Importadora Norte", "Distribuidora Sul", "Atacadão Geral"];
 
 function rng(seed: number) {
   let s = seed;
@@ -72,34 +72,51 @@ const r = rng(42);
 const pick = <T,>(arr: T[]) => arr[Math.floor(r() * arr.length)];
 const num = (a: number, b: number) => Math.floor(r() * (b - a) + a);
 
-const PROD_NAMES = [
-  "Cimento CP-II 50kg", "Tinta Acrílica Branca 18L", "Tubo PVC 100mm 6m", "Disjuntor 25A Tripolar",
-  "Argamassa AC-III 20kg", "Furadeira de Impacto 800W", "Chave de Fenda 6\"", "Parafuso 6x40 (cx 100)",
-  "Areia Lavada m³", "Brita 1 m³", "Bloco Cerâmico 9x19x19", "Telha Cerâmica Portuguesa",
-  "Verniz Marítimo 3,6L", "Fio Flexível 2,5mm (100m)", "Tomada 2P+T 10A", "Lâmpada LED 9W",
-  "Porcelanato 60x60 Polido", "Rejunte Cinza 1kg", "Caixa d'água 1000L", "Registro de Esfera 1\"",
-  "Massa Corrida 25kg", "Rolo de Pintura 23cm", "Pincel 2\" Cerda Macia", "Trena 5m Profissional",
-  "Serra Circular 1400W", "Martelo Unha 27mm", "Trincha 4\"", "Espátula Aço 4\"",
-  "Cano de Cobre 22mm", "Cabo Coaxial RG6 (m)", "Interruptor Simples", "Refletor LED 50W",
+const PROD_SEEDS: { name: string; unit: Unit; category: string }[] = [
+  { name: "Arroz Branco 5kg", unit: "un", category: "Alimentos" },
+  { name: "Feijão Carioca 1kg", unit: "un", category: "Alimentos" },
+  { name: "Açúcar Refinado 1kg", unit: "un", category: "Alimentos" },
+  { name: "Café Torrado 500g", unit: "un", category: "Alimentos" },
+  { name: "Óleo de Soja 900ml", unit: "un", category: "Alimentos" },
+  { name: "Macarrão Espaguete 500g", unit: "un", category: "Alimentos" },
+  { name: "Refrigerante 2L", unit: "un", category: "Bebidas" },
+  { name: "Água Mineral 500ml", unit: "un", category: "Bebidas" },
+  { name: "Suco Natural a Granel", unit: "L", category: "Bebidas" },
+  { name: "Sabão em Pó 1kg", unit: "un", category: "Limpeza" },
+  { name: "Detergente Líquido 500ml", unit: "un", category: "Limpeza" },
+  { name: "Água Sanitária 1L", unit: "un", category: "Limpeza" },
+  { name: "Vassoura Doméstica", unit: "un", category: "Limpeza" },
+  { name: "Pano de Chão", unit: "un", category: "Limpeza" },
+  { name: "Sabonete Glicerina", unit: "un", category: "Higiene" },
+  { name: "Shampoo 350ml", unit: "un", category: "Higiene" },
+  { name: "Pasta de Dente", unit: "un", category: "Higiene" },
+  { name: "Papel Higiênico 12 rolos", unit: "un", category: "Higiene" },
+  { name: "Banana Prata", unit: "kg", category: "Hortifruti" },
+  { name: "Tomate Italiano", unit: "kg", category: "Hortifruti" },
+  { name: "Maçã Fuji", unit: "kg", category: "Hortifruti" },
+  { name: "Batata Inglesa", unit: "kg", category: "Hortifruti" },
+  { name: "Queijo Mussarela Fatiado", unit: "kg", category: "Alimentos" },
+  { name: "Presunto Cozido", unit: "kg", category: "Alimentos" },
+  { name: "Tecido Algodão Cru", unit: "m", category: "Variedades" },
+  { name: "Fita LED Branca", unit: "m", category: "Eletrônicos" },
+  { name: "Mangueira de Jardim", unit: "m", category: "Utilidades" },
+  { name: "Corda Trançada", unit: "m", category: "Utilidades" },
+  { name: "Caderno 200 folhas", unit: "un", category: "Papelaria" },
+  { name: "Caneta Esferográfica Azul", unit: "un", category: "Papelaria" },
+  { name: "Pilha AA (par)", unit: "un", category: "Eletrônicos" },
+  { name: "Lâmpada LED 9W", unit: "un", category: "Eletrônicos" },
+  { name: "Carregador USB-C", unit: "un", category: "Eletrônicos" },
 ];
 
-export const PRODUCTS: Product[] = PROD_NAMES.map((name, i) => {
-  const cost = num(8, 450);
-  // Heuristic: products sold by volume/length/weight get fractional units.
-  const lower = name.toLowerCase();
-  let unit: Unit = "un";
-  if (lower.includes("m³") || lower.includes("areia") || lower.includes("brita")) unit = "m³";
-  else if (lower.includes("cabo") || lower.includes("fio") || lower.includes("cano")) unit = "m";
-  else if (lower.includes("porcelanato") || lower.includes("piso")) unit = "m²";
-  else if (lower.includes("kg") || lower.includes("cimento") || lower.includes("argamassa") || lower.includes("rejunte") || lower.includes("massa")) unit = "kg";
-  else if (lower.includes("tinta") || lower.includes("verniz") || lower.includes("litros") || lower.includes("l ") || lower.endsWith("l")) unit = "L";
+export const PRODUCTS: Product[] = PROD_SEEDS.map(({ name, unit, category }, i) => {
+  const cost = num(3, 180);
   const rawStock = num(0, 240) + (isFractional(unit) ? +r().toFixed(2) : 0);
   const rawMin = num(10, 40) + (isFractional(unit) ? +r().toFixed(2) : 0);
   return {
     id: `P${String(i + 1).padStart(4, "0")}`,
     ean: String(7890000000000 + num(1000, 999999)),
     name,
-    category: pick(CATS),
+    category,
     costPrice: cost,
     salePrice: +(cost * (1.25 + r() * 0.6)).toFixed(2),
     stock: +rawStock.toFixed(3),
@@ -160,7 +177,7 @@ export const MOVEMENTS: Movement[] = Array.from({ length: 24 }, (_, i) => {
   return {
     id: `M${String(5000 + i).padStart(5, "0")}`,
     date: d.toISOString(),
-    product: pick(PROD_NAMES),
+    product: pick(PROD_SEEDS).name,
     type: pick(["Entrada", "Saída", "Ajuste"] as const),
     qty: num(1, 80),
     user: pick(["admin", "joao.vendas", "maria.estoque", "ricardo.gerente"]),
@@ -179,12 +196,12 @@ export const SALES_BY_DAY = Array.from({ length: 14 }, (_, i) => {
 });
 
 export const TOP_PRODUCTS = [
-  { name: "Cimento CP-II 50kg", vendas: 312 },
-  { name: "Tinta Acrílica 18L", vendas: 248 },
-  { name: "Tubo PVC 100mm", vendas: 196 },
-  { name: "Argamassa AC-III", vendas: 174 },
-  { name: "Disjuntor 25A", vendas: 142 },
-  { name: "Fio Flexível 2,5mm", vendas: 118 },
+  { name: "Arroz Branco 5kg", vendas: 312 },
+  { name: "Refrigerante 2L", vendas: 248 },
+  { name: "Sabão em Pó 1kg", vendas: 196 },
+  { name: "Banana Prata (kg)", vendas: 174 },
+  { name: "Detergente Líquido 500ml", vendas: 142 },
+  { name: "Papel Higiênico 12 rolos", vendas: 118 },
 ];
 
 export const CATEGORY_SHARE = CATS.slice(0, 5).map((name, i) => ({
