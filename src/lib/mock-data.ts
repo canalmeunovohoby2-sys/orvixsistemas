@@ -1,3 +1,21 @@
+export type Unit = "un" | "m" | "m²" | "m³" | "kg" | "L";
+
+export const UNITS: { value: Unit; label: string; fractional: boolean }[] = [
+  { value: "un", label: "Unidade (un)", fractional: false },
+  { value: "m", label: "Metro (m)", fractional: true },
+  { value: "m²", label: "Metro Quadrado (m²)", fractional: true },
+  { value: "m³", label: "Metro Cúbico (m³)", fractional: true },
+  { value: "kg", label: "Quilograma (kg)", fractional: true },
+  { value: "L", label: "Litro (L)", fractional: true },
+];
+
+export const isFractional = (u: Unit) => u !== "un";
+
+export const formatQty = (qty: number, unit: Unit) =>
+  isFractional(unit)
+    ? qty.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })
+    : Math.trunc(qty).toLocaleString("pt-BR");
+
 export type Product = {
   id: string;
   ean: string;
@@ -7,6 +25,7 @@ export type Product = {
   salePrice: number;
   stock: number;
   minStock: number;
+  unit: Unit;
   supplier: string;
   status: "ativo" | "inativo";
 };
@@ -64,6 +83,16 @@ const PROD_NAMES = [
 
 export const PRODUCTS: Product[] = PROD_NAMES.map((name, i) => {
   const cost = num(8, 450);
+  // Heuristic: products sold by volume/length/weight get fractional units.
+  const lower = name.toLowerCase();
+  let unit: Unit = "un";
+  if (lower.includes("m³") || lower.includes("areia") || lower.includes("brita")) unit = "m³";
+  else if (lower.includes("cabo") || lower.includes("fio") || lower.includes("cano")) unit = "m";
+  else if (lower.includes("porcelanato") || lower.includes("piso")) unit = "m²";
+  else if (lower.includes("kg") || lower.includes("cimento") || lower.includes("argamassa") || lower.includes("rejunte") || lower.includes("massa")) unit = "kg";
+  else if (lower.includes("tinta") || lower.includes("verniz") || lower.includes("litros") || lower.includes("l ") || lower.endsWith("l")) unit = "L";
+  const rawStock = num(0, 240) + (isFractional(unit) ? +r().toFixed(2) : 0);
+  const rawMin = num(10, 40) + (isFractional(unit) ? +r().toFixed(2) : 0);
   return {
     id: `P${String(i + 1).padStart(4, "0")}`,
     ean: String(7890000000000 + num(1000, 999999)),
@@ -71,8 +100,9 @@ export const PRODUCTS: Product[] = PROD_NAMES.map((name, i) => {
     category: pick(CATS),
     costPrice: cost,
     salePrice: +(cost * (1.25 + r() * 0.6)).toFixed(2),
-    stock: num(0, 240),
-    minStock: num(10, 40),
+    stock: +rawStock.toFixed(3),
+    minStock: +rawMin.toFixed(3),
+    unit,
     supplier: pick(SUPS),
     status: r() > 0.08 ? "ativo" : "inativo",
   };

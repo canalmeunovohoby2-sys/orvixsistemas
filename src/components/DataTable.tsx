@@ -16,12 +16,14 @@ export function DataTable<T extends { id: string }>({
   searchKeys,
   pageSize = 8,
   toolbar,
+  rowClassName,
 }: {
   rows: T[];
   columns: Column<T>[];
   searchKeys?: (keyof T)[];
   pageSize?: number;
   toolbar?: React.ReactNode;
+  rowClassName?: (row: T) => string;
 }) {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export function DataTable<T extends { id: string }>({
           </thead>
           <tbody>
             {slice.map((row) => (
-              <tr key={row.id} className="border-t border-border hover:bg-accent/40 transition-colors">
+              <tr key={row.id} className={`border-t border-border hover:bg-accent/40 transition-colors ${rowClassName?.(row) ?? ""}`}>
                 {columns.map((c) => (
                   <td
                     key={String(c.key)}
