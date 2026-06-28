@@ -92,6 +92,24 @@ export function HelpCenter() {
                   </ul>
                 </Section>
 
+                <Section title="Leitor de código de barras">
+                  <Tip tone="info">
+                    ⚡ <strong className="text-foreground">Passar Vendas com Leitor:</strong> com a tela de Vendas aberta, basta
+                    usar seu leitor de código de barras diretamente nos itens. O sistema localizará o produto automaticamente,
+                    jogará no carrinho com quantidade <Code>1</Code> e deixará o campo limpo para o próximo bip, garantindo
+                    agilidade máxima no balcão.
+                  </Tip>
+                  <p>
+                    O input principal detecta strings numéricas de <Code>13 dígitos</Code> (padrão EAN/GTIN) ou o gatilho de
+                    <Code>Enter</Code> enviado pela maioria dos leitores de mão. Itens fracionados entram com qtd <Code>1</Code> —
+                    ajuste o decimal direto no carrinho se precisar (ex.: <Code>1.250</Code> kg).
+                  </p>
+                  <Tip tone="danger">
+                    Se o código não estiver cadastrado, o sistema avisa: <em>"Produto com este código de barras não encontrado.
+                    Cadastre-o na aba de Produtos antes de vender."</em>
+                  </Tip>
+                </Section>
+
                 <Section title="Lógica de split de pagamento">
                   <p>
                     Ao clicar em uma forma de pagamento (Dinheiro, Pix, Crédito, Débito), o sistema adiciona automaticamente
