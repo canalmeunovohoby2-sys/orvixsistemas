@@ -548,41 +548,21 @@ function extractMeta(html: string, property: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-/** Raspagem da página pública do Cosmos Bluesoft via proxy CORS. */
-async function fetchCosmosBluesoft(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
-  const urlCosmos = "https://corsproxy.io/?" + "https://cosmos.bluesoft.com.br/produtos/" + ean;
-  const html = await fetchText(urlCosmos, signal);
-  if (!html) return null;
-
-  // Indicadores de "não encontrado" da página
-  if (/Produto n[ãa]o encontrado|N[ãa]o encontramos/i.test(html)) {
-    console.warn("Cosmos: produto não encontrado na página pública.");
-    return null;
-  }
-
-  // Nome: <h1 id="product-name"> ou og:title
-  let name = "";
-  const h1 = html.match(/<h1[^>]*id=["']product-name["'][^>]*>([\s\S]*?)<\/h1>/i);
-  if (h1) name = h1[1].replace(/<[^>]+>/g, "").trim();
-  if (!name) name = extractMeta(html, "og:title") || "";
-  name = cleanScrapedName(name);
-
-  // Marca: tenta dt/dd "Marca"
-  let brand = "";
-  const brandMatch = html.match(/<dt[^>]*>\s*Marca\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i);
-  if (brandMatch) brand = brandMatch[1].replace(/<[^>]+>/g, "").trim();
-
-  // Categoria: breadcrumb (última âncora antes do nome) ou og:description
-  let category = "";
-  const breadcrumb = [...html.matchAll(/<li[^>]*class=["'][^"']*breadcrumb-item[^"']*["'][^>]*>\s*(?:<a[^>]*>)?([^<]+)/gi)];
-  if (breadcrumb.length) category = breadcrumb[breadcrumb.length - 1][1].trim();
-
-  if (!name) {
-    console.warn("Cosmos: HTML sem nome reconhecível.");
-    return null;
-  }
-
-  return normalizeHit(ean, { name, brand, category });
+/**
+ * Brazil Market — espelho público de catálogo nacional (JSON puro, via proxy CORS).
+ * Mapeamento genérico para capturar qualquer setor (higiene, limpeza, parafuso, caderno…).
+ */
+async function fetchBrazilMarket(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const url = `https://corsproxy.io/?https://arquivos.brazilmarket.com.br/api/products/${ean}`;
+  const data = await fetchJson(url, signal);
+  if (!data) return null;
+  // resposta pode vir como objeto único ou array; trate ambos
+  const p = Array.isArray(data) ? data[0] : (data.product || data.data || data);
+  if (!p || typeof p !== "object") return null;
+  const name = p.description || p.name || p.title || p.product_name || "";
+  if (!name) return null;
+  const brand = p.brand || p.manufacturer || p.marca || name.split(" ")[0] || "";
+  return normalizeHit(ean, { name, brand, category: "" }); // categoria via inferência
 }
 
 /** Open Food Facts — CORS totalmente liberado. URL pura, sem encode. */
