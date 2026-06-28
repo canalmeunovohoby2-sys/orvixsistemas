@@ -17,21 +17,8 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  {
-    label: "Produtos", to: "/produtos", icon: Package,
-    children: [
-      { label: "Todos os produtos", to: "/produtos" },
-      { label: "Categorias", to: "/produtos" },
-      { label: "Estoque baixo", to: "/produtos" },
-    ],
-  },
-  {
-    label: "Vendas", to: "/vendas", icon: ShoppingCart,
-    children: [
-      { label: "PDV", to: "/vendas" },
-      { label: "Histórico", to: "/vendas" },
-    ],
-  },
+  { label: "Produtos", to: "/produtos", icon: Package },
+  { label: "Vendas", to: "/vendas", icon: ShoppingCart },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
