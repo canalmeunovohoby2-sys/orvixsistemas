@@ -5,6 +5,7 @@ import {
   Scale, Shield, Gavel, Briefcase, Lock, Mic2, FileText, Banknote,
   Star, MapPin, Phone, Mail, Clock, ChevronDown, MessageCircle, Award, User,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/")({ component: LandingPage });
 
@@ -115,18 +116,24 @@ function LandingPage() {
             ))}
           </div>
 
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-            className="hidden md:inline-flex items-center gap-2 bg-[#C9A961] text-[#0F0F0F] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[var(--c-text)] transition-all shadow-lg shadow-[#C9A961]/20">
-            <Phone className="w-4 h-4" /> Consulta 24h
-          </a>
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
+            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-2 bg-[#C9A961] text-[#0F0F0F] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[var(--c-text)] transition-all shadow-lg shadow-[#C9A961]/20">
+              <Phone className="w-4 h-4" /> Consulta 24h
+            </a>
+          </div>
 
-          <button className="lg:hidden text-[var(--c-text)] p-2" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button className="text-[var(--c-text)] p-2" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
             <div className="space-y-1.5">
               <span className={`block w-6 h-px bg-current transition-transform ${menuOpen ? "translate-y-1.5 rotate-45" : ""}`} />
               <span className={`block w-6 h-px bg-current transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
               <span className={`block w-6 h-px bg-current transition-transform ${menuOpen ? "-translate-y-1.5 -rotate-45" : ""}`} />
             </div>
-          </button>
+            </button>
+          </div>
         </div>
 
         <AnimatePresence>
