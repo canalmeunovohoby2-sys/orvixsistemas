@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, PRODUCTS, type Product } from "@/lib/mock-data";
+import { BRL, PRODUCTS, UNITS, formatQty, isFractional, type Product, type Unit } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Plus, X } from "lucide-react";
 
@@ -36,16 +36,21 @@ function ProdutosPage() {
         <div className="flex items-center gap-2">
           <span className="font-medium">{r.name}</span>
           {r.stock <= r.minStock && (
-            <span title="Estoque abaixo do mínimo"><AlertTriangle className="w-3.5 h-3.5 text-primary" aria-label="Estoque baixo" /></span>
+            <span title="Estoque abaixo do mínimo" className="inline-flex items-center gap-1 rounded-md bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+              <AlertTriangle className="w-3 h-3" aria-hidden /> Baixo
+            </span>
           )}
         </div>
       ),
     },
     { key: "category", label: "Categoria" },
+    { key: "unit", label: "Unidade", render: (r) => <span className="font-mono text-xs text-muted-foreground">{r.unit}</span> },
     { key: "costPrice", label: "Custo", align: "right", render: (r) => BRL(r.costPrice) },
     { key: "salePrice", label: "Venda", align: "right", render: (r) => <span className="font-semibold">{BRL(r.salePrice)}</span> },
     { key: "stock", label: "Estoque", align: "right", render: (r) => (
-        <span className={r.stock <= r.minStock ? "text-primary font-semibold" : ""}>{r.stock}</span>
+        <span className={r.stock <= r.minStock ? "text-primary font-semibold" : ""}>
+          {formatQty(r.stock, r.unit)} <span className="text-[10px] text-muted-foreground font-normal">{r.unit}</span>
+        </span>
       ),
     },
     { key: "status", label: "Status", render: (r) => (
@@ -63,6 +68,7 @@ function ProdutosPage() {
         columns={cols}
         searchKeys={["name", "ean", "category", "supplier"]}
         pageSize={10}
+        rowClassName={(r) => (r.stock <= r.minStock ? "bg-primary/5 hover:bg-primary/10" : "")}
         toolbar={
           <div className="flex flex-wrap gap-2">
             {[
@@ -98,6 +104,8 @@ function ProdutosPage() {
 }
 
 function ProductDrawer({ onClose }: { onClose: () => void }) {
+  const [unit, setUnit] = useState<Unit>("un");
+  const decimalStep = isFractional(unit) ? "0.01" : "1";
   return (
     <>
       <motion.div
@@ -127,11 +135,32 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
           ].map((f) => (
             <Field key={f.id} {...f} />
           ))}
+          <div>
+            <label htmlFor="unit" className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+              Unidade de medida <span className="text-primary">*</span>
+            </label>
+            <select
+              id="unit"
+              required
+              value={unit}
+              onChange={(e) => setUnit(e.target.value as Unit)}
+              className="w-full px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60"
+            >
+              {UNITS.map((u) => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {isFractional(unit)
+                ? "Aceita quantidades fracionadas (ex: 2,50 ou 0,750)."
+                : "Apenas quantidades inteiras (ex: 1, 2, 10)."}
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field id="cost" label="Preço de custo (R$)" type="number" />
-            <Field id="sale" label="Preço de venda (R$)" type="number" />
-            <Field id="stock" label="Estoque inicial" type="number" />
-            <Field id="min" label="Estoque mínimo" type="number" />
+            <Field id="sale" label="Preço de venda (R$)" type="number" step="0.01" min="0" />
+            <Field id="stock" label={`Estoque inicial (${unit})`} type="number" step={decimalStep} min="0" />
+            <Field id="min" label={`Estoque mínimo (${unit})`} type="number" step={decimalStep} min="0" />
           </div>
           <div className="pt-4 flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 h-10 rounded-md border border-border hover:bg-accent text-sm font-medium">Cancelar</button>
@@ -143,7 +172,7 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Field({ id, label, type, placeholder, options }: { id: string; label: string; type: string; placeholder?: string; options?: string[] }) {
+function Field({ id, label, type, placeholder, options, step, min }: { id: string; label: string; type: string; placeholder?: string; options?: string[]; step?: string; min?: string }) {
   const base = "w-full px-3 py-2 rounded-md bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/60";
   return (
     <div>
@@ -155,7 +184,7 @@ function Field({ id, label, type, placeholder, options }: { id: string; label: s
           {options!.map((o) => <option key={o}>{o}</option>)}
         </select>
       ) : (
-        <input id={id} type={type} placeholder={placeholder} className={base} />
+        <input id={id} type={type} placeholder={placeholder} step={step} min={min} inputMode={type === "number" ? "decimal" : undefined} className={base} />
       )}
     </div>
   );
