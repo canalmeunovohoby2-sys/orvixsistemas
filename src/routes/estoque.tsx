@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { MOVEMENTS, PRODUCTS, type Movement } from "@/lib/mock-data";
-import { ArrowDown, ArrowUp, RefreshCcw } from "lucide-react";
+import { MOVEMENTS, PRODUCTS, formatQty, type Movement } from "@/lib/mock-data";
+import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw } from "lucide-react";
 
 export const Route = createFileRoute("/estoque")({
   head: () => ({
@@ -49,27 +50,65 @@ function EstoquePage() {
         pageSize={10}
       />
 
-      <section className="mt-8">
-        <h2 className="text-xl font-bold mb-3">Resumo do inventário</h2>
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
-                <th scope="col" className="px-4 py-3 text-left">Produto</th>
-                <th scope="col" className="px-4 py-3 text-right">Estoque atual</th>
-                <th scope="col" className="px-4 py-3 text-right">Mínimo</th>
-                <th scope="col" className="px-4 py-3 text-left">Situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PRODUCTS.slice(0, 8).map((p) => (
-                <tr key={p.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-right">{p.stock}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{p.minStock}</td>
+      <InventorySummary />
+    </AppShell>
+  );
+}
+
+function InventorySummary() {
+  const [onlyLow, setOnlyLow] = useState(false);
+  const lowCount = PRODUCTS.filter((p) => p.stock <= p.minStock).length;
+  const rows = onlyLow ? PRODUCTS.filter((p) => p.stock <= p.minStock) : PRODUCTS;
+
+  return (
+    <section className="mt-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <h2 className="text-xl font-bold">Resumo do inventário</h2>
+        <button
+          onClick={() => setOnlyLow((v) => !v)}
+          aria-pressed={onlyLow}
+          className={`inline-flex items-center gap-2 h-9 px-3 rounded-md text-xs font-bold uppercase tracking-wider border transition-all ${
+            onlyLow
+              ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_-6px_rgba(139,0,0,0.7)]"
+              : "bg-secondary border-border hover:bg-accent"
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5" />
+          Necessita Reposição
+          <span className={`ml-1 grid place-items-center min-w-5 h-5 px-1 rounded-full text-[10px] ${onlyLow ? "bg-primary-foreground/20" : "bg-primary/15 text-primary"}`}>
+            {lowCount}
+          </span>
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <th scope="col" className="px-4 py-3 text-left">Produto</th>
+              <th scope="col" className="px-4 py-3 text-left">Un.</th>
+              <th scope="col" className="px-4 py-3 text-right">Estoque atual</th>
+              <th scope="col" className="px-4 py-3 text-right">Mínimo</th>
+              <th scope="col" className="px-4 py-3 text-left">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Nenhum produto com estoque baixo. 🎉</td></tr>
+            )}
+            {rows.slice(0, 20).map((p) => {
+              const low = p.stock <= p.minStock;
+              return (
+                <tr key={p.id} className={`border-t border-border ${low ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-accent/40"} transition-colors`}>
+                  <td className="px-4 py-3 font-medium">
+                    <span className={low ? "text-primary" : ""}>{p.name}</span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.unit}</td>
+                  <td className={`px-4 py-3 text-right tabular-nums ${low ? "text-primary font-bold" : ""}`}>{formatQty(p.stock, p.unit)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{formatQty(p.minStock, p.unit)}</td>
                   <td className="px-4 py-3">
-                    {p.stock <= p.minStock ? (
-                      <StatusBadge kind="danger">Repor urgente</StatusBadge>
+                    {low ? (
+                      <StatusBadge kind="danger">Estoque baixo</StatusBadge>
                     ) : p.stock <= p.minStock * 2 ? (
                       <StatusBadge kind="warn">Atenção</StatusBadge>
                     ) : (
@@ -77,12 +116,12 @@ function EstoquePage() {
                     )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </AppShell>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
