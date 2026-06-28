@@ -11,6 +11,17 @@ import { useMockStore } from "@/hooks/use-mock-store";
 import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
@@ -55,6 +66,7 @@ function VendasPage() {
   const [splits, setSplits] = useState<Split[]>([]);
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
@@ -146,6 +158,27 @@ function VendasPage() {
     setShowPayment(false);
   }, [cart, paid, total, remaining, splits]);
 
+  // Cancelamento total da venda (F8 / botão vermelho)
+  const cancelSale = useCallback(() => {
+    setCart([]);
+    setSplits([]);
+    setDiscount(0);
+    setShowDiscount(false);
+    setShowPayment(false);
+    setQ("");
+    setShowCancel(false);
+    toast.warning("Venda cancelada. Carrinho e pagamentos foram zerados.");
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, []);
+
+  // Recalculo imediato: se o total cair abaixo do já pago, limpa os splits e avisa.
+  useEffect(() => {
+    if (splits.length > 0 && paid > total + 0.01) {
+      setSplits([]);
+      toast.warning("Total recalculado abaixo do valor já recebido. Reajuste as formas de pagamento.");
+    }
+  }, [total, paid, splits.length]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -166,17 +199,21 @@ function VendasPage() {
       } else if (e.key === "F12") {
         e.preventDefault();
         finalize();
+      } else if (e.key === "F8") {
+        e.preventDefault();
+        if (cart.length > 0 || splits.length > 0 || discount > 0) setShowCancel(true);
       } else if (e.key === "Enter" && !isTyping && cart.length > 0 && remaining <= 0.01) {
         e.preventDefault();
         finalize();
       } else if (e.key === "Escape") {
         setShowDiscount(false);
         setShowPayment(false);
+        setShowCancel(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [finalize, cart.length, remaining]);
+  }, [finalize, cart.length, remaining, splits.length, discount]);
 
   const addSplit = (method: PaymentMethod, amount: number) => {
     if (amount <= 0) return;
@@ -290,7 +327,15 @@ function VendasPage() {
                     <span className="text-[11px] font-mono text-muted-foreground w-6">{item.unit}</span>
                   </div>
                   <p className="w-24 text-right font-semibold">{BRL(item.price * item.qty)}</p>
-                  <button onClick={() => setCart((c) => c.filter((x) => x.id !== item.id))} aria-label="Remover" className="w-8 h-8 grid place-items-center rounded text-muted-foreground hover:bg-primary/20 hover:text-primary">
+                  <button
+                    onClick={() => {
+                      setCart((c) => c.filter((x) => x.id !== item.id));
+                      toast.info(`Item removido: ${item.name}`, { duration: 1400 });
+                    }}
+                    aria-label={`Remover ${item.name} do carrinho`}
+                    title="Remover item (estorno parcial)"
+                    className="w-8 h-8 grid place-items-center rounded text-muted-foreground hover:bg-primary/15 hover:text-primary transition-colors"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </li>
@@ -413,6 +458,16 @@ function VendasPage() {
             <CheckCircle2 className="w-4 h-4" /> Finalizar venda
             <kbd className="ml-1 px-1.5 py-0.5 rounded bg-primary-foreground/15 text-[10px] font-mono">F12</kbd>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowCancel(true)}
+            disabled={cart.length === 0 && splits.length === 0 && discount === 0}
+            className="mt-2 h-10 rounded-md border border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed font-semibold inline-flex items-center justify-center gap-2 transition-colors"
+          >
+            <XCircle className="w-4 h-4" /> Cancelar venda
+            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-secondary border border-border text-[10px] font-mono text-muted-foreground">F8</kbd>
+          </button>
         </aside>
       </section>
 
@@ -422,6 +477,7 @@ function VendasPage() {
         <Shortcut keyLabel="F1" desc="Buscar" />
         <Shortcut keyLabel="F2" desc="Desconto" />
         <Shortcut keyLabel="F4" desc="Pagamento" />
+        <Shortcut keyLabel="F8" desc="Cancelar Venda" />
         <Shortcut keyLabel="F12" desc="Concluir" />
         <Shortcut keyLabel="Enter" desc="Concluir (quitado)" />
         <Shortcut keyLabel="Esc" desc="Fechar painel" />
@@ -434,6 +490,31 @@ function VendasPage() {
         searchKeys={["customer", "id"]}
         pageSize={10}
       />
+
+      <AlertDialog open={showCancel} onOpenChange={setShowCancel}>
+        <AlertDialogContent className="border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/15 text-primary">
+                <XCircle className="w-4 h-4" />
+              </span>
+              Cancelar venda em andamento?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              ⚠️ Deseja mesmo cancelar esta venda? Todos os itens do carrinho e formas de pagamento adicionadas serão limpos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={cancelSale}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Cancelar venda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
