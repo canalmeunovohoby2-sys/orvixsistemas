@@ -8,7 +8,7 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { AlertTriangle, Banknote, CreditCard, CheckCircle2, Percent, QrCode, Receipt, Search, Trash2, User, Wallet, X } from "lucide-react";
+import { AlertTriangle, Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, User, Wallet, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/vendas")({
   head: () => ({
     meta: [
       { title: "Vendas (PDV) — Meu Saas" },
-      { name: "description", content: "PDV ultra-rápido com atalhos F1/F2/F4/F12, desconto em R$ ou %, múltiplas formas de pagamento e quantidade decimal." },
+      { name: "description", content: "PDV ultra-rápido com atalhos F1/F2/F4/F12, desconto em R$, múltiplas formas de pagamento e quantidade decimal." },
       { property: "og:title", content: "Vendas (PDV) — Meu Saas" },
       { property: "og:description", content: "Frente de caixa com atalhos de teclado e pagamento dividido." },
       { property: "og:url", content: "/vendas" },
@@ -51,7 +51,6 @@ function VendasPage() {
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
-  const [discountMode, setDiscountMode] = useState<"valor" | "percent">("percent");
   const [splits, setSplits] = useState<Split[]>([]);
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -76,10 +75,7 @@ function VendasPage() {
   }, [q]);
 
   const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
-  const discountValue = Math.min(
-    subtotal,
-    discountMode === "percent" ? subtotal * (discount / 100) : discount,
-  );
+  const discountValue = Math.min(subtotal, discount);
   const total = Math.max(0, subtotal - discountValue);
   const paid = splits.reduce((a, s) => a + s.amount, 0);
   const remaining = +(total - paid).toFixed(2);
@@ -383,26 +379,25 @@ function VendasPage() {
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                 className="mt-3 rounded-lg border border-border bg-secondary/50 p-3 overflow-hidden"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => setDiscountMode("percent")}
-                    className={`flex-1 h-8 rounded text-xs font-semibold inline-flex items-center justify-center gap-1 ${discountMode === "percent" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}
-                  ><Percent className="w-3 h-3" /> Porcentagem</button>
-                  <button
-                    onClick={() => setDiscountMode("valor")}
-                    className={`flex-1 h-8 rounded text-xs font-semibold ${discountMode === "valor" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}
-                  >R$ Valor fixo</button>
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Desconto em R$
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">R$</span>
+                  <input
+                    ref={discountRef}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={discount || ""}
+                    onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                    placeholder="Ex: 25.50"
+                    className="w-full h-9 pl-9 pr-3 rounded bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                  />
                 </div>
-                <input
-                  ref={discountRef}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={discount || ""}
-                  onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                  placeholder={discountMode === "percent" ? "Ex: 10 (= 10%)" : "Ex: 25.50"}
-                  className="w-full h-9 px-3 rounded bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
-                />
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  O valor é abatido direto do total. O sistema calcula o restante automaticamente para o pagamento (ex.: total R$ 60 — pague R$ 20 em Dinheiro e R$ 40 no Pix).
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

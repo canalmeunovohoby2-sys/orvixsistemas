@@ -84,7 +84,7 @@ export function HelpCenter() {
                   <p>O caixa é operado por listeners de teclado globais — você não precisa do mouse para concluir vendas.</p>
                   <ul className="rounded-lg border border-border divide-y divide-border bg-secondary/40">
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F1</Key><span>Foca no campo de <strong className="text-foreground">busca de produtos</strong> (EAN ou nome).</span></li>
-                    <li className="flex items-center gap-3 px-3 py-2"><Key>F2</Key><span>Abre o painel de <strong className="text-foreground">desconto</strong> (% ou R$).</span></li>
+                    <li className="flex items-center gap-3 px-3 py-2"><Key>F2</Key><span>Abre o painel de <strong className="text-foreground">desconto em R$</strong> (valor fixo abatido do total).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F4</Key><span>Destaca o bloco de <strong className="text-foreground">formas de pagamento</strong>.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F12</Key><span className="text-foreground">Conclui a venda.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>Enter</Key><span>Conclui a venda quando o valor está <strong className="text-emerald-500">quitado</strong>.</span></li>
