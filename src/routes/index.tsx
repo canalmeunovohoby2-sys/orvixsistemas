@@ -124,7 +124,7 @@ function LandingPage() {
             </a>
           </div>
 
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
             <ThemeToggle />
             <button className="text-[var(--c-text)] p-2" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
             <div className="space-y-1.5">
