@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,8 +48,13 @@
   --color-mint-foreground: var(--mint-foreground);
   --color-surface-alt: var(--surface-alt);
   --color-success: var(--success);
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --color-sage: #A8D8B9;
+  --color-charcoal: #1E2A32;
+  --color-cream: #FDFBF7;
+  --color-rose: #D4A373;
 }
 
 :root {
