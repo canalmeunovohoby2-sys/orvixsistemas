@@ -111,6 +111,16 @@ export function HelpCenter() {
                     Itens vendidos em caixas/unidades (<Code>un</Code>) travam em números inteiros.
                   </p>
                 </Section>
+
+                <Section title="Vendas parceladas no Crédito">
+                  <Tip tone="info">
+                    💳 <strong className="text-foreground">Vendas Parceladas no Crédito:</strong> ao selecionar <Badge variant="outline" className="mx-1 align-middle">Crédito</Badge>
+                    no pagamento, o sistema define <strong className="text-foreground">1x (à vista)</strong> automaticamente. Caso o cliente
+                    parcele na maquininha, altere o seletor <Badge variant="secondary" className="mx-1 align-middle">Parcelas</Badge> no carrinho
+                    para até <Code>12x</Code>. Isso alimenta automaticamente a sua <strong className="text-foreground">previsão de faturamento futuro</strong>
+                    na aba <Badge className="mx-1 align-middle">Relatórios</Badge>.
+                  </Tip>
+                </Section>
               </AccordionContent>
             </AccordionItem>
 
