@@ -72,9 +72,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <>
-      <div className="animate-page-enter">
-        <Outlet />
-      </div>
+      <Outlet />
       <Toaster position="top-center" />
     </>
   );
