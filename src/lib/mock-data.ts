@@ -177,7 +177,7 @@ export const MOVEMENTS: Movement[] = Array.from({ length: 24 }, (_, i) => {
   return {
     id: `M${String(5000 + i).padStart(5, "0")}`,
     date: d.toISOString(),
-    product: pick(PROD_NAMES),
+    product: pick(PROD_SEEDS).name,
     type: pick(["Entrada", "Saída", "Ajuste"] as const),
     qty: num(1, 80),
     user: pick(["admin", "joao.vendas", "maria.estoque", "ricardo.gerente"]),
