@@ -499,11 +499,18 @@ function normalizeHit(ean: string, raw: { name?: string; brand?: string; categor
 const corsProxy = (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
 async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
+  console.groupCollapsed(`%c[lookupEan] → fetch`, "color:#3b82f6;font-weight:bold", url);
   try {
     const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
+    console.log("status:", res.status, res.statusText, "| ok:", res.ok);
+    if (!res.ok) { console.warn("❌ resposta não-OK — abortando este endpoint"); console.groupEnd(); return null; }
+    const json = await res.json();
+    console.log("✅ JSON bruto recebido:", json);
+    console.groupEnd();
+    return json;
+  } catch (err) {
+    console.error("💥 erro de rede / CORS / timeout:", err);
+    console.groupEnd();
     return null;
   }
 }
@@ -555,8 +562,12 @@ async function fetchOpenProductsFacts(ean: string, signal: AbortSignal): Promise
  *  3. Any failure → null, triggering the manual contingency in the UI.
  */
 export async function lookupEan(ean: string): Promise<CatalogHit | null> {
+  console.log(`%c[lookupEan] iniciando busca para EAN="${ean}" (${ean.length} dígitos)`, "color:#10b981;font-weight:bold");
   const local = EAN_CATALOG.find((c) => c.ean === ean);
-  if (local) return local;
+  if (local) {
+    console.log("🎯 encontrado no catálogo LOCAL (seed):", local);
+    return local;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
@@ -578,8 +589,10 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
       );
     });
 
+    console.log(winner ? "🏆 vencedor da corrida de APIs:" : "🚫 todas as APIs falharam ou retornaram null", winner);
     return winner;
-  } catch {
+  } catch (err) {
+    console.error("[lookupEan] exceção geral:", err);
     return null;
   } finally {
     clearTimeout(timeout);
