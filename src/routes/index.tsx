@@ -78,46 +78,7 @@ function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-[#F5F1E8] font-[Manrope,sans-serif] overflow-x-hidden">
       {/* 1 ─ FLUID BACKGROUND */}
-      <div className="fixed inset-0 -z-10 overflow-hidden bg-[#0F0F0F]">
-        <motion.div
-          className="absolute top-[-10%] left-[-5%] w-[800px] h-[800px] rounded-full filter blur-[130px] opacity-[0.18] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 120, -60, 0], y: [0, -80, 50, 0], scale: [1, 1.12, 0.92, 1] }}
-          transition={{ duration: 28, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[15%] right-[-10%] w-[720px] h-[720px] rounded-full filter blur-[130px] opacity-[0.16] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, -110, 70, 0], y: [0, 90, -50, 0], scale: [1, 0.9, 1.1, 1] }}
-          transition={{ duration: 22, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute bottom-[12%] left-[12%] w-[640px] h-[640px] rounded-full filter blur-[130px] opacity-[0.14] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 90, -70, 0], y: [0, -60, 40, 0], scale: [1, 1.1, 0.95, 1] }}
-          transition={{ duration: 32, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute bottom-[-8%] right-[8%] w-[780px] h-[780px] rounded-full filter blur-[130px] opacity-[0.13] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, -120, 80, 0], y: [0, 70, -40, 0], scale: [1, 1.06, 0.9, 1] }}
-          transition={{ duration: 35, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[40%] left-[35%] w-[520px] h-[520px] rounded-full filter blur-[130px] opacity-[0.12] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 70, -90, 0], y: [0, -60, 80, 0], scale: [1, 1.14, 0.96, 1] }}
-          transition={{ duration: 25, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[5%] right-[30%] w-[560px] h-[560px] rounded-full filter blur-[130px] opacity-[0.10] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, 100, -70, 0], y: [0, 90, -50, 0], scale: [1, 0.94, 1.12, 1] }}
-          transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
-        />
-        {/* subtle grain overlay */}
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #C9A961 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-      </div>
+      <FluidBackground />
 
       {/* NAVBAR */}
       <motion.nav
@@ -521,6 +482,183 @@ function LandingPage() {
           </div>
         </motion.div>
       </a>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FLUID BACKGROUND — Atmosfera "Tribunal de Elite"
+// Névoa dourada de autoridade + símbolos jurídicos flutuando em loop infinito.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FluidBackground() {
+  // Símbolos elegantes do universo jurídico — SVGs minimalistas e atemporais.
+  const FLOATERS = [
+    {
+      // Balança da Justiça
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M32 8v48M16 56h32M22 20h20" />
+          <path d="M22 20l-8 16h16zM42 20l-8 16h16z" />
+          <path d="M14 36a8 8 0 0016 0M34 36a8 8 0 0016 0" />
+        </svg>
+      ),
+      size: 220, top: "8%", left: "6%",
+      x: [0, 40, -30, 0], y: [0, -50, 30, 0], rotate: [0, 6, -4, 0],
+      duration: 34,
+    },
+    {
+      // Coluna romana
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round">
+          <path d="M12 8h40M14 14h36M20 18v32M28 18v32M36 18v32M44 18v32M14 52h36M12 58h40" />
+        </svg>
+      ),
+      size: 180, top: "20%", left: "82%",
+      x: [0, -50, 25, 0], y: [0, 40, -35, 0], rotate: [0, -5, 4, 0],
+      duration: 38,
+    },
+    {
+      // Martelo (Gavel)
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="6" y="14" width="28" height="14" rx="2" transform="rotate(-25 20 21)" />
+          <path d="M30 26l18 18M40 36l8-8M14 54l24-24" />
+          <path d="M10 58h20" />
+        </svg>
+      ),
+      size: 200, top: "62%", left: "10%",
+      x: [0, 60, -20, 0], y: [0, -40, 25, 0], rotate: [0, 8, -6, 0],
+      duration: 30,
+    },
+    {
+      // Pena (caligrafia jurídica)
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 56c10-2 22-6 32-16s16-22 16-32c-10 0-22 6-32 16S10 46 8 56z" />
+          <path d="M14 50l10-10M22 42l8-8M30 34l8-8" />
+        </svg>
+      ),
+      size: 160, top: "70%", left: "78%",
+      x: [0, -40, 30, 0], y: [0, 35, -25, 0], rotate: [0, -7, 5, 0],
+      duration: 36,
+    },
+    {
+      // Selo/Brasão circular (autoridade)
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
+          <circle cx="32" cy="32" r="26" />
+          <circle cx="32" cy="32" r="20" />
+          <path d="M32 12v40M12 32h40" />
+          <path d="M22 22l20 20M42 22L22 42" />
+        </svg>
+      ),
+      size: 140, top: "40%", left: "46%",
+      x: [0, 30, -40, 0], y: [0, -30, 40, 0], rotate: [0, 360], // rotação serena
+      duration: 40,
+    },
+    {
+      // Livro de leis aberto
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 14c8 0 18 2 26 8 8-6 18-8 26-8v36c-8 0-18 2-26 8-8-6-18-8-26-8V14z" />
+          <path d="M32 22v36" />
+        </svg>
+      ),
+      size: 180, top: "85%", left: "42%",
+      x: [0, -35, 45, 0], y: [0, -30, 20, 0], rotate: [0, -4, 6, 0],
+      duration: 32,
+    },
+    {
+      // Losango fino (geometria de autoridade)
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="0.9">
+          <path d="M32 4l28 28-28 28L4 32z" />
+          <path d="M32 14l18 18-18 18-18-18z" />
+        </svg>
+      ),
+      size: 120, top: "30%", left: "30%",
+      x: [0, 50, -30, 0], y: [0, 30, -40, 0], rotate: [0, 45, -30, 0],
+      duration: 28,
+    },
+    {
+      // Anel/halo discreto
+      svg: (
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="0.8">
+          <circle cx="32" cy="32" r="28" />
+        </svg>
+      ),
+      size: 260, top: "55%", left: "60%",
+      x: [0, -30, 40, 0], y: [0, -45, 25, 0], rotate: [0, 8, -5, 0],
+      duration: 42,
+    },
+  ];
+
+  // Esferas de "névoa dourada" — atmosfera de autoridade.
+  const ORBS = [
+    { size: 800, top: "-10%", left: "-5%", color: "#C9A961", opacity: 0.18, x: [0, 120, -60, 0], y: [0, -80, 50, 0], scale: [1, 1.12, 0.92, 1], d: 28 },
+    { size: 720, top: "15%", left: "78%", color: "#1F2937", opacity: 0.16, x: [0, -110, 70, 0], y: [0, 90, -50, 0], scale: [1, 0.9, 1.1, 1], d: 22 },
+    { size: 640, top: "60%", left: "12%", color: "#C9A961", opacity: 0.14, x: [0, 90, -70, 0], y: [0, -60, 40, 0], scale: [1, 1.1, 0.95, 1], d: 32 },
+    { size: 780, top: "70%", left: "70%", color: "#1F2937", opacity: 0.13, x: [0, -120, 80, 0], y: [0, 70, -40, 0], scale: [1, 1.06, 0.9, 1], d: 35 },
+    { size: 520, top: "40%", left: "38%", color: "#C9A961", opacity: 0.12, x: [0, 70, -90, 0], y: [0, -60, 80, 0], scale: [1, 1.14, 0.96, 1], d: 25 },
+    { size: 560, top: "5%", left: "55%", color: "#1F2937", opacity: 0.10, x: [0, 100, -70, 0], y: [0, 90, -50, 0], scale: [1, 0.94, 1.12, 1], d: 20 },
+  ];
+
+  return (
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-[#0F0F0F] pointer-events-none">
+      {/* Camada 1 — Esferas de névoa dourada */}
+      {ORBS.map((o, i) => (
+        <motion.div
+          key={`orb-${i}`}
+          className="absolute rounded-full filter blur-[130px] mix-blend-soft-light"
+          style={{
+            width: o.size, height: o.size, top: o.top, left: o.left, opacity: o.opacity,
+            background: `radial-gradient(circle, ${o.color} 0%, transparent 70%)`,
+          }}
+          animate={{ x: o.x, y: o.y, scale: o.scale }}
+          transition={{ duration: o.d, ease: "easeInOut", repeat: Infinity }}
+        />
+      ))}
+
+      {/* Camada 2 — Símbolos jurídicos flutuando (autoridade etérea) */}
+      {FLOATERS.map((f, i) => (
+        <motion.div
+          key={`float-${i}`}
+          className="absolute text-[#C9A961]"
+          style={{
+            width: f.size, height: f.size, top: f.top, left: f.left,
+            opacity: 0.055, filter: "blur(0.4px) drop-shadow(0 0 22px rgba(201,169,97,0.25))",
+          }}
+          animate={{ x: f.x, y: f.y, rotate: f.rotate }}
+          transition={{ duration: f.duration, ease: "easeInOut", repeat: Infinity }}
+        >
+          {f.svg}
+        </motion.div>
+      ))}
+
+      {/* Camada 3 — Pequenas partículas douradas (poeira de prestígio) */}
+      {Array.from({ length: 14 }).map((_, i) => {
+        const left = (i * 73) % 100;
+        const top = (i * 47) % 100;
+        const d = 22 + (i % 7) * 2;
+        const dx = (i % 2 ? 1 : -1) * (20 + (i % 5) * 8);
+        const dy = (i % 3 ? -1 : 1) * (30 + (i % 4) * 10);
+        return (
+          <motion.span
+            key={`p-${i}`}
+            className="absolute w-1 h-1 rounded-full bg-[#C9A961]"
+            style={{ top: `${top}%`, left: `${left}%`, opacity: 0.25, boxShadow: "0 0 8px rgba(201,169,97,0.6)" }}
+            animate={{ x: [0, dx, -dx / 2, 0], y: [0, dy, -dy / 2, 0], opacity: [0.15, 0.45, 0.2, 0.15] }}
+            transition={{ duration: d, ease: "easeInOut", repeat: Infinity, delay: i * 0.4 }}
+          />
+        );
+      })}
+
+      {/* Grão sutil */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #C9A961 1px, transparent 0)", backgroundSize: "32px 32px" }}
+      />
     </div>
   );
 }
