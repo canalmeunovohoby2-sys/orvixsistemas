@@ -127,10 +127,10 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
         </header>
         <form className="flex-1 overflow-y-auto p-5 space-y-4" onSubmit={(e) => { e.preventDefault(); onClose(); }}>
           {[
-            { id: "name", label: "Nome do produto", type: "text", placeholder: "Ex: Cimento CP-II 50kg" },
+            { id: "name", label: "Nome do produto", type: "text", placeholder: "Ex: Produto ou Item Comercial" },
             { id: "ean", label: "Código EAN", type: "text", placeholder: "7891234567890" },
             { id: "desc", label: "Descrição", type: "textarea" },
-            { id: "cat", label: "Categoria", type: "select", options: ["Cimento", "Tintas", "Hidráulica", "Elétrica", "Ferragens"] },
+            { id: "cat", label: "Categoria", type: "text", placeholder: "Ex: Alimentos, Papelaria, Eletrônicos…" },
             { id: "sup", label: "Fornecedor", type: "text" },
           ].map((f) => (
             <Field key={f.id} {...f} />
