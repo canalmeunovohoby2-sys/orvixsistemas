@@ -86,7 +86,7 @@ export function HelpCenter() {
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F1</Key><span>Foca no campo de <strong className="text-foreground">busca de produtos</strong> (EAN ou nome).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F2</Key><span>Abre o painel de <strong className="text-foreground">desconto em R$</strong> (valor fixo abatido do total).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F3</Key><span>Foca a <strong className="text-foreground">quantidade do último item</strong> do carrinho (valor pré-selecionado — basta digitar por cima). <Key>Enter</Key> confirma e devolve o foco ao leitor.</span></li>
-                    <li className="flex items-center gap-3 px-3 py-2"><Key>F4</Key><span>Destaca o bloco de <strong className="text-foreground">formas de pagamento</strong>.</span></li>
+                    <li className="flex items-center gap-3 px-3 py-2"><Key>F4</Key><span>Ativa o <strong className="text-foreground">modo seleção de pagamento</strong> — em seguida tecle <Key>1</Key>/<Key>2</Key>/<Key>3</Key>/<Key>4</Key> para escolher Dinheiro/Pix/Crédito/Débito.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F8</Key><span className="text-primary font-semibold">Cancela a venda em andamento</span><span>(abre confirmação crítica).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F9</Key><span className="text-primary font-semibold">Estorna o último item</span><span>do carrinho instantaneamente — sem confirmação.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F12</Key><span className="text-foreground">Conclui a venda.</span></li>
@@ -144,6 +144,13 @@ export function HelpCenter() {
                     Ao clicar em uma forma de pagamento (Dinheiro, Pix, Crédito, Débito), o sistema adiciona automaticamente
                     uma parcela já <strong className="text-foreground">preenchida com o valor exato restante</strong> para quitar a venda.
                   </p>
+                  <Tip tone="info">
+                    ⚡ <strong className="text-foreground">Seleção 100% por teclado (F4 + 1–4):</strong> pressione <Key>F4</Key> para
+                    destacar o bloco de pagamentos — badges numéricos aparecem dentro de cada botão. Em seguida, tecle
+                    <Key>1</Key> Dinheiro, <Key>2</Key> Pix, <Key>3</Key> Crédito (abre o seletor de parcelas) ou <Key>4</Key> Débito.
+                    O split é inserido com o saldo exato restante, o modo de seleção fecha e o foco volta para o leitor de código.
+                    Tecle <Key>Esc</Key> a qualquer momento para sair sem adicionar parcela. Funciona com o teclado numérico (numpad).
+                  </Tip>
                   <div className="grid grid-cols-2 gap-2">
                     <Tip tone="danger"><strong className="text-primary">Falta R$ X</strong> — pagamento incompleto, o botão de concluir fica bloqueado.</Tip>
                     <Tip tone="ok"><strong className="text-emerald-500">Quitado</strong> — o total foi atingido e a venda pode ser finalizada.</Tip>
