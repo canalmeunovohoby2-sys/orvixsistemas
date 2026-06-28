@@ -317,3 +317,44 @@ export function updateCustomer(id: string, patch: Partial<Pick<Person, "creditLi
   Object.assign(c, patch);
   __emit();
 }
+
+/* ---------------------------------------------------------------- */
+/*  Generic delete helpers (in-memory mock store)                   */
+/* ---------------------------------------------------------------- */
+
+function removeById<T extends { id: string }>(arr: T[], id: string): boolean {
+  const idx = arr.findIndex((x) => x.id === id);
+  if (idx === -1) return false;
+  arr.splice(idx, 1);
+  return true;
+}
+
+export function deleteCustomer(id: string): boolean {
+  const ok = removeById(CUSTOMERS, id);
+  if (ok) {
+    // also clean credit history for that customer
+    for (let i = CREDIT_DEBTS.length - 1; i >= 0; i--) {
+      if (CREDIT_DEBTS[i].customerId === id) CREDIT_DEBTS.splice(i, 1);
+    }
+    __emit();
+  }
+  return ok;
+}
+
+export function deleteProduct(id: string): boolean {
+  const ok = removeById(PRODUCTS, id);
+  if (ok) __emit();
+  return ok;
+}
+
+export function deleteSupplier(id: string): boolean {
+  const ok = removeById(SUPPLIERS, id);
+  if (ok) __emit();
+  return ok;
+}
+
+export function deleteMovement(id: string): boolean {
+  const ok = removeById(MOVEMENTS, id);
+  if (ok) __emit();
+  return ok;
+}
