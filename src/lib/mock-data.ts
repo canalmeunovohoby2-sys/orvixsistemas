@@ -463,29 +463,96 @@ function pickCategory(p: any): string {
   return "Geral";
 }
 
+/** Infers a friendly retail category from a product name when the API doesn't expose one. */
+function inferCategoryFromName(name: string): string | null {
+  const n = name.toLowerCase();
+  const rules: Array<[RegExp, string]> = [
+    [/desodorante|antitranspirante|perfume|colônia|colonia|shampoo|condicionador|sabonete|creme dental|escova de dente|fio dental|absorvente|fralda|hidratante|protetor solar|barbear/i, "Higiene"],
+    [/sabão|sabao|detergente|amaciante|alvejante|água sanitária|agua sanitaria|desinfetante|limpa|multiuso|esponja|lustra|inseticida/i, "Limpeza"],
+    [/refrigerante|cerveja|suco|água|agua|vinho|whisky|vodka|energético|energetico|isotônico|isotonico|chá|cha gelado/i, "Bebidas"],
+    [/leite|iogurte|queijo|manteiga|requeijão|requeijao|nata|creme de leite/i, "Laticínios"],
+    [/biscoito|bolacha|chocolate|bombom|wafer|bolo|torta|sorvete/i, "Doces e Biscoitos"],
+    [/arroz|feijão|feijao|macarrão|macarrao|farinha|açúcar|acucar|óleo|oleo|café|cafe|sal|molho|tempero/i, "Mercearia"],
+    [/pão|pao|bisnaguinha|broa|baguete/i, "Padaria"],
+    [/carne|frango|peixe|linguiça|linguica|presunto|salsicha|mortadela/i, "Açougue"],
+    [/martelo|chave|alicate|parafuso|prego|broca|furadeira|serrote|trena/i, "Ferramentas"],
+    [/caderno|caneta|lápis|lapis|borracha|cola|tesoura|papel/i, "Papelaria"],
+    [/ração|racao|petisco|areia higiênica|areia higienica/i, "Pet"],
+  ];
+  for (const [re, cat] of rules) if (re.test(n)) return cat;
+  return null;
+}
+
+function normalizeHit(ean: string, raw: { name?: string; brand?: string; category?: string }): CatalogHit | null {
+  const name = (raw.name || "").trim();
+  const brand = (raw.brand || "").trim();
+  if (!name && !brand) return null;
+  const finalName = name || (brand ? `${brand} (${ean})` : `Produto ${ean}`);
+  let category = (raw.category || "").trim();
+  if (!category || category.toLowerCase() === "geral") {
+    category = inferCategoryFromName(finalName) || category || "Geral";
+  }
+  return { ean, name: finalName, brand: brand || "—", category, unit: "un" };
+}
+
+/** Wraps a URL through a public CORS proxy as last-resort fallback. */
+const corsProxy = (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
+  try {
+    const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Open Food Facts — alimentos, bebidas e cada vez mais produtos diversos. */
 async function fetchOpenFoodFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
   const url = `https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (data?.status !== 1 || !data?.product) return null;
+  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
+  if (!data || data.status !== 1 || !data.product) return null;
   const p = data.product;
-  const name: string = (p.product_name_pt || p.product_name || "").trim();
-  const brand: string = (typeof p.brands === "string" ? p.brands.split(",")[0] : "").trim();
-  if (!name && !brand) return null;
-  return {
-    ean,
-    name: name || (brand ? `${brand} (${ean})` : `Produto ${ean}`),
-    brand: brand || "—",
+  return normalizeHit(ean, {
+    name: p.product_name_pt || p.product_name || "",
+    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
     category: pickCategory(p),
-    unit: "un",
-  };
+  });
+}
+
+/** Open Beauty Facts — cosméticos, perfumaria e higiene (mesmo schema do OFF). */
+async function fetchOpenBeautyFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const url = `https://world.openbeautyfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
+  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
+  if (!data || data.status !== 1 || !data.product) return null;
+  const p = data.product;
+  return normalizeHit(ean, {
+    name: p.product_name_pt || p.product_name || "",
+    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
+    category: pickCategory(p),
+  });
+}
+
+/** Open Products Facts — limpeza, eletrodomésticos, brinquedos, papelaria. */
+async function fetchOpenProductsFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const url = `https://world.openproductsfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
+  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
+  if (!data || data.status !== 1 || !data.product) return null;
+  const p = data.product;
+  return normalizeHit(ean, {
+    name: p.product_name_pt || p.product_name || "",
+    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
+    category: pickCategory(p),
+  });
 }
 
 /**
- * Real EAN lookup. First checks our local seed catalog (instant), then queries
- * the free public Open Food Facts API. Times out after 4s and resolves to null
- * on any failure, triggering the manual-registration contingency in the UI.
+ * Real EAN lookup. Strategy:
+ *  1. Local seed catalog (instant).
+ *  2. Parallel race across Open Food / Beauty / Products Facts (one timeout
+ *     covers all three). First non-null wins — typically <1s.
+ *  3. Any failure → null, triggering the manual contingency in the UI.
  */
 export async function lookupEan(ean: string): Promise<CatalogHit | null> {
   const local = EAN_CATALOG.find((c) => c.ean === ean);
@@ -493,8 +560,25 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
+
   try {
-    return await fetchOpenFoodFacts(ean, controller.signal);
+    const queries = [
+      fetchOpenFoodFacts(ean, controller.signal),
+      fetchOpenBeautyFacts(ean, controller.signal),
+      fetchOpenProductsFacts(ean, controller.signal),
+    ];
+
+    const winner = await new Promise<CatalogHit | null>((resolve) => {
+      let pending = queries.length;
+      queries.forEach((q) =>
+        q.then((hit) => {
+          if (hit) resolve(hit);
+          else if (--pending === 0) resolve(null);
+        }).catch(() => { if (--pending === 0) resolve(null); }),
+      );
+    });
+
+    return winner;
   } catch {
     return null;
   } finally {
