@@ -75,15 +75,27 @@ function VendasPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
   const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const resultRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const confirmCancelRef = useRef<HTMLButtonElement>(null);
 
   const results = useMemo(() => {
     if (!q) return [] as Product[];
     const n = q.toLowerCase();
-    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q)).slice(0, 6);
+    // Lista completa filtrada — a navegação por setas faz scroll automático
+    // dentro do container, então não truncamos resultados.
+    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q));
   }, [q]);
 
   // Reset do índice destacado sempre que a lista filtrada mudar.
   useEffect(() => { setHighlight(0); }, [q]);
+
+  // Rolagem inteligente: mantém o item destacado sempre visível dentro do
+  // container do dropdown ao navegar com ArrowDown/ArrowUp.
+  useEffect(() => {
+    if (results.length === 0) return;
+    const el = resultRefs.current[highlight];
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [highlight, results.length]);
 
   const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
   const discountValue = Math.min(subtotal, discount);
