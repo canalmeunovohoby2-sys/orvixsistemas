@@ -316,7 +316,7 @@ function VendasPage() {
     // qualquer outro listener da página e antes do atalho nativo do browser.
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
-  }, [finalize, cart, remaining, splits.length, discount, showPayment, showCancel, pickPaymentByHotkey]);
+  }, [finalize, cart, remaining, splits.length, discount, showPayment, showDiscount, showCancel, pickPaymentByHotkey]);
 
   const setSplitInstallments = (idx: number, n: number) => {
     setSplits((arr) => arr.map((s, i) => (i === idx ? { ...s, installments: n } : s)));
