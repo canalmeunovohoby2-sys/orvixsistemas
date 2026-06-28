@@ -495,8 +495,8 @@ function normalizeHit(ean: string, raw: { name?: string; brand?: string; categor
   return { ean, name: finalName, brand: brand || "—", category, unit: "un" };
 }
 
-/** Wraps a URL through a public CORS proxy as last-resort fallback. */
-const corsProxy = (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+/** Estável e leve, com headers CORS corretos no navegador. */
+const corsProxy = (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
 async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
   console.groupCollapsed(`%c[lookupEan] → fetch`, "color:#3b82f6;font-weight:bold", url);
@@ -513,6 +513,76 @@ async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> 
     console.groupEnd();
     return null;
   }
+}
+
+async function fetchText(url: string, signal: AbortSignal): Promise<string | null> {
+  console.groupCollapsed(`%c[lookupEan] → fetch (HTML)`, "color:#a855f7;font-weight:bold", url);
+  try {
+    const res = await fetch(url, { signal });
+    console.log("status:", res.status, res.statusText, "| ok:", res.ok);
+    if (!res.ok) { console.warn("❌ HTML não-OK"); console.groupEnd(); return null; }
+    const text = await res.text();
+    console.log("✅ HTML recebido (", text.length, "chars)");
+    console.groupEnd();
+    return text;
+  } catch (err) {
+    console.error("💥 erro de rede / CORS / timeout:", err);
+    console.groupEnd();
+    return null;
+  }
+}
+
+/** Limpa boilerplate genérico ("Cosmos", "Bluesoft", " | ...") do título. */
+function cleanScrapedName(raw: string): string {
+  return raw
+    .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#039;/g, "'")
+    .replace(/\s*[-|·]\s*(Cosmos|Bluesoft|Open Food Facts|Open Beauty Facts).*$/i, "")
+    .replace(/\bCosmos\b|\bBluesoft\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function extractMeta(html: string, property: string): string | null {
+  const re = new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, "i");
+  const m = html.match(re);
+  return m ? m[1].trim() : null;
+}
+
+/** Raspagem da página pública do Cosmos Bluesoft via proxy CORS. */
+async function fetchCosmosBluesoft(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
+  const target = `https://cosmos.bluesoft.com.br/produtos/${ean}`;
+  const html = await fetchText(corsProxy(target), signal);
+  if (!html) return null;
+
+  // Indicadores de "não encontrado" da página
+  if (/Produto n[ãa]o encontrado|N[ãa]o encontramos/i.test(html)) {
+    console.warn("Cosmos: produto não encontrado na página pública.");
+    return null;
+  }
+
+  // Nome: <h1 id="product-name"> ou og:title
+  let name = "";
+  const h1 = html.match(/<h1[^>]*id=["']product-name["'][^>]*>([\s\S]*?)<\/h1>/i);
+  if (h1) name = h1[1].replace(/<[^>]+>/g, "").trim();
+  if (!name) name = extractMeta(html, "og:title") || "";
+  name = cleanScrapedName(name);
+
+  // Marca: tenta dt/dd "Marca"
+  let brand = "";
+  const brandMatch = html.match(/<dt[^>]*>\s*Marca\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i);
+  if (brandMatch) brand = brandMatch[1].replace(/<[^>]+>/g, "").trim();
+
+  // Categoria: breadcrumb (última âncora antes do nome) ou og:description
+  let category = "";
+  const breadcrumb = [...html.matchAll(/<li[^>]*class=["'][^"']*breadcrumb-item[^"']*["'][^>]*>\s*(?:<a[^>]*>)?([^<]+)/gi)];
+  if (breadcrumb.length) category = breadcrumb[breadcrumb.length - 1][1].trim();
+
+  if (!name) {
+    console.warn("Cosmos: HTML sem nome reconhecível.");
+    return null;
+  }
+
+  return normalizeHit(ean, { name, brand, category });
 }
 
 /** Open Food Facts — alimentos, bebidas e cada vez mais produtos diversos. */
@@ -574,6 +644,7 @@ export async function lookupEan(ean: string): Promise<CatalogHit | null> {
 
   try {
     const queries = [
+      fetchCosmosBluesoft(ean, controller.signal),
       fetchOpenFoodFacts(ean, controller.signal),
       fetchOpenBeautyFacts(ean, controller.signal),
       fetchOpenProductsFacts(ean, controller.signal),
