@@ -81,6 +81,27 @@ function VendasPage() {
     setQ("");
   }, []);
 
+  /**
+   * Tenta tratar a string como código de barras (EAN/GTIN). Bipou → adiciona ao
+   * carrinho com qtd 1 e devolve o foco para o input limpo. Se não existir,
+   * dispara aviso sutil. Retorna true se o código foi consumido como EAN.
+   */
+  const tryScanBarcode = useCallback((code: string): boolean => {
+    const ean = code.trim();
+    if (!/^\d{8,14}$/.test(ean)) return false;
+    const product = PRODUCTS.find((p) => p.ean === ean);
+    if (product) {
+      add(product);
+      toast.success(`+ ${product.name}`, { duration: 1400 });
+    } else {
+      setQ("");
+      toast.warning("⚠️ Produto com este código de barras não encontrado. Cadastre-o na aba de Produtos antes de vender.");
+    }
+    // Mantém o foco para o próximo bip
+    requestAnimationFrame(() => searchRef.current?.focus());
+    return true;
+  }, [add]);
+
   const setQty = (id: string, raw: string) => {
     setCart((c) =>
       c.map((x) => {
@@ -199,10 +220,23 @@ function VendasPage() {
             <input
               ref={searchRef}
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && results[0]) { e.preventDefault(); add(results[0]); } }}
-              placeholder="EAN ou nome do produto... (F1)"
-              aria-label="Buscar produto"
+              onChange={(e) => {
+                const v = e.target.value;
+                setQ(v);
+                // Leitor de mão: 13 dígitos (EAN-13) chegam de uma vez → bipa instantâneo
+                if (/^\d{13}$/.test(v.trim())) tryScanBarcode(v);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                // 1) Enter de leitor (string só de dígitos, 8–14 chars)
+                if (tryScanBarcode(q)) return;
+                // 2) Enter manual: usa o primeiro resultado da busca por nome
+                if (results[0]) add(results[0]);
+              }}
+              placeholder="Bipe o código de barras ou digite o nome... (F1)"
+              aria-label="Buscar produto ou bipar código de barras"
+              autoFocus
               className="w-full h-11 pl-10 pr-3 rounded-md bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/60"
             />
           </div>
