@@ -78,46 +78,6 @@ function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-[#F5F1E8] font-[Manrope,sans-serif] overflow-x-hidden">
       {/* 1 ─ FLUID BACKGROUND */}
-      <div className="fixed inset-0 -z-10 overflow-hidden bg-[#0F0F0F]">
-        <motion.div
-          className="absolute top-[-10%] left-[-5%] w-[800px] h-[800px] rounded-full filter blur-[130px] opacity-[0.18] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 120, -60, 0], y: [0, -80, 50, 0], scale: [1, 1.12, 0.92, 1] }}
-          transition={{ duration: 28, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[15%] right-[-10%] w-[720px] h-[720px] rounded-full filter blur-[130px] opacity-[0.16] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, -110, 70, 0], y: [0, 90, -50, 0], scale: [1, 0.9, 1.1, 1] }}
-          transition={{ duration: 22, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute bottom-[12%] left-[12%] w-[640px] h-[640px] rounded-full filter blur-[130px] opacity-[0.14] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 90, -70, 0], y: [0, -60, 40, 0], scale: [1, 1.1, 0.95, 1] }}
-          transition={{ duration: 32, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute bottom-[-8%] right-[8%] w-[780px] h-[780px] rounded-full filter blur-[130px] opacity-[0.13] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, -120, 80, 0], y: [0, 70, -40, 0], scale: [1, 1.06, 0.9, 1] }}
-          transition={{ duration: 35, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[40%] left-[35%] w-[520px] h-[520px] rounded-full filter blur-[130px] opacity-[0.12] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #C9A961 0%, transparent 70%)" }}
-          animate={{ x: [0, 70, -90, 0], y: [0, -60, 80, 0], scale: [1, 1.14, 0.96, 1] }}
-          transition={{ duration: 25, ease: "easeInOut", repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[5%] right-[30%] w-[560px] h-[560px] rounded-full filter blur-[130px] opacity-[0.10] mix-blend-soft-light"
-          style={{ background: "radial-gradient(circle, #1F2937 0%, transparent 70%)" }}
-          animate={{ x: [0, 100, -70, 0], y: [0, 90, -50, 0], scale: [1, 0.94, 1.12, 1] }}
-          transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
-        />
-        {/* subtle grain overlay */}
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #C9A961 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-      </div>
       <FluidBackground />
 
       {/* NAVBAR */}
