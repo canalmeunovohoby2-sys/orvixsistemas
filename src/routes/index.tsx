@@ -76,9 +76,11 @@ function LandingPage() {
   const heroTitle = "Defesa Criminal de Elite em São Paulo";
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-[#F5F1E8] font-[Manrope,sans-serif] overflow-x-hidden">
+    <div className="relative isolate min-h-screen bg-[#0F0F0F] text-[#F5F1E8] font-[Manrope,sans-serif] overflow-x-hidden">
       {/* 1 ─ FLUID BACKGROUND */}
       <FluidBackground />
+
+      <div className="relative z-10">
 
       {/* NAVBAR */}
       <motion.nav
@@ -482,6 +484,7 @@ function LandingPage() {
           </div>
         </motion.div>
       </a>
+      </div>
     </div>
   );
 }
@@ -605,7 +608,7 @@ function FluidBackground() {
   ];
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden bg-[#0F0F0F] pointer-events-none">
+    <div data-bg-root className="fixed inset-0 z-0 overflow-hidden bg-[#0F0F0F] pointer-events-none">
       {/* Camada 1 — Esferas de névoa dourada */}
       {ORBS.map((o, i) => (
         <motion.div
