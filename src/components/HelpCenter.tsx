@@ -85,8 +85,10 @@ export function HelpCenter() {
                   <ul className="rounded-lg border border-border divide-y divide-border bg-secondary/40">
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F1</Key><span>Foca no campo de <strong className="text-foreground">busca de produtos</strong> (EAN ou nome).</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F2</Key><span>Abre o painel de <strong className="text-foreground">desconto em R$</strong> (valor fixo abatido do total).</span></li>
+                    <li className="flex items-center gap-3 px-3 py-2"><Key>F3</Key><span>Foca a <strong className="text-foreground">quantidade do último item</strong> do carrinho (valor pré-selecionado — basta digitar por cima). <Key>Enter</Key> confirma e devolve o foco ao leitor.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F4</Key><span>Destaca o bloco de <strong className="text-foreground">formas de pagamento</strong>.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F8</Key><span className="text-primary font-semibold">Cancela a venda em andamento</span><span>(abre confirmação crítica).</span></li>
+                    <li className="flex items-center gap-3 px-3 py-2"><Key>F9</Key><span className="text-primary font-semibold">Estorna o último item</span><span>do carrinho instantaneamente — sem confirmação.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>F12</Key><span className="text-foreground">Conclui a venda.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>Enter</Key><span>Conclui a venda quando o valor está <strong className="text-emerald-500">quitado</strong>.</span></li>
                     <li className="flex items-center gap-3 px-3 py-2"><Key>Esc</Key><span>Fecha qualquer painel aberto (desconto / pagamento).</span></li>
@@ -105,6 +107,17 @@ export function HelpCenter() {
                     do carrinho para estorná-lo individualmente. O sistema recalculará o valor total líquido na hora — e, se o
                     novo total ficar menor do que o já recebido, os splits de pagamento são limpos automaticamente para que você
                     reajuste o troco/recebimento.
+                  </Tip>
+                  <Tip tone="info">
+                    ⌨️ <strong className="text-foreground">Estorno-Relâmpago do Último Item (F9):</strong> errou o último bip?
+                    Pressione <Key>F9</Key> para remover na hora o produto mais recente do carrinho — sem modal, sem mouse.
+                    Ideal para corrigir leituras duplicadas do scanner.
+                  </Tip>
+                  <Tip tone="info">
+                    🔢 <strong className="text-foreground">Ajuste-Relâmpago de Quantidade (F3):</strong> após bipar, pressione
+                    <Key>F3</Key> para saltar direto ao campo de quantidade do último item — o valor já vem selecionado, então
+                    digite o novo número (ex.: <Code>5</Code> ou <Code>2.5</Code> para itens fracionados) e tecle <Key>Enter</Key>.
+                    O foco retorna automaticamente ao leitor para o próximo produto.
                   </Tip>
                 </Section>
 
