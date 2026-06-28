@@ -22,7 +22,7 @@ export const Route = createFileRoute("/relatorios")({
 });
 
 type PaymentRow = {
-  method: "Dinheiro" | "Pix" | "Crédito" | "Débito" | "Crediário";
+  method: "Dinheiro" | "Pix" | "Crédito" | "Débito";
   icon: typeof Banknote;
   bruto: number;
   liquido: number;
@@ -254,15 +254,13 @@ function RankingCard({
 
 function computeReport() {
   const concluded = SALES.filter((s) => s.status === "concluida");
-  const pending = SALES.filter((s) => s.status === "pendente");
 
-  // Map mock's 3 native methods into the PDV's 5 (Cartão → 60% Crédito + 40% Débito; Crediário ← pendentes).
+  // Map mock's native methods into the PDV's 4 (Cartão → 60% Crédito + 40% Débito).
   const buckets: Record<PaymentRow["method"], { bruto: number; count: number }> = {
     Dinheiro: { bruto: 0, count: 0 },
     Pix: { bruto: 0, count: 0 },
     Crédito: { bruto: 0, count: 0 },
     Débito: { bruto: 0, count: 0 },
-    Crediário: { bruto: 0, count: 0 },
   };
   for (const s of concluded) {
     if (s.payment === "Dinheiro") {
@@ -274,14 +272,10 @@ function computeReport() {
       buckets.Débito.bruto += s.total * 0.4; buckets.Débito.count += 1;
     }
   }
-  for (const s of pending) {
-    buckets.Crediário.bruto += s.total; buckets.Crediário.count += 1;
-  }
-
-  // Net = bruto − taxa (Crédito 3.2%, Débito 1.5%, Pix 0.99%, Crediário 0%, Dinheiro 0%).
-  const fee: Record<PaymentRow["method"], number> = { Dinheiro: 0, Pix: 0.0099, Crédito: 0.032, Débito: 0.015, Crediário: 0 };
+  // Net = bruto − taxa (Crédito 3.2%, Débito 1.5%, Pix 0.99%, Dinheiro 0%).
+  const fee: Record<PaymentRow["method"], number> = { Dinheiro: 0, Pix: 0.0099, Crédito: 0.032, Débito: 0.015 };
   const icons: Record<PaymentRow["method"], typeof Banknote> = {
-    Dinheiro: Banknote, Pix: QrCode, Crédito: CreditCard, Débito: CreditCard, Crediário: Wallet,
+    Dinheiro: Banknote, Pix: QrCode, Crédito: CreditCard, Débito: CreditCard,
   };
   const closing: PaymentRow[] = (Object.keys(buckets) as PaymentRow["method"][]).map((m) => ({
     method: m,
