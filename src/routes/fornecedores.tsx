@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { SUPPLIERS } from "@/lib/mock-data";
-import { PeopleTable } from "./clientes";
+import { DataTable, type Column } from "@/components/DataTable";
+import { SUPPLIERS, type Person } from "@/lib/mock-data";
+import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/fornecedores")({
   head: () => ({
@@ -18,9 +19,27 @@ export const Route = createFileRoute("/fornecedores")({
 });
 
 function FornecedoresPage() {
+  const cols: Column<Person>[] = [
+    { key: "id", label: "Código", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
+    { key: "name", label: "Razão social", render: (r) => <span className="font-medium">{r.name}</span> },
+    { key: "doc", label: "CNPJ", render: (r) => <span className="font-mono text-xs">{r.doc}</span> },
+    { key: "email", label: "E-mail", render: (r) => <a href={`mailto:${r.email}`} className="text-sky-500 hover:underline">{r.email}</a> },
+    { key: "phone", label: "Telefone" },
+    { key: "city", label: "Cidade" },
+  ];
   return (
     <AppShell title="Fornecedores" breadcrumb={["Meu Saas", "Fornecedores"]}>
-      <PeopleTable rows={SUPPLIERS} addLabel="Novo fornecedor" />
+      <DataTable<Person>
+        rows={SUPPLIERS}
+        columns={cols}
+        searchKeys={["name", "doc", "email", "city"]}
+        pageSize={10}
+        toolbar={
+          <button className="ml-auto h-9 px-3 inline-flex items-center gap-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold">
+            <Plus className="w-4 h-4" /> Novo fornecedor
+          </button>
+        }
+      />
     </AppShell>
   );
 }
