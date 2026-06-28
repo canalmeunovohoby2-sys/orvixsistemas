@@ -56,6 +56,8 @@ export type Person = {
   email: string;
   phone: string;
   city: string;
+  creditLimit: number;
+  currentDebt: number;
 };
 
 const CATS = ["Cimento", "Tintas", "Hidráulica", "Elétrica", "Ferragens", "Madeiras", "Pisos", "Ferramentas"];
@@ -123,6 +125,8 @@ export const CUSTOMERS: Person[] = CUST_NAMES.map((name, i) => ({
   email: `contato${i + 1}@exemplo.com.br`,
   phone: `(11) 9${num(1000, 9999)}-${num(1000, 9999)}`,
   city: pick(["São Paulo", "Campinas", "Sorocaba", "Santos", "Ribeirão Preto"]),
+  creditLimit: [500, 1000, 2000, 3500, 5000, 7500, 10000][num(0, 7)],
+  currentDebt: r() > 0.55 ? +(r() * 2200 + 80).toFixed(2) : 0,
 }));
 
 export const SUPPLIERS: Person[] = SUPS.map((name, i) => ({
@@ -132,6 +136,8 @@ export const SUPPLIERS: Person[] = SUPS.map((name, i) => ({
   email: `comercial@${name.toLowerCase().replace(/[^a-z]/g, "")}.com.br`,
   phone: `(11) 3${num(100, 999)}-${num(1000, 9999)}`,
   city: pick(["São Paulo", "Joinville", "Curitiba", "Belo Horizonte"]),
+  creditLimit: 0,
+  currentDebt: 0,
 }));
 
 export const SALES: Sale[] = Array.from({ length: 28 }, (_, i) => {
