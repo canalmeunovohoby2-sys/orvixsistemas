@@ -2,8 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, PRODUCTS, SALES, formatQty, isFractional, type Product, type Sale } from "@/lib/mock-data";
-import { Banknote, CreditCard, CheckCircle2, Percent, QrCode, Receipt, Search, Trash2, Wallet, X } from "lucide-react";
+import {
+  BRL, PRODUCTS, SALES, CUSTOMERS,
+  addCreditDebt, formatQty, isFractional,
+  type Product, type Sale,
+} from "@/lib/mock-data";
+import { useMockStore } from "@/hooks/use-mock-store";
+import { AlertTriangle, Banknote, CreditCard, CheckCircle2, Percent, QrCode, Receipt, Search, Trash2, User, Wallet, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -42,6 +47,7 @@ const PAYMENT_METHODS: { id: PaymentMethod; icon: typeof Banknote }[] = [
 type Split = { method: PaymentMethod; amount: number };
 
 function VendasPage() {
+  useMockStore();
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -49,6 +55,16 @@ function VendasPage() {
   const [splits, setSplits] = useState<Split[]>([]);
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [customerId, setCustomerId] = useState<string>("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerOpen, setCustomerOpen] = useState(false);
+
+  const customer = customerId ? CUSTOMERS.find((c) => c.id === customerId) ?? null : null;
+  const customerMatches = useMemo(() => {
+    const n = customerQuery.toLowerCase().trim();
+    if (!n) return CUSTOMERS.slice(0, 6);
+    return CUSTOMERS.filter((c) => c.name.toLowerCase().includes(n) || c.doc.includes(n)).slice(0, 6);
+  }, [customerQuery]);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
@@ -67,6 +83,12 @@ function VendasPage() {
   const total = Math.max(0, subtotal - discountValue);
   const paid = splits.reduce((a, s) => a + s.amount, 0);
   const remaining = +(total - paid).toFixed(2);
+
+  // Credit limit check — sum of crediário splits + customer's current debt vs limit
+  const credInSplits = splits.filter((s) => s.method === "Crediário").reduce((a, s) => a + s.amount, 0);
+  const projectedDebt = customer ? customer.currentDebt + credInSplits : 0;
+  const creditAvailable = customer ? Math.max(0, customer.creditLimit - customer.currentDebt - credInSplits) : 0;
+  const creditBlocked = !!customer && customer.creditLimit > 0 && projectedDebt >= customer.creditLimit;
 
   const add = useCallback((p: Product) => {
     setCart((c) => {
@@ -93,20 +115,42 @@ function VendasPage() {
   const finalize = useCallback(() => {
     if (cart.length === 0) return toast.error("Carrinho vazio.");
     if (paid + 0.01 < total) return toast.error(`Pagamento incompleto. Falta ${BRL(remaining)}.`);
+
+    const credAmount = splits.filter((s) => s.method === "Crediário").reduce((a, s) => a + s.amount, 0);
+    if (credAmount > 0) {
+      if (!customer) {
+        return toast.error("Selecione um cliente para vendas no Crediário.");
+      }
+      if (customer.creditLimit > 0 && customer.currentDebt + credAmount > customer.creditLimit + 0.0001) {
+        return toast.error("Limite de crédito excedido", {
+          description: `Disponível: ${BRL(Math.max(0, customer.creditLimit - customer.currentDebt))}`,
+        });
+      }
+    }
+
     // Decrement stock
     cart.forEach((item) => {
       const p = PRODUCTS.find((pp) => pp.id === item.id);
       if (p) p.stock = +Math.max(0, p.stock - item.qty).toFixed(3);
     });
+
+    // Register credit debt against customer
+    if (credAmount > 0 && customer) {
+      const ref = `V${20300 + Math.floor(Math.random() * 9999)}`;
+      addCreditDebt(customer.id, credAmount, ref);
+    }
+
     toast.success(`Venda concluída — ${BRL(total)}`, {
-      description: `${cart.length} item(ns) · ${splits.map((s) => s.method).join(" + ") || "—"}`,
+      description: `${cart.length} item(ns) · ${splits.map((s) => s.method).join(" + ") || "—"}${customer ? ` · ${customer.name}` : ""}`,
     });
     setCart([]);
     setSplits([]);
     setDiscount(0);
     setShowDiscount(false);
     setShowPayment(false);
-  }, [cart, paid, total, remaining, splits]);
+    setCustomerId("");
+    setCustomerQuery("");
+  }, [cart, paid, total, remaining, splits, customer]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -142,6 +186,19 @@ function VendasPage() {
 
   const addSplit = (method: PaymentMethod, amount: number) => {
     if (amount <= 0) return;
+    if (method === "Crediário") {
+      if (!customer) {
+        return toast.error("Selecione um cliente para usar o Crediário.");
+      }
+      if (customer.creditLimit > 0) {
+        const available = Math.max(0, customer.creditLimit - customer.currentDebt - credInSplits);
+        if (amount > available + 0.0001) {
+          return toast.error("Limite de crédito excedido", {
+            description: `Disponível para ${customer.name}: ${BRL(available)}`,
+          });
+        }
+      }
+    }
     setSplits((s) => [...s, { method, amount: +amount.toFixed(2) }]);
   };
 
