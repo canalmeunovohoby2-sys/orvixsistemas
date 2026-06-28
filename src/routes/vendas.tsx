@@ -206,7 +206,7 @@ function VendasPage() {
         setShowDiscount(true);
         setTimeout(() => discountRef.current?.focus(), 50);
       } else if (e.key === "F4") {
-        setShowPayment(true);
+        setShowPayment((v) => !v);
       } else if (e.key === "F12") {
         finalize();
       } else if (e.key === "F8") {
@@ -230,12 +230,23 @@ function VendasPage() {
         setCart((c) => c.slice(0, -1));
         toast.warning(`Último item estornado: ${last.name}`, { duration: 1600 });
         requestAnimationFrame(() => searchRef.current?.focus());
+      } else if (
+        showPayment && !isTyping &&
+        (PAYMENT_HOTKEYS as readonly string[]).includes(e.key)
+      ) {
+        // Sub-atalhos 1–4 (alfanumérico ou numpad — e.key normaliza ambos).
+        e.preventDefault();
+        e.stopPropagation();
+        pickPaymentByHotkey(PAYMENT_HOTKEYS.indexOf(e.key as typeof PAYMENT_HOTKEYS[number]));
       } else if (e.key === "Enter" && !isTyping && cart.length > 0 && remaining <= 0.01) {
         e.preventDefault();
         finalize();
       } else if (e.key === "Escape") {
+        if (showPayment) {
+          setShowPayment(false);
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }
         setShowDiscount(false);
-        setShowPayment(false);
         setShowCancel(false);
       }
     };
@@ -243,7 +254,7 @@ function VendasPage() {
     // qualquer outro listener da página e antes do atalho nativo do browser.
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
-  }, [finalize, cart, remaining, splits.length, discount]);
+  }, [finalize, cart, remaining, splits.length, discount, showPayment, pickPaymentByHotkey]);
 
   const addSplit = (method: PaymentMethod, amount: number) => {
     if (amount <= 0) return;
