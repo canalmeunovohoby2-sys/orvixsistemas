@@ -54,6 +54,9 @@ const PAYMENT_METHODS: { id: PaymentMethod; icon: typeof Banknote }[] = [
   { id: "Débito", icon: CreditCard },
 ];
 
+// Ordem oficial dos sub-atalhos de pagamento (teclas 1–4 após F4).
+const PAYMENT_HOTKEYS = ["1", "2", "3", "4"] as const;
+
 type Split = { method: PaymentMethod; amount: number; installments?: number };
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
