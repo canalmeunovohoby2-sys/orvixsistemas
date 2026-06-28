@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import { BRL, PRODUCTS, UNITS, addProduct, deleteProduct, formatQty, isFractional, lookupEan, type Product, type Unit } from "@/lib/mock-data";
@@ -149,14 +149,23 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
   const costRef = useRef<HTMLInputElement>(null);
   const lastSearched = useRef<string>("");
 
+  // Guarda de hidratação: só dispara fetch/efeitos depois que o componente montou no cliente.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const decimalStep = isFractional(unit) ? "0.01" : "1";
 
   async function runLookup(code: string) {
     // Padrões globais aceitos: EAN-8, UPC-A (12) e EAN-13. Sem trava de prefixo (país).
+    if (!mountedRef.current) return;
     if (![8, 12, 13].includes(code.length) || lastSearched.current === code) return;
     lastSearched.current = code;
     setLookup("searching");
     const hit = await lookupEan(code);
+    if (!mountedRef.current) return;
     if (hit) {
       setName(hit.name);
       setBrand(hit.brand);
@@ -368,7 +377,7 @@ function FieldText({ id, label, value, onChange, placeholder, highlight, require
       <input
         id={id}
         type="text"
-        value={value}
+        value={value ?? ""}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className={`${baseInputCls} ${highlight ? "border-emerald-500/40" : "border-border"}`}
@@ -381,7 +390,7 @@ function FieldTextarea({ id, label, value, onChange }: { id: string; label: stri
   return (
     <div>
       <label htmlFor={id} className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">{label}</label>
-      <textarea id={id} rows={3} value={value} onChange={(e) => onChange(e.target.value)} className={`${baseInputCls} border-border`} />
+      <textarea id={id} rows={3} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={`${baseInputCls} border-border`} />
     </div>
   );
 }
@@ -394,7 +403,7 @@ function FieldNumber({ id, label, value, onChange, step, min, inputRef }: { id: 
         ref={inputRef}
         id={id}
         type="number"
-        value={value}
+        value={value ?? ""}
         step={step}
         min={min}
         inputMode="decimal"
