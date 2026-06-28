@@ -495,8 +495,8 @@ function normalizeHit(ean: string, raw: { name?: string; brand?: string; categor
   return { ean, name: finalName, brand: brand || "—", category, unit: "un" };
 }
 
-/** Estável e leve, com headers CORS corretos no navegador. */
-const corsProxy = (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`;
+/** Proxy CORS — concatenação literal, SEM encodeURIComponent (preserva ":" e "/"). */
+const corsProxy = (url: string) => "https://corsproxy.io/?" + url;
 
 async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
   console.groupCollapsed(`%c[lookupEan] → fetch`, "color:#3b82f6;font-weight:bold", url);
@@ -550,8 +550,8 @@ function extractMeta(html: string, property: string): string | null {
 
 /** Raspagem da página pública do Cosmos Bluesoft via proxy CORS. */
 async function fetchCosmosBluesoft(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
-  const target = `https://cosmos.bluesoft.com.br/produtos/${ean}`;
-  const html = await fetchText(corsProxy(target), signal);
+  const urlCosmos = "https://corsproxy.io/?" + "https://cosmos.bluesoft.com.br/produtos/" + ean;
+  const html = await fetchText(urlCosmos, signal);
   if (!html) return null;
 
   // Indicadores de "não encontrado" da página
@@ -585,43 +585,42 @@ async function fetchCosmosBluesoft(ean: string, signal: AbortSignal): Promise<Ca
   return normalizeHit(ean, { name, brand, category });
 }
 
-/** Open Food Facts — alimentos, bebidas e cada vez mais produtos diversos. */
+/** Open Food Facts — CORS totalmente liberado. URL pura, sem encode. */
 async function fetchOpenFoodFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
-  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
-  if (!data || data.status !== 1 || !data.product) return null;
-  const p = data.product;
-  return normalizeHit(ean, {
-    name: p.product_name_pt || p.product_name || "",
-    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
-    category: pickCategory(p),
-  });
+  const url = `https://world.openfoodfacts.org/api/v2/product/${ean}.json`;
+  const data = await fetchJson(url, signal);
+  return parseOFFLike(ean, data);
 }
 
 /** Open Beauty Facts — cosméticos, perfumaria e higiene (mesmo schema do OFF). */
 async function fetchOpenBeautyFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
-  const url = `https://world.openbeautyfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
-  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
-  if (!data || data.status !== 1 || !data.product) return null;
-  const p = data.product;
-  return normalizeHit(ean, {
-    name: p.product_name_pt || p.product_name || "",
-    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
-    category: pickCategory(p),
-  });
+  const url = `https://world.openbeautyfacts.org/api/v2/product/${ean}.json`;
+  const data = await fetchJson(url, signal);
+  return parseOFFLike(ean, data);
 }
 
 /** Open Products Facts — limpeza, eletrodomésticos, brinquedos, papelaria. */
 async function fetchOpenProductsFacts(ean: string, signal: AbortSignal): Promise<CatalogHit | null> {
-  const url = `https://world.openproductsfacts.org/api/v2/product/${ean}.json?fields=product_name,product_name_pt,brands,categories,categories_tags`;
-  const data = (await fetchJson(url, signal)) ?? (await fetchJson(corsProxy(url), signal));
-  if (!data || data.status !== 1 || !data.product) return null;
-  const p = data.product;
-  return normalizeHit(ean, {
-    name: p.product_name_pt || p.product_name || "",
-    brand: typeof p.brands === "string" ? p.brands.split(",")[0] : "",
-    category: pickCategory(p),
-  });
+  const url = `https://world.openproductsfacts.org/api/v2/product/${ean}.json`;
+  const data = await fetchJson(url, signal);
+  return parseOFFLike(ean, data);
+}
+
+/** Parser flexível compartilhado entre Open*Facts. */
+function parseOFFLike(ean: string, data: any): CatalogHit | null {
+  if (!data || (data.status !== 1 && !data.product)) return null;
+  const p = data.product || {};
+  const name = p.product_name_pt || p.product_name || p.generic_name || "";
+  const brandRaw = p.brands || p.brand_owner || "";
+  const brand = typeof brandRaw === "string" ? brandRaw.split(",")[0] : "";
+  let category = "";
+  if (Array.isArray(p.categories_hierarchy) && p.categories_hierarchy.length) {
+    category = cleanCategory(p.categories_hierarchy[0]);
+  } else {
+    category = pickCategory(p);
+  }
+  if (!name && !brand) return null;
+  return normalizeHit(ean, { name, brand, category });
 }
 
 /**
