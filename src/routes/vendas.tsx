@@ -388,6 +388,7 @@ function VendasPage() {
                 {results.map((p, idx) => (
                   <li key={p.id}>
                     <button
+                      ref={(el) => { resultRefs.current[idx] = el; }}
                       onClick={() => add(p)}
                       onMouseEnter={() => setHighlight(idx)}
                       data-active={idx === highlight}
