@@ -186,25 +186,29 @@ function VendasPage() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isTyping = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
-      if (e.key === "F1") {
+      // 🛡️ Blindagem: bloqueia o comportamento nativo do navegador para TODAS
+      // as teclas de função usadas pelo PDV antes de qualquer ramificação —
+      // evita que Chrome/Firefox abram "Localizar na página" (F3), Ajuda (F1),
+      // tela cheia (F11) etc. durante a operação do caixa.
+      const PDV_FKEYS = new Set(["F1", "F2", "F3", "F4", "F8", "F9", "F12"]);
+      if (PDV_FKEYS.has(e.key)) {
         e.preventDefault();
+        e.stopPropagation();
+      }
+
+      if (e.key === "F1") {
         searchRef.current?.focus();
         searchRef.current?.select();
       } else if (e.key === "F2") {
-        e.preventDefault();
         setShowDiscount(true);
         setTimeout(() => discountRef.current?.focus(), 50);
       } else if (e.key === "F4") {
-        e.preventDefault();
         setShowPayment(true);
       } else if (e.key === "F12") {
-        e.preventDefault();
         finalize();
       } else if (e.key === "F8") {
-        e.preventDefault();
         if (cart.length > 0 || splits.length > 0 || discount > 0) setShowCancel(true);
       } else if (e.key === "F3") {
-        e.preventDefault();
         const last = cart[cart.length - 1];
         if (!last) {
           toast.info("Carrinho vazio — adicione um item antes de ajustar a quantidade.");
@@ -218,7 +222,6 @@ function VendasPage() {
           }
         });
       } else if (e.key === "F9") {
-        e.preventDefault();
         if (cart.length === 0) return;
         const last = cart[cart.length - 1];
         setCart((c) => c.slice(0, -1));
@@ -233,8 +236,10 @@ function VendasPage() {
         setShowCancel(false);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    // Capture phase + window: garante que interceptamos o evento ANTES de
+    // qualquer outro listener da página e antes do atalho nativo do browser.
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
   }, [finalize, cart, remaining, splits.length, discount]);
 
   const addSplit = (method: PaymentMethod, amount: number) => {
