@@ -65,7 +65,7 @@ export function HelpCenter() {
             📖 Central de Ajuda &amp; Manual Operacional do Sistema
           </SheetTitle>
           <SheetDescription className="text-sm">
-            Aprenda a operar os recursos avançados de Caixa, Estoque e Crediário.
+            Aprenda a operar os recursos avançados de Caixa e Estoque.
           </SheetDescription>
         </SheetHeader>
 
@@ -94,7 +94,7 @@ export function HelpCenter() {
 
                 <Section title="Lógica de split de pagamento">
                   <p>
-                    Ao clicar em uma forma de pagamento (Dinheiro, Pix, Crédito, Débito, Crediário), o sistema adiciona automaticamente
+                    Ao clicar em uma forma de pagamento (Dinheiro, Pix, Crédito, Débito), o sistema adiciona automaticamente
                     uma parcela já <strong className="text-foreground">preenchida com o valor exato restante</strong> para quitar a venda.
                   </p>
                   <div className="grid grid-cols-2 gap-2">

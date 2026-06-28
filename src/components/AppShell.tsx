@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Package, ShoppingCart, Warehouse, Users, Truck, BarChart3,
+  LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3,
   Search, ChevronLeft, ChevronRight, Menu, X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,7 +33,6 @@ const NAV: NavItem[] = [
     ],
   },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
-  { label: "Clientes", to: "/clientes", icon: Users },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
 ];
@@ -129,7 +128,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
-                placeholder="Buscar produtos, vendas, clientes..."
+                placeholder="Buscar produtos, vendas..."
                 aria-label="Busca global"
                 className="w-full h-10 pl-10 pr-3 rounded-md bg-secondary border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary/60 transition"
               />
