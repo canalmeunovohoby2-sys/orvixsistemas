@@ -125,7 +125,7 @@ function LandingPage() {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <ThemeToggle />
+            <div className="md:hidden"><ThemeToggle /></div>
             <button className="text-[var(--c-text)] p-2" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
             <div className="space-y-1.5">
               <span className={`block w-6 h-px bg-current transition-transform ${menuOpen ? "translate-y-1.5 rotate-45" : ""}`} />
