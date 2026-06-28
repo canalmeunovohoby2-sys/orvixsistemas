@@ -201,3 +201,100 @@ export const KPIS = {
 
 export const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+// ============================================================
+// Credit / Crediário store (mock — in-memory, reactive)
+// ============================================================
+
+export type CreditDebt = {
+  id: string;
+  customerId: string;
+  date: string;
+  total: number; // original amount
+  paid: number;  // already paid
+  ref?: string;  // sale reference (e.g. V20245)
+};
+
+// Seed a few open debts for customers that start with currentDebt > 0
+export const CREDIT_DEBTS: CreditDebt[] = (() => {
+  const out: CreditDebt[] = [];
+  let seq = 9000;
+  CUSTOMERS.forEach((c) => {
+    if (c.currentDebt <= 0) return;
+    let remaining = c.currentDebt;
+    const n = Math.max(1, Math.min(3, Math.ceil(remaining / 900)));
+    for (let i = 0; i < n; i++) {
+      const slice = i === n - 1 ? remaining : +(remaining / (n - i) * (0.4 + Math.random() * 0.5)).toFixed(2);
+      const d = new Date();
+      d.setDate(d.getDate() - (i * 7 + Math.floor(Math.random() * 4)));
+      out.push({
+        id: `D${seq++}`,
+        customerId: c.id,
+        date: d.toISOString(),
+        total: slice,
+        paid: 0,
+        ref: `V${20100 + seq}`,
+      });
+      remaining = +(remaining - slice).toFixed(2);
+      if (remaining <= 0) break;
+    }
+  });
+  return out;
+})();
+
+// Simple reactive layer so multiple routes/components re-render on changes.
+const __listeners = new Set<() => void>();
+export const subscribeMockStore = (fn: () => void) => {
+  __listeners.add(fn);
+  return () => __listeners.delete(fn);
+};
+const __emit = () => __listeners.forEach((l) => l());
+
+let __debtSeq = 9500;
+export function addCreditDebt(customerId: string, amount: number, ref?: string): CreditDebt | null {
+  const c = CUSTOMERS.find((p) => p.id === customerId);
+  if (!c || amount <= 0) return null;
+  const debt: CreditDebt = {
+    id: `D${__debtSeq++}`,
+    customerId,
+    date: new Date().toISOString(),
+    total: +amount.toFixed(2),
+    paid: 0,
+    ref,
+  };
+  CREDIT_DEBTS.push(debt);
+  c.currentDebt = +(c.currentDebt + amount).toFixed(2);
+  __emit();
+  return debt;
+}
+
+/**
+ * Apply a payment against a customer's open debts (oldest first).
+ * Returns the actual amount applied (capped at total open balance).
+ */
+export function applyCreditPayment(customerId: string, amount: number): number {
+  const c = CUSTOMERS.find((p) => p.id === customerId);
+  if (!c || amount <= 0) return 0;
+  let remaining = amount;
+  const open = CREDIT_DEBTS
+    .filter((d) => d.customerId === customerId && d.total - d.paid > 0.0001)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  for (const d of open) {
+    if (remaining <= 0.0001) break;
+    const owed = d.total - d.paid;
+    const apply = Math.min(owed, remaining);
+    d.paid = +(d.paid + apply).toFixed(2);
+    remaining = +(remaining - apply).toFixed(2);
+  }
+  const applied = +(amount - remaining).toFixed(2);
+  c.currentDebt = +Math.max(0, c.currentDebt - applied).toFixed(2);
+  __emit();
+  return applied;
+}
+
+export function updateCustomer(id: string, patch: Partial<Pick<Person, "creditLimit" | "currentDebt" | "name" | "email" | "phone" | "city" | "doc">>) {
+  const c = CUSTOMERS.find((p) => p.id === id);
+  if (!c) return;
+  Object.assign(c, patch);
+  __emit();
+}
