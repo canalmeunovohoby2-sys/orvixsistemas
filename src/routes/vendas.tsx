@@ -253,6 +253,26 @@ function VendasPage() {
     ]);
   };
 
+  // Sub-atalho numérico após F4: insere o split com o saldo restante e
+  // devolve o foco ao leitor (F1). Funciona com numpad e alfanumérico.
+  const pickPaymentByHotkey = useCallback((idx: number) => {
+    const method = PAYMENT_METHODS[idx]?.id;
+    if (!method) return;
+    if (cart.length === 0) {
+      toast.info("Carrinho vazio — adicione um item antes de escolher a forma de pagamento.");
+      return;
+    }
+    const amount = remaining > 0.01 ? remaining : total;
+    if (amount <= 0) {
+      toast.info("Venda já está quitada. Pressione F12 para concluir.");
+      return;
+    }
+    addSplit(method, amount);
+    toast.success(`+ ${method} · ${BRL(amount)}`, { duration: 1400 });
+    setShowPayment(false);
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, [cart.length, remaining, total]);
+
   const setSplitInstallments = (idx: number, n: number) => {
     setSplits((arr) => arr.map((s, i) => (i === idx ? { ...s, installments: n } : s)));
   };
