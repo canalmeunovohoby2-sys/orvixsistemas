@@ -75,15 +75,27 @@ function VendasPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
   const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const resultRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const confirmCancelRef = useRef<HTMLButtonElement>(null);
 
   const results = useMemo(() => {
     if (!q) return [] as Product[];
     const n = q.toLowerCase();
-    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q)).slice(0, 6);
+    // Lista completa filtrada — a navegação por setas faz scroll automático
+    // dentro do container, então não truncamos resultados.
+    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q));
   }, [q]);
 
   // Reset do índice destacado sempre que a lista filtrada mudar.
   useEffect(() => { setHighlight(0); }, [q]);
+
+  // Rolagem inteligente: mantém o item destacado sempre visível dentro do
+  // container do dropdown ao navegar com ArrowDown/ArrowUp.
+  useEffect(() => {
+    if (results.length === 0) return;
+    const el = resultRefs.current[highlight];
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [highlight, results.length]);
 
   const subtotal = cart.reduce((a, c) => a + c.price * c.qty, 0);
   const discountValue = Math.min(subtotal, discount);
@@ -221,6 +233,11 @@ function VendasPage() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isTyping = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
+      // Enquanto o modal de cancelamento está aberto, o próprio AlertDialog
+      // controla Enter/Esc/Setas — não deixamos atalhos globais (F12/Enter)
+      // dispararem ações concorrentes no caixa.
+      if (showCancel) return;
+
       // 🛡️ Blindagem: bloqueia o comportamento nativo do navegador para TODAS
       // as teclas de função usadas pelo PDV antes de qualquer ramificação —
       // evita que Chrome/Firefox abram "Localizar na página" (F3), Ajuda (F1),
@@ -286,7 +303,7 @@ function VendasPage() {
     // qualquer outro listener da página e antes do atalho nativo do browser.
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
-  }, [finalize, cart, remaining, splits.length, discount, showPayment, pickPaymentByHotkey]);
+  }, [finalize, cart, remaining, splits.length, discount, showPayment, showCancel, pickPaymentByHotkey]);
 
   const setSplitInstallments = (idx: number, n: number) => {
     setSplits((arr) => arr.map((s, i) => (i === idx ? { ...s, installments: n } : s)));
@@ -376,6 +393,7 @@ function VendasPage() {
                 {results.map((p, idx) => (
                   <li key={p.id}>
                     <button
+                      ref={(el) => { resultRefs.current[idx] = el; }}
                       onClick={() => add(p)}
                       onMouseEnter={() => setHighlight(idx)}
                       data-active={idx === highlight}
@@ -607,7 +625,40 @@ function VendasPage() {
       />
 
       <AlertDialog open={showCancel} onOpenChange={setShowCancel}>
-        <AlertDialogContent className="border-border bg-card">
+        <AlertDialogContent
+          className="border-border bg-card"
+          onOpenAutoFocus={(e) => {
+            // Foco inicial direto no botão de confirmação (vermelho).
+            e.preventDefault();
+            requestAnimationFrame(() => confirmCancelRef.current?.focus());
+          }}
+          onCloseAutoFocus={(e) => {
+            // Devolve o cursor ao campo de busca (F1) ao fechar.
+            e.preventDefault();
+            requestAnimationFrame(() => searchRef.current?.focus());
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              cancelSale();
+              return;
+            }
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              e.preventDefault();
+              const root = e.currentTarget as HTMLElement;
+              const btns = Array.from(
+                root.querySelectorAll<HTMLButtonElement>("button"),
+              ).filter((b) => !b.disabled);
+              if (btns.length < 2) return;
+              const active = document.activeElement as HTMLElement | null;
+              const idx = btns.findIndex((b) => b === active);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              const next = btns[(Math.max(0, idx) + dir + btns.length) % btns.length];
+              next?.focus();
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/15 text-primary">
@@ -622,6 +673,7 @@ function VendasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
+              ref={confirmCancelRef}
               onClick={cancelSale}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
