@@ -129,6 +129,29 @@ export const PRODUCTS: Product[] = PROD_SEEDS.map(({ name, unit, category }, i) 
   };
 });
 
+// Produtos de homologação com EAN-13 fixo para testar o leitor de código de barras
+// sem hardware (basta digitar o código no campo de busca do PDV).
+const SCAN_DEMO: { ean: string; name: string; unit: Unit; category: string; price: number }[] = [
+  { ean: "7891000100101", name: "Coca-Cola Lata 350ml", unit: "un", category: "Bebidas", price: 6.49 },
+  { ean: "7892000200202", name: "Martelo de Unha 27mm", unit: "un", category: "Utilidades", price: 38.9 },
+  { ean: "7893000300303", name: "Cabo Elétrico Flexível", unit: "m", category: "Eletrônicos", price: 4.75 },
+];
+SCAN_DEMO.forEach((d, i) => {
+  PRODUCTS.push({
+    id: `PScan${i + 1}`,
+    ean: d.ean,
+    name: d.name,
+    category: d.category,
+    costPrice: +(d.price * 0.6).toFixed(2),
+    salePrice: d.price,
+    stock: 50,
+    minStock: 10,
+    unit: d.unit,
+    supplier: SUPS[0],
+    status: "ativo",
+  });
+});
+
 const CUST_NAMES = [
   "Construtora Aliança LTDA", "Reforma Já ME", "João da Silva", "Maria Oliveira",
   "Pedro Construções", "Casa Nova Materiais", "Edificar Engenharia", "Ana Paula Lima",
