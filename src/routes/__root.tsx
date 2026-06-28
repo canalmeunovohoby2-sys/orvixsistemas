@@ -8,15 +8,15 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Psicóloga Natalia Mendes — Psicoterapia em Sorocaba/SP" },
-      { name: "description", content: "Psicoterapia individual para adultos e adolescentes em Sorocaba/SP. Atendimento acolhedor em ansiedade, depressão, luto, autoconhecimento e TCC." },
-      { name: "author", content: "Natalia Mendes" },
-      { property: "og:title", content: "Psicóloga Natalia Mendes — Psicoterapia em Sorocaba/SP" },
-      { property: "og:description", content: "Saúde mental e equilíbrio emocional. Atendimento personalizado no Boulevard Alavanca, Sorocaba/SP." },
+      { title: "Cavalcanti Advogados — Advogado Criminalista em São Paulo/SP" },
+      { name: "description", content: "Defesa criminal estratégica em São Paulo. Tribunal do Júri, Habeas Corpus, Inquérito Policial, Colarinho Branco. Atendimento 24h para emergências." },
+      { name: "author", content: "Cavalcanti Advogados" },
+      { property: "og:title", content: "Cavalcanti Advogados — Advogado Criminalista em São Paulo/SP" },
+      { property: "og:description", content: "Defesa criminal especializada. Mais de 834 avaliações 5 estrelas no Google. Paraíso, São Paulo/SP." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Psicóloga Natalia Mendes — Psicoterapia em Sorocaba/SP" },
-      { name: "twitter:description", content: "Saúde mental e equilíbrio emocional em Sorocaba/SP." },
+      { name: "twitter:title", content: "Cavalcanti Advogados — Advogado Criminalista em SP" },
+      { name: "twitter:description", content: "Defesa criminal estratégica e especializada em São Paulo/SP." },
     ],
     links: [
       {
