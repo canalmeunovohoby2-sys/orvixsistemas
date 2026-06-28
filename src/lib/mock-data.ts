@@ -495,9 +495,6 @@ function normalizeHit(ean: string, raw: { name?: string; brand?: string; categor
   return { ean, name: finalName, brand: brand || "—", category, unit: "un" };
 }
 
-/** Proxy CORS — concatenação literal, SEM encodeURIComponent (preserva ":" e "/"). */
-const corsProxy = (url: string) => "https://corsproxy.io/?" + url;
-
 async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
   console.groupCollapsed(`%c[lookupEan] → fetch`, "color:#3b82f6;font-weight:bold", url);
   try {
@@ -513,39 +510,6 @@ async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> 
     console.groupEnd();
     return null;
   }
-}
-
-async function fetchText(url: string, signal: AbortSignal): Promise<string | null> {
-  console.groupCollapsed(`%c[lookupEan] → fetch (HTML)`, "color:#a855f7;font-weight:bold", url);
-  try {
-    const res = await fetch(url, { signal });
-    console.log("status:", res.status, res.statusText, "| ok:", res.ok);
-    if (!res.ok) { console.warn("❌ HTML não-OK"); console.groupEnd(); return null; }
-    const text = await res.text();
-    console.log("✅ HTML recebido (", text.length, "chars)");
-    console.groupEnd();
-    return text;
-  } catch (err) {
-    console.error("💥 erro de rede / CORS / timeout:", err);
-    console.groupEnd();
-    return null;
-  }
-}
-
-/** Limpa boilerplate genérico ("Cosmos", "Bluesoft", " | ...") do título. */
-function cleanScrapedName(raw: string): string {
-  return raw
-    .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#039;/g, "'")
-    .replace(/\s*[-|·]\s*(Cosmos|Bluesoft|Open Food Facts|Open Beauty Facts).*$/i, "")
-    .replace(/\bCosmos\b|\bBluesoft\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
-function extractMeta(html: string, property: string): string | null {
-  const re = new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, "i");
-  const m = html.match(re);
-  return m ? m[1].trim() : null;
 }
 
 /**
