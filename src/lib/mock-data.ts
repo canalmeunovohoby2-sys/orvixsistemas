@@ -495,9 +495,6 @@ function normalizeHit(ean: string, raw: { name?: string; brand?: string; categor
   return { ean, name: finalName, brand: brand || "—", category, unit: "un" };
 }
 
-/** Proxy CORS — concatenação literal, SEM encodeURIComponent (preserva ":" e "/"). */
-const corsProxy = (url: string) => "https://corsproxy.io/?" + url;
-
 async function fetchJson(url: string, signal: AbortSignal): Promise<any | null> {
   console.groupCollapsed(`%c[lookupEan] → fetch`, "color:#3b82f6;font-weight:bold", url);
   try {
