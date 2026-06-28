@@ -503,17 +503,30 @@ function VendasPage() {
               <kbd className="px-2 py-0.5 rounded bg-secondary border border-border text-[10px] font-mono text-muted-foreground">F4</kbd>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              {PAYMENT_METHODS.map(({ id, icon: Icon }) => (
+              {PAYMENT_METHODS.map(({ id, icon: Icon }, idx) => (
                 <button
                   key={id}
                   onClick={() => addSplit(id, remaining > 0 ? remaining : total)}
                   disabled={cart.length === 0}
-                  className={`flex flex-col items-center gap-1 py-2 rounded-md bg-secondary border text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${showPayment ? "border-primary/60 ring-1 ring-primary/40" : "border-border"} hover:border-primary hover:bg-accent`}
+                  className={`relative flex flex-col items-center gap-1 py-2 rounded-md bg-secondary border text-[10px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${showPayment ? "border-primary/60 ring-1 ring-primary/40" : "border-border"} hover:border-primary hover:bg-accent`}
                 >
+                  {showPayment && (
+                    <kbd
+                      aria-hidden
+                      className="absolute top-1 right-1 px-1 min-w-[16px] h-4 grid place-items-center rounded bg-primary text-primary-foreground text-[9px] font-mono font-bold shadow-sm"
+                    >
+                      {PAYMENT_HOTKEYS[idx]}
+                    </kbd>
+                  )}
                   <Icon className="w-4 h-4" /> {id}
                 </button>
               ))}
             </div>
+            {showPayment && (
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                Modo seleção ativo — tecle <kbd className="px-1 rounded bg-secondary border border-border font-mono">1–4</kbd> para escolher · <kbd className="px-1 rounded bg-secondary border border-border font-mono">Esc</kbd> cancela
+              </p>
+            )}
           </div>
 
           <button
