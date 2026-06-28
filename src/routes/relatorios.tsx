@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { AppShell } from "@/components/AppShell";
-import { BRL, SALES_BY_DAY, TOP_PRODUCTS } from "@/lib/mock-data";
+import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty } from "@/lib/mock-data";
 import {
-  Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { Download } from "lucide-react";
+import { Banknote, CreditCard, Download, QrCode, TrendingUp, Trophy, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/relatorios")({
   head: () => ({
@@ -20,7 +21,17 @@ export const Route = createFileRoute("/relatorios")({
   component: RelatoriosPage,
 });
 
+type PaymentRow = {
+  method: "Dinheiro" | "Pix" | "Crédito" | "Débito" | "Crediário";
+  icon: typeof Banknote;
+  bruto: number;
+  liquido: number;
+  count: number;
+};
+
 function RelatoriosPage() {
+  const { closing, totals, abc } = useMemo(() => computeReport(), []);
+
   return (
     <AppShell title="Relatórios" breadcrumb={["Meu Saas", "Relatórios"]}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
@@ -34,6 +45,12 @@ function RelatoriosPage() {
         </button>
       </div>
 
+      {/* ─── Fechamento de caixa ─── */}
+      <CashClosing closing={closing} totals={totals} />
+
+      {/* ─── Curva ABC ─── */}
+      <CurvaABC abc={abc} />
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
         <section className="glass rounded-xl p-5">
           <h2 className="text-base font-semibold mb-1">Evolução de vendas</h2>
@@ -41,54 +58,261 @@ function RelatoriosPage() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={SALES_BY_DAY}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="day" stroke="#888" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} formatter={(v: number) => BRL(v)} />
-                <Line type="monotone" dataKey="vendas" stroke="#8B0000" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="lucro" stroke="#5BA67C" strokeWidth={2} dot={false} />
+                <CartesianGrid stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--foreground))" }}
+                  formatter={(v: number) => BRL(v)}
+                />
+                <Line type="monotone" dataKey="vendas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="lucro" stroke="#10b981" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         <section className="glass rounded-xl p-5">
-          <h2 className="text-base font-semibold mb-1">Ranking de produtos</h2>
-          <p className="text-xs text-muted-foreground mb-3">Unidades vendidas no período</p>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TOP_PRODUCTS}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="name" stroke="#888" fontSize={10} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={70} />
-                <YAxis stroke="#888" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="vendas" fill="#8B0000" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <h2 className="text-base font-semibold mb-1">Indicadores estratégicos</h2>
+          <p className="text-xs text-muted-foreground mb-3">Snapshot do mês corrente</p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {[
+              { l: "Ticket médio", v: BRL(totals.ticketMedio), tone: "primary" as const },
+              { l: "Margem bruta", v: "32,4%", tone: "success" as const },
+              { l: "Giro de estoque", v: "4,8x" },
+              { l: "Ruptura", v: "2,1%", tone: "primary" as const },
+              { l: "Vendas concluídas", v: `${totals.qtdVendas}` },
+              { l: "Lucro operacional", v: BRL(totals.lucroOp), tone: "success" as const },
+              { l: "Conversão PDV", v: "87%" },
+              { l: "Itens críticos", v: String(PRODUCTS.filter(p => p.stock <= p.minStock).length), tone: "primary" as const },
+            ].map((k) => (
+              <div key={k.l} className="p-3 rounded-lg bg-secondary/60 border border-border">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{k.l}</p>
+                <p className={`mt-1 text-lg font-bold tabular-nums ${k.tone === "primary" ? "text-primary" : k.tone === "success" ? "text-emerald-500" : ""}`}>{k.v}</p>
+              </div>
+            ))}
           </div>
         </section>
       </div>
-
-      <section className="glass rounded-xl p-5">
-        <h2 className="text-base font-semibold mb-3">Indicadores estratégicos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          {[
-            { l: "Ticket médio", v: "R$ 384,20" },
-            { l: "Margem bruta", v: "32,4%" },
-            { l: "Giro de estoque", v: "4,8x" },
-            { l: "Ruptura", v: "2,1%" },
-            { l: "Vendas concluídas", v: "94%" },
-            { l: "Devoluções", v: "1,3%" },
-            { l: "Conversão PDV", v: "87%" },
-            { l: "Itens críticos", v: "12" },
-          ].map((k) => (
-            <div key={k.l} className="p-4 rounded-lg bg-secondary/60 border border-border">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{k.l}</p>
-              <p className="mt-1.5 text-xl font-bold">{k.v}</p>
-            </div>
-          ))}
-        </div>
-      </section>
     </AppShell>
   );
+}
+
+/* ─────────────── Cash closing ─────────────── */
+
+function CashClosing({ closing, totals }: { closing: PaymentRow[]; totals: ReturnType<typeof computeReport>["totals"] }) {
+  const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return (
+    <section aria-labelledby="cash" className="glass rounded-xl p-5 mb-6 border border-border">
+      <header className="flex flex-wrap items-end justify-between gap-3 mb-5">
+        <div>
+          <h2 id="cash" className="text-base font-semibold inline-flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-primary" /> Fechamento de Caixa do Dia
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{today} · {totals.qtdVendas} venda(s) concluída(s)</p>
+        </div>
+        <div className="flex gap-3 text-right">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Bruto</p>
+            <p className="text-xl font-bold tabular-nums">{BRL(totals.bruto)}</p>
+          </div>
+          <div className="border-l border-border pl-3">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Líquido</p>
+            <p className="text-xl font-bold tabular-nums text-emerald-500">{BRL(totals.liquido)}</p>
+          </div>
+        </div>
+      </header>
+
+      <ul className="space-y-2">
+        {closing.map((row) => {
+          const Icon = row.icon;
+          const pct = totals.bruto > 0 ? (row.bruto / totals.bruto) * 100 : 0;
+          return (
+            <li key={row.method} className="p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <div className="inline-flex items-center gap-2">
+                  <span className="w-8 h-8 grid place-items-center rounded-md bg-primary/15 text-primary">
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">{row.method}</p>
+                    <p className="text-[11px] text-muted-foreground">{row.count} transação(ões) · {pct.toFixed(1)}% do bruto</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold tabular-nums">{BRL(row.bruto)}</p>
+                  <p className="text-[11px] text-emerald-500 tabular-nums">líq. {BRL(row.liquido)}</p>
+                </div>
+              </div>
+              <div className="h-1.5 w-full bg-background/60 rounded-full overflow-hidden border border-border">
+                <div
+                  className="h-full bg-gradient-to-r from-primary/70 to-primary rounded-full transition-all"
+                  style={{ width: `${pct}%` }}
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="mt-4 text-[11px] text-muted-foreground italic">
+        Confira o valor em <strong className="text-foreground not-italic">Dinheiro</strong> registrado acima com o caixa físico antes de fechar.
+      </p>
+    </section>
+  );
+}
+
+/* ─────────────── ABC curve ─────────────── */
+
+type ABCRow = { id: string; name: string; unit: PRODUCTS[number]["unit"]; qty: number; receita: number };
+
+function CurvaABC({ abc }: { abc: { byVolume: ABCRow[]; byReceita: ABCRow[] } }) {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+      <RankingCard
+        title="Top 5 — Mais Vendidos (volume)"
+        subtitle="Quantidade total vendida no período, respeitando a unidade"
+        icon={Trophy}
+        rows={abc.byVolume}
+        valueRender={(r) => (
+          <span className="tabular-nums">
+            {formatQty(r.qty, r.unit)} <span className="text-[10px] text-muted-foreground font-normal">{r.unit}</span>
+          </span>
+        )}
+        max={Math.max(...abc.byVolume.map((r) => r.qty))}
+        bar={(r) => r.qty}
+      />
+      <RankingCard
+        title="Top 5 — Maior Receita Líquida"
+        subtitle="Quantidade × preço de venda, após descontos médios"
+        icon={TrendingUp}
+        rows={abc.byReceita}
+        valueRender={(r) => <span className="tabular-nums text-emerald-500 font-bold">{BRL(r.receita)}</span>}
+        max={Math.max(...abc.byReceita.map((r) => r.receita))}
+        bar={(r) => r.receita}
+      />
+    </div>
+  );
+}
+
+function RankingCard({
+  title, subtitle, icon: Icon, rows, valueRender, max, bar,
+}: {
+  title: string;
+  subtitle: string;
+  icon: typeof Trophy;
+  rows: ABCRow[];
+  valueRender: (r: ABCRow) => React.ReactNode;
+  max: number;
+  bar: (r: ABCRow) => number;
+}) {
+  return (
+    <section className="glass rounded-xl p-5 border border-border">
+      <header className="mb-4">
+        <h2 className="text-base font-semibold inline-flex items-center gap-2">
+          <Icon className="w-4 h-4 text-primary" /> {title}
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+      </header>
+      <ol className="space-y-3">
+        {rows.map((r, i) => {
+          const pct = max > 0 ? (bar(r) / max) * 100 : 0;
+          return (
+            <li key={r.id} className="flex items-center gap-3">
+              <span className="w-7 h-7 shrink-0 grid place-items-center rounded-md bg-secondary border border-border text-xs font-bold tabular-nums">
+                {i + 1}º
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-sm font-medium truncate">{r.name}</p>
+                  <p className="text-sm shrink-0">{valueRender(r)}</p>
+                </div>
+                <div className="h-1.5 w-full bg-background/60 rounded-full overflow-hidden border border-border">
+                  <div
+                    className="h-full bg-primary/80 rounded-full transition-all"
+                    style={{ width: `${pct}%` }}
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+/* ─────────────── Derivations ─────────────── */
+
+function computeReport() {
+  const concluded = SALES.filter((s) => s.status === "concluida");
+  const pending = SALES.filter((s) => s.status === "pendente");
+
+  // Map mock's 3 native methods into the PDV's 5 (Cartão → 60% Crédito + 40% Débito; Crediário ← pendentes).
+  const buckets: Record<PaymentRow["method"], { bruto: number; count: number }> = {
+    Dinheiro: { bruto: 0, count: 0 },
+    Pix: { bruto: 0, count: 0 },
+    Crédito: { bruto: 0, count: 0 },
+    Débito: { bruto: 0, count: 0 },
+    Crediário: { bruto: 0, count: 0 },
+  };
+  for (const s of concluded) {
+    if (s.payment === "Dinheiro") {
+      buckets.Dinheiro.bruto += s.total; buckets.Dinheiro.count += 1;
+    } else if (s.payment === "Pix") {
+      buckets.Pix.bruto += s.total; buckets.Pix.count += 1;
+    } else {
+      buckets.Crédito.bruto += s.total * 0.6; buckets.Crédito.count += 1;
+      buckets.Débito.bruto += s.total * 0.4; buckets.Débito.count += 1;
+    }
+  }
+  for (const s of pending) {
+    buckets.Crediário.bruto += s.total; buckets.Crediário.count += 1;
+  }
+
+  // Net = bruto − taxa (Crédito 3.2%, Débito 1.5%, Pix 0.99%, Crediário 0%, Dinheiro 0%).
+  const fee: Record<PaymentRow["method"], number> = { Dinheiro: 0, Pix: 0.0099, Crédito: 0.032, Débito: 0.015, Crediário: 0 };
+  const icons: Record<PaymentRow["method"], typeof Banknote> = {
+    Dinheiro: Banknote, Pix: QrCode, Crédito: CreditCard, Débito: CreditCard, Crediário: Wallet,
+  };
+  const closing: PaymentRow[] = (Object.keys(buckets) as PaymentRow["method"][]).map((m) => ({
+    method: m,
+    icon: icons[m],
+    bruto: +buckets[m].bruto.toFixed(2),
+    liquido: +(buckets[m].bruto * (1 - fee[m])).toFixed(2),
+    count: buckets[m].count,
+  })).sort((a, b) => b.bruto - a.bruto);
+
+  const bruto = closing.reduce((a, c) => a + c.bruto, 0);
+  const liquido = closing.reduce((a, c) => a + c.liquido, 0);
+  const qtdVendas = concluded.length;
+  const ticketMedio = qtdVendas > 0 ? bruto / qtdVendas : 0;
+
+  // ABC curve — synthesize per-product 30d sales from a deterministic seed.
+  const abcRows: ABCRow[] = PRODUCTS.map((p, i) => {
+    const seed = (i * 9301 + 49297) % 233280;
+    const factor = seed / 233280;
+    const baseQty = 5 + Math.round(factor * 145);
+    const qty = p.unit === "un"
+      ? baseQty
+      : +(baseQty * (0.5 + factor * 1.5)).toFixed(2);
+    return { id: p.id, name: p.name, unit: p.unit, qty, receita: +(qty * p.salePrice * 0.96).toFixed(2) };
+  });
+
+  const byVolume = [...abcRows].sort((a, b) => b.qty - a.qty).slice(0, 5);
+  const byReceita = [...abcRows].sort((a, b) => b.receita - a.receita).slice(0, 5);
+
+  return {
+    closing,
+    totals: { bruto, liquido, qtdVendas, ticketMedio, lucroOp: liquido * 0.324 },
+    abc: { byVolume, byReceita },
+  };
 }
