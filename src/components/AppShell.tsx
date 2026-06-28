@@ -3,9 +3,10 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Warehouse, Users, Truck, BarChart3,
-  Bell, Search, ChevronLeft, ChevronRight, LogOut, Menu, X, Settings, HelpCircle,
+  Search, ChevronLeft, ChevronRight, Menu, X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HelpCenter } from "@/components/HelpCenter";
 
 type NavItem = {
   label: string;
@@ -100,8 +101,6 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
 
         {/* Footer of sidebar */}
         <div className="border-t border-sidebar-border p-2 space-y-1 shrink-0">
-          <SideLink icon={Settings} label="Configurações" collapsed={isCollapsed} />
-          <SideLink icon={HelpCircle} label="Ajuda" collapsed={isCollapsed} />
           <button
             onClick={() => setCollapsed(isCollapsed ? "0" : "1")}
             aria-label={isCollapsed ? "Expandir menu" : "Colapsar menu"}
@@ -138,14 +137,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
           </div>
           <div className="flex-1 md:hidden" />
 
-          <button
-            aria-label="Notificações"
-            className="relative w-10 h-10 rounded-md hover:bg-accent grid place-items-center"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse-dot" />
-          </button>
-
+          <HelpCenter />
           <ThemeToggle />
 
           <div className="flex items-center gap-3 pl-3 ml-1 border-l border-border">
@@ -156,12 +148,6 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
               <p className="text-sm font-semibold leading-tight truncate">Ricardo Cunha</p>
               <p className="text-xs text-muted-foreground truncate">Administrador</p>
             </div>
-            <button
-              aria-label="Sair"
-              className="hidden sm:grid w-9 h-9 rounded-md place-items-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </header>
 
@@ -278,15 +264,3 @@ function NavLink({ item, active, collapsed, pathname }: { item: NavItem; active:
   );
 }
 
-function SideLink({ icon: Icon, label, collapsed }: { icon: typeof LayoutDashboard; label: string; collapsed: boolean }) {
-  return (
-    <button
-      title={collapsed ? label : undefined}
-      aria-label={label}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-    >
-      <Icon className="w-[18px] h-[18px] shrink-0" />
-      {!collapsed && <span className="truncate">{label}</span>}
-    </button>
-  );
-}
