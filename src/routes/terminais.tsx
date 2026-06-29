@@ -44,20 +44,20 @@ function TerminaisPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cid || busy) return;
     setBusy(true);
-    const res = createCashier(cid, { name, email, password });
+    const res = await createCashier(cid, { name, email, password });
     setBusy(false);
     if (!res.ok) { toast.error(res.reason ?? "Não foi possível criar o operador."); return; }
     toast.success(`✅ Terminal criado — ${res.user!.name} (${res.user!.email})`);
     setName(""); setEmail(""); setPassword("");
   };
 
-  const remove = (userId: string, label: string) => {
+  const remove = async (userId: string, label: string) => {
     if (!confirm(`Remover o terminal "${label}"? Esta ação não poderá ser desfeita.`)) return;
-    const res = deleteCashier(userId);
+    const res = await deleteCashier(userId);
     if (!res.ok) { toast.error(res.reason ?? "Não foi possível remover."); return; }
     toast.success("Terminal removido.");
   };

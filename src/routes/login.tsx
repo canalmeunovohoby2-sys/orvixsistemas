@@ -44,12 +44,12 @@ function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
     try {
-      const res = loginWithCredentials(email, password);
+      const res = await loginWithCredentials(email, password);
       if (!res.ok || !res.user) {
         toast.error(res.reason ?? "Credenciais inválidas.");
         return;
@@ -64,9 +64,13 @@ function LoginPage() {
     }
   };
 
-  const handlePasswordUpdated = (newPwd: string) => {
+  const handlePasswordUpdated = async (newPwd: string) => {
     if (!pendingUser) return;
-    updatePassword(pendingUser.id, newPwd);
+    const r = await updatePassword(newPwd);
+    if (!r.ok) {
+      toast.error(r.reason ?? "Falha ao atualizar a senha.");
+      return;
+    }
     toast.success("Senha atualizada com segurança na ORVIX SISTEMAS!");
     const role = pendingUser.role;
     setPendingUser(null);
