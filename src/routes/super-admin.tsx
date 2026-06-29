@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
-  PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS,
+  PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
   SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
