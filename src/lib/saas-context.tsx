@@ -32,6 +32,10 @@ export type Company = {
   segment?: string;
   /** True enquanto o lojista ainda não preencheu o cadastro obrigatório. */
   onboardingPending?: boolean;
+  /** Marca a empresa como "perfil de demonstração" (Dashboard inicia populado).
+   *  Empresas reais — criadas por Super Admin, webhook MP ou self-signup —
+   *  começam SEMPRE com isDemo=false, garantindo dashboard zerado. */
+  isDemo?: boolean;
 };
 
 export type SaaSUser = {
