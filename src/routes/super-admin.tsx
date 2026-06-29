@@ -522,6 +522,7 @@ function kindBadge(kind: SystemLogKind) {
 }
 
 function AuditTab() {
+  const { revertLog, user } = useSaaS();
   const [filter, setFilter] = useState<"all" | SystemLogKind>("all");
   const logs = useMemo<SystemLog[]>(
     () => filter === "all" ? SYSTEM_LOGS : SYSTEM_LOGS.filter((l) => l.kind === filter),
@@ -561,11 +562,12 @@ function AuditTab() {
                 <th className="text-left px-4 py-3">Empresa</th>
                 <th className="text-left px-4 py-3">Usuário</th>
                 <th className="text-left px-4 py-3">Ação</th>
+                <th className="text-right px-4 py-3 w-[160px]">Ações</th>
               </tr>
             </thead>
             <tbody>
               {logs.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhum evento registrado para este filtro.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhum evento registrado para este filtro.</td></tr>
               )}
               {logs.map((l) => (
                 <tr key={l.id} className="border-t border-border">
@@ -578,6 +580,28 @@ function AuditTab() {
                   <td className="px-4 py-3">{l.companyName ?? "—"}</td>
                   <td className="px-4 py-3">{l.user ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{l.action}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {l.undo && !l.reverted ? (
+                      <button
+                        onClick={() => {
+                          void user;
+                          const r = revertLog(l.id);
+                          if (r.ok) toast.success("Ação revertida com sucesso! O estado anterior foi restaurado.");
+                          else toast.error(r.reason ?? "Não foi possível reverter este evento.");
+                        }}
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+                        title="Restaurar o estado anterior deste evento"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" /> Reverter Ação
+                      </button>
+                    ) : l.reverted ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground italic">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Revertido
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/60">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
