@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
@@ -59,9 +59,50 @@ type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "config";
 
 function SuperAdminPage() {
   useMockStore();
-  const { user, logout } = useSaaS();
+  const { user, logout, processWebhookPayment } = useSaaS();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
+
+  // Poller do webhook do Mercado Pago — drena eventos pendentes da fila server-side
+  // e materializa empresas + auditoria. Só roda enquanto o Super Admin está logado.
+  const pollingRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      if (pollingRef.current) return;
+      pollingRef.current = true;
+      try {
+        const res = await fetch("/api/webhooks/mercadopago", { method: "GET" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { events?: Array<{
+          id: string; externalId: string;
+          type: "payment" | "subscription" | "unknown";
+          status: string; amount: number;
+          payerEmail: string | null; payerName: string | null;
+        }> };
+        const events = data.events ?? [];
+        if (!events.length || cancelled) return;
+        const handled: string[] = [];
+        for (const ev of events) {
+          const result = processWebhookPayment(ev);
+          handled.push(ev.id);
+          if (result.ok && result.company) {
+            toast.success(`Webhook MP: empresa ${result.company.fantasia} criada automaticamente.`);
+          }
+        }
+        if (handled.length) {
+          await fetch(`/api/webhooks/mercadopago?ack=${handled.join(",")}`, { method: "POST" });
+        }
+      } catch {
+        /* silencioso — backoff implícito pelo intervalo */
+      } finally {
+        pollingRef.current = false;
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 8000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [processWebhookPayment]);
 
   const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: "Visão geral",  icon: LayoutDashboard },
