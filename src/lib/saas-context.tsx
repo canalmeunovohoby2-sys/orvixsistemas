@@ -155,6 +155,40 @@ const BANNED_SUPER_ADMIN_PASSWORD_HASHES = new Set<string>([
 
 const SUPER_ADMIN_HASH_STORAGE_KEY = "orvix_sa_pwd_hash_v1";
 
+/** Overrides de senha dos usuários comuns (admin/cashier) persistidos no navegador. */
+const USER_PWD_OVERRIDES_KEY = "orvix_user_pwd_overrides_v1";
+
+function loadUserPasswordOverrides(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(USER_PWD_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed as Record<string, string>;
+  } catch {}
+  return {};
+}
+
+function persistUserPasswordOverride(userId: string, password: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const map = loadUserPasswordOverrides();
+    map[userId] = password;
+    localStorage.setItem(USER_PWD_OVERRIDES_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function applyUserPasswordOverrides() {
+  const map = loadUserPasswordOverrides();
+  for (const u of SAAS_USERS) {
+    if (u.role === "super_admin") continue;
+    if (map[u.id]) {
+      u.password = map[u.id];
+      u.isTemporaryPassword = false;
+    }
+  }
+}
+
 function getActiveSuperAdminHash(): string {
   try {
     const v = localStorage.getItem(SUPER_ADMIN_HASH_STORAGE_KEY);
