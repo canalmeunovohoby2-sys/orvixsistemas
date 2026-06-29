@@ -376,23 +376,26 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
       .single();
     if (cErr || !company) return { ok: false as const, reason: cErr?.message ?? "Falha ao criar empresa." };
 
-    // Cria usuário Auth do dono
+    // Cria/atualiza usuário Auth do dono no MESMO fluxo usado pelo login.
+    // Se o e-mail já existir por causa de uma tentativa anterior de migração,
+    // resetamos senha + metadata em vez de deixar um perfil órfão.
     const email = data.ownerEmail.trim().toLowerCase();
-    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser({
+    const owner = await ensureAuthUser(supabaseAdmin, {
       email,
       password: data.ownerPassword,
-      email_confirm: true,
-      user_metadata: { name: data.ownerName, company_id: companyId, role: "admin" },
+      name: data.ownerName,
+      companyId,
+      role: "admin",
     });
-    if (aErr || !created.user) {
+    if (!owner.ok) {
       // rollback empresa
       await supabaseAdmin.from("companies").delete().eq("id", companyId);
-      return { ok: false as const, reason: aErr?.message ?? "Falha ao criar usuário do dono." };
+      return { ok: false as const, reason: owner.reason };
     }
 
     // Cria/atualiza app_users do dono
     const { error: uErr } = await supabaseAdmin.from("app_users").upsert({
-      id: created.user.id,
+      id: owner.userId,
       name: data.ownerName,
       email,
       role: "admin",
@@ -400,12 +403,12 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
       is_temporary_password: true,
     });
     if (uErr) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(owner.userId);
       await supabaseAdmin.from("companies").delete().eq("id", companyId);
       return { ok: false as const, reason: uErr.message };
     }
 
-    return { ok: true as const, companyId, ownerId: created.user.id, ownerEmail: email };
+    return { ok: true as const, companyId, ownerId: owner.userId, ownerEmail: email };
   });
 
 /* ============================================================
@@ -437,16 +440,17 @@ export const adminCreateCashier = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
 
-    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser({
+    const cashier = await ensureAuthUser(supabaseAdmin, {
       email,
       password: data.password,
-      email_confirm: true,
-      user_metadata: { name: data.name, company_id: data.companyId, role: "cashier" },
+      name: data.name,
+      companyId: data.companyId,
+      role: "cashier",
     });
-    if (aErr || !created.user) return { ok: false as const, reason: aErr?.message ?? "Falha ao criar usuário." };
+    if (!cashier.ok) return { ok: false as const, reason: cashier.reason };
 
     const { error: uErr } = await supabaseAdmin.from("app_users").upsert({
-      id: created.user.id,
+      id: cashier.userId,
       name: data.name,
       email,
       role: "cashier",
@@ -454,11 +458,11 @@ export const adminCreateCashier = createServerFn({ method: "POST" })
       is_temporary_password: false,
     });
     if (uErr) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(cashier.userId);
       return { ok: false as const, reason: uErr.message };
     }
 
-    return { ok: true as const, userId: created.user.id, email };
+    return { ok: true as const, userId: cashier.userId, email };
   });
 
 /* ============================================================
