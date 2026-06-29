@@ -261,6 +261,11 @@ type SaaSCtx = {
     newPassword: string,
     confirmPassword: string,
   ) => { ok: boolean; reason?: string };
+  /** Conclui o cadastro obrigatório do lojista (primeiro acesso). */
+  completeOnboarding: (
+    companyId: string,
+    data: { fantasia: string; cnpj: string; phone: string; segment: string },
+  ) => { ok: boolean; reason?: string };
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
   createDemoAccess: () => { user: SaaSUser; company: Company };
   /** Processa um evento de webhook do Mercado Pago: cria empresa + usuário e registra auditoria. */
