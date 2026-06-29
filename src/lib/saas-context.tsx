@@ -842,7 +842,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         user, company, companies: COMPANIES, users: SAAS_USERS,
         loginAs, loginWithCredentials, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
-        updatePassword, createDemoAccess, processWebhookPayment,
+        updatePassword, changeOwnPassword, createDemoAccess, processWebhookPayment,
         countUsers, canAddUser, inviteUser,
         deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
