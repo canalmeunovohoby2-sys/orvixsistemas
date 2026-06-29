@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
-  SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, updateSuperAdminPassword, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
@@ -17,7 +17,7 @@ import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
-  LogOut, Trash2, Undo2,
+  LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
