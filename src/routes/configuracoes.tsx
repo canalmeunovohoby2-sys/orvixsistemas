@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { useSaaS } from "@/lib/saas-context";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, ShieldCheck, KeyRound, Building2 } from "lucide-react";
+import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -41,7 +41,7 @@ const EMPTY: FiscalData = {
 };
 
 function ConfiguracoesPage() {
-  const { company } = useSaaS();
+  const { company, user, changeOwnPassword, logout } = useSaaS();
   const cid = company?.id ?? "EMP001";
   const storageKey = `orvix_fiscal_${cid}`;
 
@@ -217,7 +217,146 @@ function ConfiguracoesPage() {
           </button>
         </div>
       </form>
+
+      {user && user.role !== "super_admin" && (
+        <ChangePasswordCard
+          userEmail={user.email}
+          onSubmit={changeOwnPassword}
+          onAfterSuccess={() => {
+            // pequena espera para o toast aparecer antes do redirect
+            setTimeout(() => logout(), 800);
+          }}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function ChangePasswordCard({
+  userEmail,
+  onSubmit,
+  onAfterSuccess,
+}: {
+  userEmail: string;
+  onSubmit: (
+    current: string,
+    next: string,
+    confirm: string,
+  ) => { ok: boolean; reason?: string };
+  onAfterSuccess: () => void;
+}) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const handle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    const res = onSubmit(current, next, confirm);
+    if (!res.ok) {
+      toast.error(res.reason ?? "Não foi possível alterar a senha.");
+      setBusy(false);
+      return;
+    }
+    toast.success("Senha alterada com sucesso! Faça login novamente com suas novas credenciais.");
+    setCurrent(""); setNext(""); setConfirm("");
+    onAfterSuccess();
+  };
+
+  return (
+    <section className="mt-8 max-w-4xl rounded-xl border border-border bg-card p-6">
+      <header className="flex items-start gap-3 mb-5">
+        <div className="w-10 h-10 grid place-items-center rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+          <Lock className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">Segurança da conta</h2>
+          <p className="text-xs text-muted-foreground">
+            Altere a senha de acesso de <span className="font-medium text-foreground">{userEmail}</span>. Após salvar, você será deslogado e precisará entrar novamente.
+          </p>
+        </div>
+      </header>
+
+      <form onSubmit={handle} className="grid sm:grid-cols-3 gap-4">
+        <Field label="Senha atual" required>
+          <PwdInput
+            value={current}
+            onChange={setCurrent}
+            show={showCurrent}
+            onToggle={() => setShowCurrent((s) => !s)}
+            autoComplete="current-password"
+            placeholder="••••••••"
+          />
+        </Field>
+        <Field label="Nova senha" required>
+          <PwdInput
+            value={next}
+            onChange={setNext}
+            show={showNext}
+            onToggle={() => setShowNext((s) => !s)}
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </Field>
+        <Field label="Confirmar nova senha" required>
+          <PwdInput
+            value={confirm}
+            onChange={setConfirm}
+            show={showNext}
+            onToggle={() => setShowNext((s) => !s)}
+            autoComplete="new-password"
+            placeholder="Repita a nova senha"
+          />
+        </Field>
+
+        <div className="sm:col-span-3 flex justify-end">
+          <button
+            type="submit"
+            disabled={busy}
+            className="h-11 px-6 rounded-md bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 inline-flex items-center gap-2 shadow disabled:opacity-60"
+          >
+            <Lock className="w-4 h-4" /> Alterar senha
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function PwdInput({
+  value, onChange, show, onToggle, autoComplete, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  autoComplete: string;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        className="w-full h-10 px-3 pr-10 rounded-md bg-background border border-border text-sm text-foreground focus:outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/40 transition-colors"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        tabIndex={-1}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
   );
 }
 

@@ -155,6 +155,40 @@ const BANNED_SUPER_ADMIN_PASSWORD_HASHES = new Set<string>([
 
 const SUPER_ADMIN_HASH_STORAGE_KEY = "orvix_sa_pwd_hash_v1";
 
+/** Overrides de senha dos usuários comuns (admin/cashier) persistidos no navegador. */
+const USER_PWD_OVERRIDES_KEY = "orvix_user_pwd_overrides_v1";
+
+function loadUserPasswordOverrides(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(USER_PWD_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed as Record<string, string>;
+  } catch {}
+  return {};
+}
+
+function persistUserPasswordOverride(userId: string, password: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const map = loadUserPasswordOverrides();
+    map[userId] = password;
+    localStorage.setItem(USER_PWD_OVERRIDES_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function applyUserPasswordOverrides() {
+  const map = loadUserPasswordOverrides();
+  for (const u of SAAS_USERS) {
+    if (u.role === "super_admin") continue;
+    if (map[u.id]) {
+      u.password = map[u.id];
+      u.isTemporaryPassword = false;
+    }
+  }
+}
+
 function getActiveSuperAdminHash(): string {
   try {
     const v = localStorage.getItem(SUPER_ADMIN_HASH_STORAGE_KEY);
@@ -215,6 +249,12 @@ type SaaSCtx = {
   activateRevenue: (companyId: string) => void;
   /** Atualiza senha do usuário e zera o flag de primeiro acesso. */
   updatePassword: (userId: string, newPassword: string) => void;
+  /** Permite ao usuário logado (admin/cashier) trocar a própria senha. */
+  changeOwnPassword: (
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) => { ok: boolean; reason?: string };
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
   createDemoAccess: () => { user: SaaSUser; company: Company };
   /** Processa um evento de webhook do Mercado Pago: cria empresa + usuário e registra auditoria. */
@@ -260,6 +300,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (stored) setUserId(stored);
     } catch {}
     hydrateCompaniesFromStorage();
+    applyUserPasswordOverrides();
     setCompaniesTick((t) => t + 1);
     setHydrated(true);
   }, []);
@@ -464,6 +505,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (!u) return;
     u.password = newPassword;
     u.isTemporaryPassword = false;
+    if (u.role !== "super_admin") persistUserPasswordOverride(u.id, newPassword);
     setUsersTick((t) => t + 1);
     const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
     logEvent({
@@ -474,6 +516,42 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       action: "Senha de primeiro acesso atualizada com sucesso (ORVIX SISTEMAS).",
     });
   }, []);
+
+  const changeOwnPassword = useCallback(
+    (currentPassword: string, newPassword: string, confirmPassword: string): { ok: boolean; reason?: string } => {
+      const u = realUser;
+      if (!u) return { ok: false, reason: "Sessão expirada. Faça login novamente." };
+      if (u.role === "super_admin") {
+        return { ok: false, reason: "Use o botão dedicado do Painel Master para alterar a senha do Super Admin." };
+      }
+      if (!currentPassword || u.password !== currentPassword) {
+        return { ok: false, reason: "Senha atual incorreta." };
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return { ok: false, reason: "A nova senha precisa ter pelo menos 6 caracteres." };
+      }
+      if (newPassword !== confirmPassword) {
+        return { ok: false, reason: "A confirmação não confere com a nova senha." };
+      }
+      if (newPassword === currentPassword) {
+        return { ok: false, reason: "A nova senha precisa ser diferente da atual." };
+      }
+      u.password = newPassword;
+      u.isTemporaryPassword = false;
+      persistUserPasswordOverride(u.id, newPassword);
+      setUsersTick((t) => t + 1);
+      const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: u.companyId,
+        companyName: comp?.fantasia ?? "Plataforma",
+        user: u.name,
+        action: "Senha de acesso alterada pelo próprio usuário.",
+      });
+      return { ok: true };
+    },
+    [realUser],
+  );
 
   const createDemoAccess = useCallback(() => {
     const seq = COMPANIES.length + 1;
@@ -764,7 +842,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         user, company, companies: COMPANIES, users: SAAS_USERS,
         loginAs, loginWithCredentials, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
-        updatePassword, createDemoAccess, processWebhookPayment,
+        updatePassword, changeOwnPassword, createDemoAccess, processWebhookPayment,
         countUsers, canAddUser, inviteUser,
         deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
