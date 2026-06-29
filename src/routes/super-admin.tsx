@@ -16,6 +16,7 @@ import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
+  LogOut, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,7 +58,8 @@ type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "config";
 
 function SuperAdminPage() {
   useMockStore();
-  const { user } = useSaaS();
+  const { user, logout } = useSaaS();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
 
   const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
@@ -79,7 +81,21 @@ function SuperAdminPage() {
             <p className="font-bold leading-tight truncate">Painel Master da Plataforma</p>
             <p className="text-xs text-muted-foreground truncate">Acesso de plataforma · {user?.name}</p>
           </div>
-          <div className="ml-auto"><ThemeToggle /></div>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => {
+                logout();
+                toast.success("Sessão encerrada. Até logo!");
+                navigate({ to: "/login" });
+              }}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+              title="Encerrar sessão do Super Admin"
+              aria-label="Sair"
+            >
+              <LogOut className="w-4 h-4" /> Sair
+            </button>
+          </div>
         </div>
         <nav aria-label="Seções do painel master" className="px-4 lg:px-6 flex gap-1 overflow-x-auto">
           {TABS.map((t) => {
@@ -223,7 +239,7 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany } = useSaaS();
   const navigate = useNavigate();
   const [emailPreview, setEmailPreview] = useState<{ email: string; password: string; company: string } | null>(null);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
@@ -264,7 +280,7 @@ function CompaniesTab() {
                 <th className="text-left px-4 py-3">Vencimento</th>
                 <th className="text-right px-4 py-3">MRR</th>
                 <th className="text-left px-4 py-3">Usuários</th>
-                <th className="text-left px-4 py-3">Suporte</th>
+                <th className="text-right px-4 py-3">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -342,7 +358,7 @@ function CompaniesTab() {
                       );
                     })()}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => {
                         startImpersonation(c.id);
@@ -354,6 +370,45 @@ function CompaniesTab() {
                     >
                       <ArrowRightLeft className="w-3.5 h-3.5" /> Acessar empresa
                     </button>
+                    <span className="inline-block w-2" />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-destructive/50 text-destructive text-xs font-semibold hover:bg-destructive/10 transition-colors"
+                          title="Remover empresa permanentemente"
+                          aria-label={`Excluir ${c.fantasia}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Excluir
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="border-border bg-card">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="flex items-center gap-2">
+                            <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-destructive/15 text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </span>
+                            Remover {c.fantasia}?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover esta empresa? Todos os dados vinculados a ela (usuários,
+                            produtos, vendas, financeiro e tickets) serão apagados definitivamente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              const r = deleteCompany(c.id);
+                              if (r.ok) toast.success(`${c.fantasia} foi removida da plataforma.`);
+                              else toast.error(r.reason ?? "Não foi possível remover a empresa.");
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Remover definitivamente
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </td>
                 </tr>
               ))}
