@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -203,16 +203,30 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess } = useSaaS();
   const navigate = useNavigate();
+  const [emailPreview, setEmailPreview] = useState<{ email: string; password: string; company: string } | null>(null);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
   const PLAN_OPTS: Plan[] = ["starter", "pro", "enterprise"];
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gestão de empresas</h1>
-        <p className="text-sm text-muted-foreground">Plano, vencimento, status e acesso de suporte (impersonação).</p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gestão de empresas</h1>
+          <p className="text-sm text-muted-foreground">Plano, vencimento, status e acesso de suporte (impersonação).</p>
+        </div>
+        <button
+          onClick={() => {
+            const { user, company } = createDemoAccess();
+            setEmailPreview({ email: user.email, password: user.password, company: company.fantasia });
+            toast.success(`Empresa ${company.fantasia} criada — e-mail de acesso disparado.`);
+          }}
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
+          title="Cria uma nova empresa cliente e simula o disparo de e-mail de boas-vindas com senha temporária"
+        >
+          <Sparkles className="w-4 h-4" /> Simular Nova Venda (Gerar Acesso)
+        </button>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -297,7 +311,80 @@ function CompaniesTab() {
           </table>
         </div>
       </div>
+
+      {emailPreview && (
+        <EmailPreviewModal
+          email={emailPreview.email}
+          password={emailPreview.password}
+          company={emailPreview.company}
+          onClose={() => setEmailPreview(null)}
+        />
+      )}
     </>
+  );
+}
+
+function EmailPreviewModal({
+  email, password, company, onClose,
+}: { email: string; password: string; company: string; onClose: () => void }) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="email-preview-title"
+      className="fixed inset-0 z-[100] grid place-items-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="px-6 pt-6 pb-4 border-b border-border flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 id="email-preview-title" className="font-bold leading-tight">
+              📧 E-mail enviado com sucesso!
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Pré-visualização da mensagem enviada para o novo cliente</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </header>
+        <div className="px-6 py-5 space-y-3 text-sm">
+          <div className="rounded-md border border-border bg-secondary/50 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Assunto</p>
+            <p className="font-semibold">Seu acesso à ORVIX SISTEMAS está pronto!</p>
+          </div>
+          <div className="rounded-md border border-border bg-background px-3 py-3 space-y-2">
+            <p>Olá, seja bem-vindo(a) à <strong>ORVIX SISTEMAS</strong>.</p>
+            <p>A conta da empresa <strong>{company}</strong> já está ativa em nossa plataforma.</p>
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 font-mono text-xs space-y-1">
+              <p><span className="text-muted-foreground">Usuário:</span> <strong>{email}</strong></p>
+              <p><span className="text-muted-foreground">Senha Temporária:</span> <strong>{password}</strong></p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Por motivos de segurança, você deverá alterar esta senha temporária em seu primeiro acesso à plataforma
+              ORVIX SISTEMAS.
+            </p>
+          </div>
+        </div>
+        <footer className="px-6 pb-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Entendi
+          </button>
+        </footer>
+      </div>
+    </div>
   );
 }
 
