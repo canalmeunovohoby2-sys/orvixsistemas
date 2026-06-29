@@ -499,6 +499,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (!u) return;
     u.password = newPassword;
     u.isTemporaryPassword = false;
+    if (u.role !== "super_admin") persistUserPasswordOverride(u.id, newPassword);
     setUsersTick((t) => t + 1);
     const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
     logEvent({
@@ -509,6 +510,42 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       action: "Senha de primeiro acesso atualizada com sucesso (ORVIX SISTEMAS).",
     });
   }, []);
+
+  const changeOwnPassword = useCallback(
+    (currentPassword: string, newPassword: string, confirmPassword: string): { ok: boolean; reason?: string } => {
+      const u = realUser;
+      if (!u) return { ok: false, reason: "Sessão expirada. Faça login novamente." };
+      if (u.role === "super_admin") {
+        return { ok: false, reason: "Use o botão dedicado do Painel Master para alterar a senha do Super Admin." };
+      }
+      if (!currentPassword || u.password !== currentPassword) {
+        return { ok: false, reason: "Senha atual incorreta." };
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return { ok: false, reason: "A nova senha precisa ter pelo menos 6 caracteres." };
+      }
+      if (newPassword !== confirmPassword) {
+        return { ok: false, reason: "A confirmação não confere com a nova senha." };
+      }
+      if (newPassword === currentPassword) {
+        return { ok: false, reason: "A nova senha precisa ser diferente da atual." };
+      }
+      u.password = newPassword;
+      u.isTemporaryPassword = false;
+      persistUserPasswordOverride(u.id, newPassword);
+      setUsersTick((t) => t + 1);
+      const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: u.companyId,
+        companyName: comp?.fantasia ?? "Plataforma",
+        user: u.name,
+        action: "Senha de acesso alterada pelo próprio usuário.",
+      });
+      return { ok: true };
+    },
+    [realUser],
+  );
 
   const createDemoAccess = useCallback(() => {
     const seq = COMPANIES.length + 1;
