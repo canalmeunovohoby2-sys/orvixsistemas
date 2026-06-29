@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
-  PLAN_LABEL, PLAN_PRICE, STATUS_LABEL, useSaaS,
+  PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS,
   type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -181,7 +181,7 @@ function DashboardTab() {
               <tr><th className="text-left py-2">Plano</th><th className="text-right">Empresas</th><th className="text-right">Preço</th><th className="text-right">MRR</th></tr>
             </thead>
             <tbody>
-              {(["starter", "pro", "enterprise"] as Plan[]).map((p) => {
+              {(["bronze", "prata", "ouro"] as Plan[]).map((p) => {
                 const list = companies.filter((c) => c.plan === p && c.status === "active");
                 return (
                   <tr key={p} className="border-t border-border">
@@ -203,11 +203,11 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser } = useSaaS();
   const navigate = useNavigate();
   const [emailPreview, setEmailPreview] = useState<{ email: string; password: string; company: string } | null>(null);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
-  const PLAN_OPTS: Plan[] = ["starter", "pro", "enterprise"];
+  const PLAN_OPTS: Plan[] = ["bronze", "prata", "ouro"];
 
   return (
     <>
@@ -240,6 +240,7 @@ function CompaniesTab() {
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Vencimento</th>
                 <th className="text-right px-4 py-3">MRR</th>
+                <th className="text-left px-4 py-3">Usuários</th>
                 <th className="text-left px-4 py-3">Suporte</th>
               </tr>
             </thead>
@@ -292,6 +293,32 @@ function CompaniesTab() {
                     />
                   </td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{BRL(c.mrr)}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const used = countUsers(c.id);
+                      const limit = PLAN_LIMITS[c.plan].users;
+                      const limitLbl = limit === Infinity ? "∞" : String(limit);
+                      const full = used >= limit;
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs tabular-nums ${full ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>
+                            {used}/{limitLbl}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const res = inviteUser(c.id, "cashier");
+                              if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
+                              else toast.success(`Convite enviado: ${res.user?.email}`);
+                            }}
+                            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-semibold hover:bg-accent transition-colors"
+                            title="Convidar novo usuário (respeita o limite do plano)"
+                          >
+                            <UserPlus className="w-3 h-3" /> Convidar
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => {
@@ -573,7 +600,7 @@ function SettingsTab() {
             />
           </Field>
           <div className="grid grid-cols-3 gap-3">
-            {(["starter", "pro", "enterprise"] as Plan[]).map((p) => (
+            {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
               <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários)`}>
                 <input
                   type="number" min={1}

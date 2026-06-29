@@ -9,8 +9,8 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck } from "lucide-react";
+import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
+import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -78,6 +78,61 @@ function VendasPage() {
   const [customerId, setCustomerId] = useState<string>("");
 
   const cid = company?.id ?? user?.companyId ?? "EMP001";
+
+  // ── Trava de Caixas Simultâneos por plano ──
+  // Cada aba registra um id único em `localStorage` com heartbeat. Se o número
+  // de PDVs ativos para a empresa excede o limite do plano, bloqueia o caixa.
+  const sessionIdRef = useRef<string>(`pdv_${Math.random().toString(36).slice(2)}_${Date.now()}`);
+  const [pdvBlocked, setPdvBlocked] = useState<{ active: number; limit: number } | null>(null);
+
+  useEffect(() => {
+    if (!company) return;
+    const STORAGE_KEY = `orvix_pdv_open_${cid}`;
+    const MY_ID = sessionIdRef.current;
+    const limit = PLAN_LIMITS[company.plan].caixas;
+
+    const read = (): Record<string, number> => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; }
+    };
+    const write = (m: Record<string, number>) => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(m)); } catch {}
+    };
+    const prune = (m: Record<string, number>) => {
+      const now = Date.now();
+      Object.keys(m).forEach((k) => { if (now - m[k] > 30_000) delete m[k]; });
+      return m;
+    };
+
+    const sessions = prune(read());
+    const others = Object.keys(sessions).filter((k) => k !== MY_ID).length;
+    if (others >= limit) {
+      setPdvBlocked({ active: others, limit });
+      write(sessions);
+      return;
+    }
+    sessions[MY_ID] = Date.now();
+    write(sessions);
+    setPdvBlocked(null);
+
+    const heartbeat = window.setInterval(() => {
+      const cur = prune(read());
+      cur[MY_ID] = Date.now();
+      write(cur);
+    }, 10_000);
+
+    const release = () => {
+      const cur = read();
+      delete cur[MY_ID];
+      write(cur);
+    };
+    window.addEventListener("beforeunload", release);
+    return () => {
+      window.clearInterval(heartbeat);
+      window.removeEventListener("beforeunload", release);
+      release();
+    };
+  }, [cid, company]);
+
   const companyCustomers = useMemo(
     () => CUSTOMERS.filter((c) => c.company_id === cid),
     [cid],
@@ -361,6 +416,46 @@ function VendasPage() {
 
   return (
     <AppShell title="Caixa" breadcrumb={["Meu Saas", "Caixa"]}>
+      {pdvBlocked && company && (
+        <section
+          role="alert"
+          aria-live="assertive"
+          className="mb-6 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-6 md:p-8 flex flex-col md:flex-row items-start gap-5"
+        >
+          <div className="w-14 h-14 shrink-0 grid place-items-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-500">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-amber-500">🚫 Limite de Caixas Atingido</h2>
+            <p className="mt-1 text-sm text-foreground/90">
+              Seu plano <strong>{PLAN_LABEL[company.plan]}</strong> permite apenas{" "}
+              <strong>{pdvBlocked.limit} caixa{pdvBlocked.limit > 1 ? "s" : ""} operando por vez</strong>
+              {" "}— no momento já existe{pdvBlocked.active > 1 ? "m" : ""} <strong>{pdvBlocked.active}</strong> caixa(s) aberto(s) para esta empresa.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {company.plan === "bronze"
+                ? "Faça o upgrade para o Plano Prata e abra até 3 caixas simultaneamente — ou Ouro para caixas ilimitados."
+                : "Faça o upgrade para o Plano Ouro Premium e libere caixas ilimitados."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="/assinatura"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+              >
+                Fazer upgrade agora
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-md border border-border text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+      {!pdvBlocked && (
+      <>
       <section aria-labelledby="pdv" className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         <h2 id="pdv" className="sr-only">Ponto de venda</h2>
 
@@ -752,6 +847,8 @@ function VendasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>
+      )}
     </AppShell>
   );
 }

@@ -6,8 +6,9 @@ import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/l
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { Banknote, CreditCard, Download, QrCode, Sparkles, TrendingUp, Trophy, Wallet } from "lucide-react";
+import { Banknote, CreditCard, Download, QrCode, Sparkles, TrendingUp, Trophy, Wallet, Lock } from "lucide-react";
 import { useMockStore } from "@/hooks/use-mock-store";
+import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
 
 export const Route = createFileRoute("/relatorios")({
   head: () => ({
@@ -33,6 +34,8 @@ type PaymentRow = {
 
 function RelatoriosPage() {
   useMockStore();
+  const { company } = useSaaS();
+  const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
   const { closing, totals, abc, forecast } = useMemo(() => computeReport(), [SALES.length]);
 
   return (
@@ -52,7 +55,38 @@ function RelatoriosPage() {
       <CashClosing closing={closing} totals={totals} />
 
       {/* ─── Faturamento e Lucro Real ─── */}
-      <ProfitPanel totals={totals} />
+      {advancedUnlocked ? (
+        <ProfitPanel totals={totals} />
+      ) : (
+        <section
+          aria-labelledby="profit-locked"
+          className="relative glass rounded-xl mb-6 border border-border overflow-hidden"
+        >
+          <div className="pointer-events-none select-none blur-md opacity-60">
+            <ProfitPanel totals={totals} />
+          </div>
+          <div className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm p-6">
+            <div className="max-w-md text-center space-y-3">
+              <div className="mx-auto w-14 h-14 grid place-items-center rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-500">
+                <Lock className="w-7 h-7" />
+              </div>
+              <h2 id="profit-locked" className="text-lg font-bold">
+                🔒 Recurso exclusivo do Plano Ouro Premium
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Lucro Real e Desempenho Financeiro estão disponíveis apenas no plano Ouro.
+                Seu plano atual: <strong className="text-foreground">{company ? PLAN_LABEL[company.plan] : "—"}</strong>.
+              </p>
+              <a
+                href="/assinatura"
+                className="inline-flex items-center gap-2 h-10 px-5 rounded-md bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+              >
+                Evolua seu plano agora
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ─── Previsão de recebimento futuro ─── */}
       <Forecast forecast={forecast} />
