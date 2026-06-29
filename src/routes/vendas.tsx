@@ -453,8 +453,8 @@ function VendasPage() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               {company.plan === "bronze"
-                ? "Faça o upgrade para o Plano Prata e abra até 3 caixas simultaneamente — ou Ouro para caixas ilimitados."
-                : "Faça o upgrade para o Plano Ouro Premium e libere caixas ilimitados."}
+                ? `Faça o upgrade para o Plano Prata e abra até ${getPlanCaixasLimit("prata")} caixas simultaneamente — ou Ouro para até ${getPlanCaixasLimit("ouro")} terminais.`
+                : `Faça o upgrade para o Plano Ouro Premium e libere até ${getPlanCaixasLimit("ouro")} terminais simultâneos.`}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a
