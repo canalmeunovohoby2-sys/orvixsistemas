@@ -133,6 +133,58 @@ const STORAGE_KEY = "saas_session_user_id";
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 
 /**
+ * Hash SHA-256 da senha-padrão do Super Admin (lançamento ORVIX SISTEMAS).
+ * A senha em texto puro NÃO existe no código — foi gerada uma única vez e
+ * comunicada ao titular da conta. Pode ser substituída em runtime via
+ * `updateSuperAdminPassword`, que grava o novo hash em localStorage.
+ */
+const DEFAULT_SUPER_ADMIN_PASSWORD_HASH =
+  "f2b5c43ac0b039c582e0ba674b525863c4ddb534ebb9047812e891a9d27313b1";
+
+/** Hashes explicitamente banidos (senhas legadas de teste). */
+const BANNED_SUPER_ADMIN_PASSWORD_HASHES = new Set<string>([
+  // sha256("admin123")
+  "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+  // sha256("admin")
+  "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+  // sha256("123456")
+  "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+  // sha256("password")
+  "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+]);
+
+const SUPER_ADMIN_HASH_STORAGE_KEY = "orvix_sa_pwd_hash_v1";
+
+function getActiveSuperAdminHash(): string {
+  try {
+    const v = localStorage.getItem(SUPER_ADMIN_HASH_STORAGE_KEY);
+    if (v && /^[a-f0-9]{64}$/.test(v) && !BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(v)) {
+      return v;
+    }
+  } catch {}
+  return DEFAULT_SUPER_ADMIN_PASSWORD_HASH;
+}
+
+/**
+ * Atualiza a senha do Super Admin (apenas o HASH é persistido).
+ * Retorna `{ ok: false, reason }` se a senha for fraca ou estiver na lista de banidas.
+ */
+export function updateSuperAdminPassword(newPassword: string): { ok: boolean; reason?: string } {
+  const pwd = newPassword ?? "";
+  if (pwd.length < 8) return { ok: false, reason: "A senha precisa ter pelo menos 8 caracteres." };
+  const hash = sha256Hex(pwd);
+  if (BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(hash)) {
+    return { ok: false, reason: "Esta senha está bloqueada por ser amplamente conhecida." };
+  }
+  try {
+    localStorage.setItem(SUPER_ADMIN_HASH_STORAGE_KEY, hash);
+  } catch {
+    return { ok: false, reason: "Não foi possível salvar a nova senha neste navegador." };
+  }
+  return { ok: true };
+}
+
+/**
  * Snapshots de reversão anexados a logs críticos.
  * Cada variante carrega o estado anterior suficiente para restaurar a operação.
  */
