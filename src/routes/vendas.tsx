@@ -237,6 +237,8 @@ function VendasPage() {
       customerId: crediario ? customerId : undefined,
       customer: crediario ? companyCustomers.find((c) => c.id === customerId)?.name : undefined,
     });
+    // Recontagem de MRR — ativa o faturamento real da empresa a partir da 1ª venda.
+    activateRevenue(cid);
 
     if (crediario) {
       const c = companyCustomers.find((x) => x.id === customerId);
