@@ -279,13 +279,16 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       .select("id, name, email, role, company_id, is_temporary_password")
       .eq("id", uid)
       .maybeSingle();
-    if (!meRow) {
+    const resolvedMe = meRow
+      ? { ok: true as const, user: mapUser(meRow as DbAppUser) }
+      : await resolveLoginProfile();
+    if (!resolvedMe.ok) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
       return;
     }
-    const me = mapUser(meRow as DbAppUser);
+    const me: SaaSUser = { ...resolvedMe.user, password: "", role: normalizeRole(resolvedMe.user.role) };
     setRealUser(me);
 
     // 2) Empresas + usuários conforme RLS (super_admin vê tudo; demais veem só a própria empresa)
