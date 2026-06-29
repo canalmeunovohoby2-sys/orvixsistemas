@@ -682,17 +682,13 @@ function SettingsTab() {
   const save = () => {
     // Snapshot do estado anterior — habilita reversão pelo log de auditoria.
     const previousSettings = JSON.parse(JSON.stringify(SAAS_SETTINGS));
-    // JSON.stringify perde Infinity → restaura o sentinela do plano Ouro.
-    if (!Number.isFinite(previousSettings.usersLimit?.ouro)) {
-      previousSettings.usersLimit.ouro = Infinity;
-    }
     updateSaaSSettings(form);
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
       companyName: "Plataforma",
       user: user?.name ?? "Super Admin",
-      action: `Configurações globais atualizadas (gateway: ${form.paymentGateway}, limites Bronze/Prata: ${form.usersLimit.bronze}/${form.usersLimit.prata}).`,
+      action: `Configurações globais atualizadas (gateway: ${form.paymentGateway}, limites Bronze/Prata/Ouro: ${form.usersLimit.bronze}/${form.usersLimit.prata}/${form.usersLimit.ouro}).`,
       undo: { type: "SETTINGS_UPDATE", previousSettings },
     });
     toast.success("Configurações globais atualizadas.");
@@ -712,25 +708,16 @@ function SettingsTab() {
             ORVIX SISTEMAS opera com cobrança <strong>100% mensal</strong> — sem períodos de trial ou planos gratuitos. Acessos são gerados manualmente pelo Painel Master após a venda.
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {(["bronze", "prata"] as Plan[]).map((p) => (
-              <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários)`}>
+            {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
+              <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários/terminais)`}>
                 <input
                   type="number" min={1}
                   value={form.usersLimit[p]}
-                  onChange={(e) => setForm((f) => ({ ...f, usersLimit: { ...f.usersLimit, [p]: Number(e.target.value) || 1 } }))}
+                  onChange={(e) => setForm((f) => ({ ...f, usersLimit: { ...f.usersLimit, [p]: Math.max(1, Math.floor(Number(e.target.value) || 1)) } }))}
                   className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm tabular-nums"
                 />
               </Field>
             ))}
-            <Field label={`Limite ${PLAN_LABEL.ouro} (usuários)`}>
-              <div
-                aria-label="Limite Ouro: ilimitado"
-                title="Plano Ouro possui usuários ilimitados por contrato comercial."
-                className="w-full h-10 px-3 rounded-md border border-primary/40 bg-primary/10 text-primary text-sm font-semibold inline-flex items-center justify-center gap-1.5 tabular-nums"
-              >
-                <Sparkles className="w-3.5 h-3.5" /> ∞ Ilimitado
-              </div>
-            </Field>
           </div>
         </section>
 
