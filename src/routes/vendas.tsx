@@ -404,6 +404,10 @@ function VendasPage() {
 
   const finalize = useCallback(() => {
     if (cart.length === 0) return toast.error("Carrinho vazio.");
+    if (!shift) {
+      setOpenModal(true);
+      return toast.error("Abra o caixa antes de registrar vendas.");
+    }
     if (crediario) {
       if (!customerId) return toast.error("Selecione o cliente para a venda no crediário.");
     } else if (paid + 0.01 < total) {
@@ -429,6 +433,14 @@ function VendasPage() {
     // Recontagem de MRR — ativa o faturamento real da empresa a partir da 1ª venda.
     activateRevenue(cid);
 
+    // Registra movimento no turno (caixa) — para conferência no fechamento.
+    const shiftEntries: ShiftSaleEntry[] = crediario
+      ? [{ ts: Date.now(), method: "Crediário", amount: total }]
+      : splits.map((s) => ({ ts: Date.now(), method: s.method, amount: s.amount }));
+    const updated: Shift = { ...shift, sales: [...shift.sales, ...shiftEntries] };
+    saveShift(updated);
+    setShift(updated);
+
     if (crediario) {
       const c = companyCustomers.find((x) => x.id === customerId);
       toast.success(`Crediário registrado — ${BRL(total)}`, {
@@ -440,18 +452,22 @@ function VendasPage() {
       });
     }
 
-    if (emitNfce) {
-      const loadingId = toast.loading("⏳ Comunicando com a SEFAZ... Aguarde.");
-      window.setTimeout(() => {
-        const chave = Array.from({ length: 11 }, () =>
-          Math.floor(1000 + Math.random() * 9000),
-        ).join(" ");
-        toast.success("✅ Nota Fiscal Emitida com Sucesso!", {
-          id: loadingId,
-          description: `Chave de Acesso: ${chave}`,
-          duration: 6000,
-        });
-      }, 1500);
+    // Impressão de cupom não-fiscal (bobina térmica) — silenciosa via iframe.
+    if (printReceipt) {
+      const html = buildReceiptHTML({
+        storeName: company?.fantasia ?? "Loja",
+        operator: user?.name ?? "operador",
+        saleId: `V${Date.now().toString().slice(-6)}`,
+        items: cart.map((c) => ({ name: c.name, qty: c.qty, unit: c.unit, price: c.price })),
+        subtotal,
+        discount: discountValue,
+        total,
+        splits: crediario ? [] : splits,
+        crediario: crediario
+          ? { customer: companyCustomers.find((c) => c.id === customerId)?.name }
+          : undefined,
+      });
+      printHTML(html);
     }
 
     setCart([]);
@@ -461,8 +477,7 @@ function VendasPage() {
     setShowPayment(false);
     setCrediario(false);
     setCustomerId("");
-    setEmitNfce(false);
-  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers, emitNfce]);
+  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers, printReceipt, shift, subtotal, discountValue, company, activateRevenue]);
 
   // Cancelamento total da venda (F8 / botão vermelho)
   const cancelSale = useCallback(() => {
