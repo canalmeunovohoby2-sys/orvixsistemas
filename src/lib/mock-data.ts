@@ -198,8 +198,8 @@ if (typeof window !== "undefined") {
       const parsed = JSON.parse(raw) as Partial<SaaSSettings> & {
         usersLimit?: { bronze?: number; prata?: number; ouro?: number | "INF" };
       };
-      if (parsed.usersLimit && parsed.usersLimit.ouro === "INF") {
-        parsed.usersLimit.ouro = Infinity as unknown as number;
+      if (parsed.usersLimit && (parsed.usersLimit.ouro as unknown) === "INF") {
+        parsed.usersLimit.ouro = Infinity;
       }
       Object.assign(SAAS_SETTINGS, parsed);
       // Ouro é sempre ilimitado por contrato comercial.
