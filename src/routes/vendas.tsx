@@ -10,7 +10,7 @@ import {
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock } from "lucide-react";
+import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -76,6 +76,7 @@ function VendasPage() {
   const [highlight, setHighlight] = useState(0);
   const [crediario, setCrediario] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
+  const [emitNfce, setEmitNfce] = useState(false);
 
   const cid = company?.id ?? user?.companyId ?? "EMP001";
 
@@ -247,6 +248,21 @@ function VendasPage() {
         description: `${cart.length} item(ns) · ${splits.map((s) => s.method === "Crédito" && s.installments && s.installments > 1 ? `Crédito ${s.installments}x` : s.method).join(" + ") || "—"}`,
       });
     }
+
+    if (emitNfce) {
+      const loadingId = toast.loading("⏳ Comunicando com a SEFAZ... Aguarde.");
+      window.setTimeout(() => {
+        const chave = Array.from({ length: 11 }, () =>
+          Math.floor(1000 + Math.random() * 9000),
+        ).join(" ");
+        toast.success("✅ Nota Fiscal Emitida com Sucesso!", {
+          id: loadingId,
+          description: `Chave de Acesso: ${chave}`,
+          duration: 6000,
+        });
+      }, 1500);
+    }
+
     setCart([]);
     setSplits([]);
     setDiscount(0);
@@ -254,7 +270,8 @@ function VendasPage() {
     setShowPayment(false);
     setCrediario(false);
     setCustomerId("");
-  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers]);
+    setEmitNfce(false);
+  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers, emitNfce]);
 
   // Cancelamento total da venda (F8 / botão vermelho)
   const cancelSale = useCallback(() => {
