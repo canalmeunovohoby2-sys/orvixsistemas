@@ -77,6 +77,123 @@ export type Person = {
 };
 
 /* ============================================================
+ * Plataforma SaaS — Logs globais, suporte e configurações
+ * ============================================================ */
+
+export type SystemLogKind =
+  | "LOGIN_OK"
+  | "LOGIN_FAIL"
+  | "SALE_OK"
+  | "SUBSCRIPTION_CHANGE"
+  | "PLAN_CHANGE"
+  | "DUE_CHANGE"
+  | "IMPERSONATION_START"
+  | "IMPERSONATION_END"
+  | "SETTINGS_UPDATE";
+
+export type SystemLog = {
+  id: string;
+  date: string;
+  kind: SystemLogKind;
+  company_id?: string | null;
+  companyName?: string;
+  user?: string;
+  action: string;
+};
+
+export const SYSTEM_LOGS: SystemLog[] = [];
+let __logSeq = 9000;
+export function logEvent(input: Omit<SystemLog, "id" | "date"> & { date?: string }): SystemLog {
+  const log: SystemLog = {
+    id: `L${String(__logSeq++).padStart(5, "0")}`,
+    date: input.date ?? new Date().toISOString(),
+    kind: input.kind,
+    company_id: input.company_id ?? null,
+    companyName: input.companyName,
+    user: input.user,
+    action: input.action,
+  };
+  SYSTEM_LOGS.unshift(log);
+  __emit();
+  return log;
+}
+// Seed alguns logs para demonstração
+(function seedLogs() {
+  const base = Date.now();
+  const seed: Array<Omit<SystemLog, "id" | "date"> & { offset: number }> = [
+    { offset: 1000 * 60 * 60 * 5,  kind: "LOGIN_OK",            company_id: "EMP001", companyName: "Mercadinho Orvix", user: "Ana Mendes",   action: "Login realizado com sucesso." },
+    { offset: 1000 * 60 * 60 * 4,  kind: "SALE_OK",             company_id: "EMP001", companyName: "Mercadinho Orvix", user: "Bruno Caixa",  action: "Venda V20012 concluída (R$ 184,90)." },
+    { offset: 1000 * 60 * 60 * 3,  kind: "LOGIN_FAIL",          company_id: "EMP002", companyName: "Trigo Dourado",    user: "carla@trigo.com.br", action: "Tentativa de login com senha incorreta." },
+    { offset: 1000 * 60 * 60 * 2,  kind: "SUBSCRIPTION_CHANGE", company_id: "EMP003", companyName: "Boi Bom",          user: "Sistema",      action: "Assinatura alterada para BLOQUEADA por inadimplência." },
+    { offset: 1000 * 60 * 30,      kind: "LOGIN_OK",            company_id: null,     companyName: "Plataforma",       user: "Ricardo Cunha (Plataforma)", action: "Super Admin acessou o painel master." },
+  ];
+  seed.forEach((s) => {
+    SYSTEM_LOGS.unshift({
+      id: `L${String(__logSeq++).padStart(5, "0")}`,
+      date: new Date(base - s.offset).toISOString(),
+      kind: s.kind, company_id: s.company_id ?? null, companyName: s.companyName,
+      user: s.user, action: s.action,
+    });
+  });
+})();
+
+export type SupportTicket = {
+  id: string;
+  company_id: string;
+  companyName: string;
+  subject: string;
+  message: string;
+  priority: "baixa" | "media" | "alta";
+  status: "aberto" | "em_andamento" | "resolvido";
+  openedAt: string;
+  requester: string;
+};
+
+export const SUPPORT_TICKETS: SupportTicket[] = [
+  { id: "T1001", company_id: "EMP001", companyName: "Mercadinho Orvix", subject: "Impressora térmica não emite cupom",
+    message: "Após a última atualização, o PDV trava ao enviar para a impressora Bematech MP-4200.",
+    priority: "alta",  status: "em_andamento", openedAt: new Date(Date.now() - 1000*60*60*8).toISOString(), requester: "Ana Mendes" },
+  { id: "T1002", company_id: "EMP002", companyName: "Trigo Dourado", subject: "Importação de planilha de produtos",
+    message: "Posso importar minha lista do Excel em lote? Tenho mais de 800 SKUs.",
+    priority: "media", status: "aberto",        openedAt: new Date(Date.now() - 1000*60*60*30).toISOString(), requester: "Carla Lima" },
+  { id: "T1003", company_id: "EMP004", companyName: "Norte Distribuição", subject: "Renegociação de plano",
+    message: "Gostaríamos de avaliar um desconto no Enterprise com pagamento anual.",
+    priority: "baixa", status: "resolvido",     openedAt: new Date(Date.now() - 1000*60*60*72).toISOString(), requester: "Diretor Comercial" },
+];
+
+export function updateTicketStatus(id: string, status: SupportTicket["status"]) {
+  const t = SUPPORT_TICKETS.find((x) => x.id === id);
+  if (!t) return;
+  t.status = status;
+  __emit();
+}
+
+export type SaaSSettings = {
+  trialDays: number;
+  usersLimit: { starter: number; pro: number; enterprise: number };
+  smtpHost: string;
+  smtpUser: string;
+  smtpFrom: string;
+  paymentGateway: "Stripe" | "Pagar.me" | "Mercado Pago";
+  paymentPublicKey: string;
+};
+
+export const SAAS_SETTINGS: SaaSSettings = {
+  trialDays: 14,
+  usersLimit: { starter: 3, pro: 10, enterprise: 50 },
+  smtpHost: "smtp.sendgrid.net",
+  smtpUser: "apikey",
+  smtpFrom: "no-reply@orvix.app",
+  paymentGateway: "Stripe",
+  paymentPublicKey: "pk_live_•••••••••••••••",
+};
+
+export function updateSaaSSettings(patch: Partial<SaaSSettings>) {
+  Object.assign(SAAS_SETTINGS, patch);
+  __emit();
+}
+
+/* ============================================================
  * Financeiro — Contas a Pagar e Contas a Receber (multiempresa)
  * ============================================================ */
 export type FinancialType = "PAGAR" | "RECEBER";
