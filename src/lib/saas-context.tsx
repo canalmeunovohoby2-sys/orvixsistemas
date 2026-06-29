@@ -608,19 +608,34 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     COMPANIES.push(newCompany);
     // Pagamento simulado ativamente → reconhece MRR da nova empresa.
     newCompany.mrr = PLAN_PRICE[newCompany.plan];
+    const tempPassword = "temp123";
+    const demoEmail = `cliente${seq}@orvix.com.br`.trim().toLowerCase();
     const newUser: SaaSUser = {
       id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
       name: `Admin ${newCompany.fantasia}`,
-      email: `cliente${seq}@orvix.com.br`,
+      email: demoEmail,
       role: "admin",
       companyId: newCompany.id,
-      password: "temp123",
+      password: tempPassword,
       isTemporaryPassword: true,
     };
     SAAS_USERS.push(newUser);
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
+    // Log explícito (console + Auditoria) com as credenciais exatas salvas.
+    // eslint-disable-next-line no-console
+    console.log(
+      `[ORVIX] Cliente Fictício criado com sucesso — Usuário: ${demoEmail} | Senha: ${tempPassword}`,
+    );
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: newCompany.id,
+      companyName: newCompany.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `🔐 Credenciais de teste geradas — Usuário: ${demoEmail} | Senha: ${tempPassword} (role=admin, empresa=${newCompany.id}).`,
+    });
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: newCompany.id,
