@@ -9,7 +9,7 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
+import { useSaaS, PLAN_LIMITS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
 import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -90,7 +90,7 @@ function VendasPage() {
     if (!company) return;
     const STORAGE_KEY = `orvix_pdv_open_${cid}`;
     const MY_ID = sessionIdRef.current;
-    const limit = PLAN_LIMITS[company.plan].caixas;
+    const limit = getPlanCaixasLimit(company.plan);
 
     const read = (): Record<string, number> => {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; }
