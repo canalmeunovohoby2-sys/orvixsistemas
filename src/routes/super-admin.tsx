@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
-  PLAN_LABEL, PLAN_PRICE, STATUS_LABEL, useSaaS,
+  PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS,
   type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
