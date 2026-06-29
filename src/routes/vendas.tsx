@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -9,8 +9,11 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS, PLAN_LIMITS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock, FileText } from "lucide-react";
+import { useSaaS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
+import {
+  Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X,
+  UserCheck, Lock, Printer, DoorOpen, DoorClosed, LogOut, Wallet,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -23,6 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/vendas")({
