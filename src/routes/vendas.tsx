@@ -980,22 +980,22 @@ function VendasPage() {
 
           <label
             className={`mt-3 flex items-center gap-2.5 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
-              emitNfce
+              printReceipt
                 ? "border-primary bg-primary/10"
                 : "border-border bg-secondary/40 hover:border-primary/60"
             }`}
           >
             <input
               type="checkbox"
-              checked={emitNfce}
-              onChange={(e) => setEmitNfce(e.target.checked)}
+              checked={printReceipt}
+              onChange={(e) => setPrintReceipt(e.target.checked)}
               className="accent-primary w-4 h-4"
             />
-            <FileText className={`w-4 h-4 ${emitNfce ? "text-primary" : "text-muted-foreground"}`} />
+            <Printer className={`w-4 h-4 ${printReceipt ? "text-primary" : "text-muted-foreground"}`} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">🧾 Emitir Nota Fiscal (NFC-e)</p>
+              <p className="text-sm font-semibold">🧾 Imprimir Recibo / Cupom Não Fiscal</p>
               <p className="text-[11px] text-muted-foreground">
-                A nota será transmitida à SEFAZ automaticamente ao finalizar.
+                Ao finalizar, abre a janela de impressão com o cupom formatado para bobina térmica (80mm).
               </p>
             </div>
           </label>
