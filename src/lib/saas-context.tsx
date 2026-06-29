@@ -26,7 +26,7 @@ export type SaaSUser = {
   role: Role;
   /** null para super_admin (acesso global) */
   companyId: string | null;
-  /** Senha de demonstração (mock). Em produção viveria apenas no backend, hasheada. */
+  /** Senha do usuário. Em produção fica hasheada no backend. */
   password: string;
   /** Quando true, o login força a abertura do modal de troca obrigatória. */
   isTemporaryPassword: boolean;
@@ -66,12 +66,12 @@ const SEED_COMPANIES: Company[] = [
 export const COMPANIES: Company[] = [...SEED_COMPANIES];
 
 export const SAAS_USERS: SaaSUser[] = [
-  { id: "U000", name: "Ricardo Cunha (Plataforma)", email: "ricardo@orvix.app", role: "super_admin", companyId: null,    password: "demo",    isTemporaryPassword: false },
-  { id: "U001", name: "Ana Mendes",                 email: "ana@orvix.com.br",  role: "admin",       companyId: "EMP001",password: "demo",    isTemporaryPassword: false },
-  { id: "U002", name: "Bruno Caixa",                email: "bruno@orvix.com.br",role: "cashier",     companyId: "EMP001",password: "demo",    isTemporaryPassword: false },
-  { id: "U003", name: "Carla (Trigo Dourado)",      email: "carla@trigo.com.br",role: "admin",       companyId: "EMP002",password: "demo",    isTemporaryPassword: false },
-  // Conta seed de validação do fluxo de Primeiro Acesso (Sessões 3, 4 e 18).
-  { id: "U004", name: "Novo Cliente (ORVIX)",       email: "novo-cliente@orvix.com.br", role: "admin", companyId: "EMP001", password: "temp123", isTemporaryPassword: true },
+  { id: "U000", name: "Ricardo Cunha", email: "ricardo@orvix.app",  role: "super_admin", companyId: null,    password: "123",     isTemporaryPassword: false },
+  { id: "U001", name: "Ana Mendes",    email: "ana@orvix.com.br",   role: "admin",       companyId: "EMP001",password: "123",     isTemporaryPassword: false },
+  { id: "U002", name: "Bruno Caixa",   email: "bruno@orvix.com.br", role: "cashier",     companyId: "EMP001",password: "123",     isTemporaryPassword: false },
+  { id: "U003", name: "Carla Souza",   email: "carla@trigo.com.br", role: "admin",       companyId: "EMP002",password: "123",     isTemporaryPassword: false },
+  // Conta de validação do fluxo de Primeiro Acesso (Sessões 3, 4 e 18).
+  { id: "U004", name: "Novo Cliente",  email: "novo-cliente@orvix.com.br", role: "admin", companyId: "EMP001", password: "temp123", isTemporaryPassword: true },
 ];
 
 const STORAGE_KEY = "saas_session_user_id";
@@ -82,6 +82,10 @@ type SaaSCtx = {
   companies: Company[];
   users: SaaSUser[];
   loginAs: (userId: string) => void;
+  /** Autenticação real por e-mail + senha contra o store. */
+  loginWithCredentials: (email: string, password: string) => { ok: boolean; user?: SaaSUser; reason?: string };
+  /** Auto-cadastro de uma nova empresa em Trial no plano Bronze (entry/Starter). */
+  signUp: (input: { email: string; password: string; fantasia: string }) => { ok: boolean; user?: SaaSUser; company?: Company; reason?: string };
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
   setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
@@ -137,6 +141,77 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       });
     }
   }, []);
+
+  const loginWithCredentials = useCallback(
+    (email: string, password: string) => {
+      const target = SAAS_USERS.find(
+        (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
+      );
+      if (!target) return { ok: false, reason: "E-mail ou senha incorretos." };
+      setUserId(target.id);
+      try { localStorage.setItem(STORAGE_KEY, target.id); } catch {}
+      const comp = target.companyId ? COMPANIES.find((c) => c.id === target.companyId) : null;
+      logEvent({
+        kind: "LOGIN_OK",
+        company_id: target.companyId,
+        companyName: comp?.fantasia ?? "Plataforma",
+        user: target.name,
+        action: `Login efetuado (${target.role}).`,
+      });
+      return { ok: true, user: target };
+    },
+    [],
+  );
+
+  const signUp = useCallback(
+    ({ email, password, fantasia }: { email: string; password: string; fantasia: string }) => {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !password || !fantasia.trim()) {
+        return { ok: false, reason: "Informe nome da empresa, e-mail e senha." };
+      }
+      if (password.length < 6) {
+        return { ok: false, reason: "A senha precisa ter pelo menos 6 caracteres." };
+      }
+      if (SAAS_USERS.some((u) => u.email.toLowerCase() === cleanEmail)) {
+        return { ok: false, reason: "Já existe uma conta com este e-mail." };
+      }
+      const seq = COMPANIES.length + 1;
+      const company: Company = {
+        id: `EMP${String(seq).padStart(3, "0")}`,
+        razaoSocial: fantasia.trim(),
+        fantasia: fantasia.trim(),
+        cnpj: "—",
+        status: "trial",
+        plan: "bronze",
+        mrr: 0,
+        createdAt: new Date().toISOString().slice(0, 10),
+        dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+      };
+      COMPANIES.push(company);
+      const user: SaaSUser = {
+        id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
+        name: fantasia.trim(),
+        email: cleanEmail,
+        role: "admin",
+        companyId: company.id,
+        password,
+        isTemporaryPassword: false,
+      };
+      SAAS_USERS.push(user);
+      setCompaniesTick((t) => t + 1);
+      setUsersTick((t) => t + 1);
+      setUserId(user.id);
+      try { localStorage.setItem(STORAGE_KEY, user.id); } catch {}
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: company.id, companyName: company.fantasia,
+        user: user.name,
+        action: `Nova empresa cadastrada (Trial · Bronze) — ${user.email}.`,
+      });
+      return { ok: true, user, company };
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     setUserId(null);
@@ -343,7 +418,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider
       value={{
-        user, company, companies: COMPANIES, users: SAAS_USERS, loginAs, logout, hasRole,
+        user, company, companies: COMPANIES, users: SAAS_USERS,
+        loginAs, loginWithCredentials, signUp, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
