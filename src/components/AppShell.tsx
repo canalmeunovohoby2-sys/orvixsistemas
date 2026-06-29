@@ -3,7 +3,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3, Users, Wallet,
-  Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown, Settings,
+  Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown, Settings, MonitorSmartphone,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
@@ -30,6 +30,7 @@ const NAV_FULL: NavItem[] = [
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
   { label: "Financeiro", to: "/financeiro", icon: Wallet },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
+  { label: "Terminais", to: "/terminais", icon: MonitorSmartphone },
   { label: "Configurações", to: "/configuracoes", icon: Settings },
 ];
 
