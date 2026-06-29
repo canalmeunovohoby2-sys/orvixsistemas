@@ -7,7 +7,7 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS,
-  updateTicketStatus, updateSaaSSettings,
+  updateTicketStatus, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -15,9 +15,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/super-admin")({
   head: () => ({
@@ -662,6 +667,51 @@ function SettingsTab() {
             </Field>
           </div>
           <p className="text-xs text-muted-foreground">As credenciais privadas (secret keys) ficam apenas no servidor — nunca exibidas no painel.</p>
+        </section>
+
+        <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 space-y-4 lg:col-span-2">
+          <h2 className="font-semibold inline-flex items-center gap-2 text-destructive">
+            <Eraser className="w-4 h-4" /> Zona de homologação
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Limpa todos os <strong>dados de movimentação</strong> da plataforma — produtos, vendas, clientes, fornecedores, estoque, financeiro e logs — para iniciar um novo ciclo de testes comerciais. <strong className="text-foreground">Os logins de usuários e as empresas cadastradas permanecem ativos.</strong>
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="h-11 px-5 inline-flex items-center gap-2 rounded-md border border-destructive bg-destructive/10 text-destructive font-semibold hover:bg-destructive hover:text-destructive-foreground transition-colors"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Limpar Dados de Teste (Zerar Movimentações)
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="border-border bg-card">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-destructive/15 text-destructive">
+                    <Eraser className="w-4 h-4" />
+                  </span>
+                  Zerar dados comerciais?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja zerar todos os produtos, vendas, clientes e fornecedores do sistema? Os usuários de login continuarão ativos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    resetCommercialData();
+                    toast.success("✨ Sistema limpo com sucesso! Pronto para novos testes comerciais.");
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, zerar movimentações
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </section>
       </div>
 
