@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3, Users, Wallet,
-  Search, ChevronLeft, ChevronRight, Menu, X,
+  Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HelpCenter } from "@/components/HelpCenter";
 import { useSaaS, ROLE_LABEL } from "@/lib/saas-context";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 type NavItem = {
   label: string;
@@ -135,15 +139,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
           <HelpCenter />
           <ThemeToggle />
 
-          <div className="flex items-center gap-3 pl-3 ml-1 border-l border-border">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-[#5A0000] grid place-items-center text-white font-bold text-sm">
-              {(user?.name ?? "RC").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-            </div>
-            <div className="hidden sm:block min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">{user?.name ?? "—"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user ? ROLE_LABEL[user.role] : ""}</p>
-            </div>
-          </div>
+          <UserMenu />
         </header>
 
         {/* Page */}
@@ -188,6 +184,54 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
         </button>
       )}
     </div>
+  );
+}
+
+function UserMenu() {
+  const { user, logout } = useSaaS();
+  const navigate = useNavigate();
+  const initials = (user?.name ?? "RC").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Abrir menu do usuário"
+          className="flex items-center gap-3 pl-3 ml-1 border-l border-border h-10 rounded-md pr-2 hover:bg-accent/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-[#5A0000] grid place-items-center text-white font-bold text-sm">
+            {initials}
+          </div>
+          <div className="hidden sm:block min-w-0 text-left">
+            <p className="text-sm font-semibold leading-tight truncate">{user?.name ?? "—"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user ? ROLE_LABEL[user.role] : ""}</p>
+          </div>
+          <ChevronDown className="hidden sm:block w-4 h-4 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64 bg-card border-border">
+        <DropdownMenuLabel className="py-3">
+          <p className="text-sm font-semibold truncate">{user?.name ?? "—"}</p>
+          <p className="text-xs text-muted-foreground truncate">{user ? ROLE_LABEL[user.role] : ""}</p>
+          {user?.email && (
+            <p className="text-[11px] text-muted-foreground truncate mt-1">{user.email}</p>
+          )}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(e) => { e.preventDefault(); handleLogout(); }}
+          className="text-primary focus:text-primary focus:bg-primary/10 font-medium cursor-pointer"
+        >
+          <LogOut className="w-4 h-4 mr-2" /> Sair da plataforma
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
