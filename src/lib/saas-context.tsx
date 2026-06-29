@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import {
   logEvent, markLogReverted, SAAS_SETTINGS, updateSaaSSettings,
-  type SaaSSettings,
+  type SaaSSettings, type Product, type Sale, type Movement, type Person,
+  type FinancialRecord, type SupportTicket,
   PRODUCTS, SALES, MOVEMENTS, SUPPLIERS, CUSTOMERS,
   FINANCIAL_RECORDS, SUPPORT_TICKETS, SYSTEM_LOGS,
 } from "./mock-data";
@@ -537,7 +538,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
-        deleteCompany,
+        deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
       }}
