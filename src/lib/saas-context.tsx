@@ -4,7 +4,7 @@ import { logEvent } from "./mock-data";
 export type Role = "super_admin" | "admin" | "cashier";
 
 export type SubscriptionStatus = "trial" | "active" | "pending" | "blocked" | "canceled";
-export type Plan = "starter" | "pro" | "enterprise";
+export type Plan = "bronze" | "prata" | "ouro";
 
 export type Company = {
   id: string;
@@ -33,21 +33,33 @@ export type SaaSUser = {
 };
 
 export const PLAN_PRICE: Record<Plan, number> = {
-  starter: 149,
-  pro: 349,
-  enterprise: 1290,
+  bronze: 149,
+  prata: 349,
+  ouro: 1290,
 };
 export const PLAN_LABEL: Record<Plan, string> = {
-  starter: "Starter",
-  pro: "Pro",
-  enterprise: "Enterprise",
+  bronze: "Bronze (Essencial)",
+  prata: "Prata (Pro)",
+  ouro: "Ouro (Premium)",
+};
+
+/**
+ * Limites estritos de cada plano da ORVIX SISTEMAS.
+ * - `caixas`: PDVs simultaneamente abertos por empresa.
+ * - `users`: usuários (admin/cashier) cadastrados na empresa.
+ * - `advancedReports`: libera Lucro Real & Desempenho Financeiro.
+ */
+export const PLAN_LIMITS: Record<Plan, { caixas: number; users: number; advancedReports: boolean }> = {
+  bronze: { caixas: 1, users: 1, advancedReports: false },
+  prata:  { caixas: 3, users: 5, advancedReports: false },
+  ouro:   { caixas: Infinity, users: Infinity, advancedReports: true },
 };
 
 const SEED_COMPANIES: Company[] = [
-  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "pro",        mrr: 349.00, createdAt: "2025-01-12", dueDate: "2026-07-12" },
-  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "trial",   plan: "starter",    mrr: 0,      createdAt: "2026-06-02", dueDate: "2026-07-16" },
-  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "starter",    mrr: 149.00, createdAt: "2025-11-20", dueDate: "2026-05-20" },
-  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "enterprise", mrr: 1290.00,createdAt: "2024-08-30", dueDate: "2026-07-04" },
+  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 349.00, createdAt: "2025-01-12", dueDate: "2026-07-12" },
+  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "trial",   plan: "bronze", mrr: 0,      createdAt: "2026-06-02", dueDate: "2026-07-16" },
+  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 149.00, createdAt: "2025-11-20", dueDate: "2026-05-20" },
+  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 1290.00,createdAt: "2024-08-30", dueDate: "2026-07-04" },
 ];
 
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
@@ -79,6 +91,12 @@ type SaaSCtx = {
   updatePassword: (userId: string, newPassword: string) => void;
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
   createDemoAccess: () => { user: SaaSUser; company: Company };
+  /** Conta admins/cashiers cadastrados na empresa (não conta super_admin). */
+  countUsers: (companyId: string) => number;
+  /** Verifica se a empresa pode receber mais um usuário conforme PLAN_LIMITS. */
+  canAddUser: (companyId: string) => { ok: boolean; reason?: string };
+  /** Convida (mock) um novo usuário. Aplica trava do plano antes de criar. */
+  inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
   /** Suporte/impersonação — super_admin assume o papel de admin de uma empresa. */
   impersonating: boolean;
   impersonatedCompany: Company | null;
@@ -248,8 +266,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       fantasia: `Loja ORVIX #${seq}`,
       cnpj: "00.000.000/0001-00",
       status: "active",
-      plan: "pro",
-      mrr: PLAN_PRICE.pro,
+      plan: "prata",
+      mrr: PLAN_PRICE.prata,
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
     };
@@ -276,6 +294,49 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     return { user: newUser, company: newCompany };
   }, [realUser]);
 
+  const countUsers = useCallback(
+    (companyId: string) => SAAS_USERS.filter((u) => u.companyId === companyId).length,
+    [],
+  );
+
+  const canAddUser = useCallback((companyId: string) => {
+    const c = COMPANIES.find((x) => x.id === companyId);
+    if (!c) return { ok: false, reason: "Empresa não encontrada." };
+    const limit = PLAN_LIMITS[c.plan].users;
+    const current = SAAS_USERS.filter((u) => u.companyId === companyId).length;
+    if (current >= limit) {
+      return {
+        ok: false,
+        reason: `🚫 Limite Atingido: Seu plano ${PLAN_LABEL[c.plan]} permite até ${limit === Infinity ? "∞" : limit} usuário(s). Faça upgrade para o Plano ${c.plan === "bronze" ? "Prata ou Ouro" : "Ouro"}!`,
+      };
+    }
+    return { ok: true };
+  }, []);
+
+  const inviteUser = useCallback((companyId: string, role: Exclude<Role, "super_admin">) => {
+    const guard = canAddUser(companyId);
+    if (!guard.ok) return { ok: false, reason: guard.reason };
+    const c = COMPANIES.find((x) => x.id === companyId)!;
+    const newUser: SaaSUser = {
+      id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
+      name: `${role === "admin" ? "Gerente" : "Operador"} #${SAAS_USERS.length + 1}`,
+      email: `usuario${SAAS_USERS.length + 1}@${c.fantasia.toLowerCase().replace(/\W+/g, "")}.com.br`,
+      role,
+      companyId,
+      password: "temp123",
+      isTemporaryPassword: true,
+    };
+    SAAS_USERS.push(newUser);
+    setUsersTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: c.id, companyName: c.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `Convite enviado para ${newUser.email} (${role}) — plano ${PLAN_LABEL[c.plan]}.`,
+    });
+    return { ok: true, user: newUser };
+  }, [canAddUser, realUser]);
+
   // referência apenas para silenciar o linter sobre originalUserId
   void originalUserId;
 
@@ -285,6 +346,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         user, company, companies: COMPANIES, users: SAAS_USERS, loginAs, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate,
         updatePassword, createDemoAccess,
+        countUsers, canAddUser, inviteUser,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
       }}
