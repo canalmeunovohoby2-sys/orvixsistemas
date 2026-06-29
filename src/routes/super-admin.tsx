@@ -12,6 +12,7 @@ import {
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
@@ -74,12 +75,14 @@ function SuperAdminPage() {
     <div className="min-h-dvh bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="h-16 flex items-center gap-3 px-4 lg:px-6">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 grid place-items-center text-white shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)]">
-            <Crown className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-bold leading-tight truncate">Painel Master da Plataforma</p>
-            <p className="text-xs text-muted-foreground truncate">Acesso de plataforma · {user?.name}</p>
+          <Logo height={32} priority />
+          <div className="h-8 w-px bg-border mx-1 hidden sm:block" />
+          <div className="min-w-0 hidden sm:flex items-center gap-2">
+            <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-sm leading-tight truncate">Painel Master</p>
+              <p className="text-[11px] text-muted-foreground truncate">Plataforma · {user?.name}</p>
+            </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
@@ -445,14 +448,12 @@ function EmailPreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="px-6 pt-6 pb-4 border-b border-border flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 id="email-preview-title" className="font-bold leading-tight">
-              📧 E-mail enviado com sucesso!
+          <div className="min-w-0 flex-1 flex flex-col gap-2">
+            <Logo height={28} />
+            <h2 id="email-preview-title" className="font-bold leading-tight inline-flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" /> E-mail enviado com sucesso!
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Pré-visualização da mensagem enviada para o novo cliente</p>
+            <p className="text-xs text-muted-foreground">Pré-visualização da mensagem enviada para o novo cliente</p>
           </div>
           <button
             onClick={onClose}

@@ -6,6 +6,7 @@ import {
   Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown, Settings,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 import { HelpCenter } from "@/components/HelpCenter";
 import { useSaaS, ROLE_LABEL } from "@/lib/saas-context";
 import {
@@ -79,14 +80,15 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-sidebar-border shrink-0">
-          <Link to="/" className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#8B0000] to-[#5A0000] grid place-items-center shrink-0 shadow-[0_0_20px_-4px_rgba(139,0,0,0.6)]">
-              <span className="text-white font-extrabold text-lg leading-none">M</span>
-            </div>
-            {!isCollapsed && (
-              <div className="min-w-0">
-                <p className="font-bold text-sidebar-foreground leading-tight truncate">{company?.fantasia ?? "Meu Saas"}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{isCashier ? "Modo Caixa" : "ERP B2B"}</p>
+          <Link to="/" className="flex items-center gap-3 min-w-0" aria-label="ORVIX SISTEMAS — Início">
+            {isCollapsed ? (
+              <Logo height={26} priority />
+            ) : (
+              <div className="flex flex-col min-w-0">
+                <Logo height={28} priority />
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                  {company?.fantasia ?? (isCashier ? "Modo Caixa" : "ERP B2B")}
+                </p>
               </div>
             )}
           </Link>
