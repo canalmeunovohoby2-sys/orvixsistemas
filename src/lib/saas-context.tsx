@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { sha256Hex, timingSafeEqualHex } from "./sha256";
+import { notifyAdminNewClient } from "./admin-notifications";
 import {
   logEvent, markLogReverted, updateSaaSSettings, SAAS_SETTINGS,
   type SaaSSettings, type Product, type Sale, type Movement, type Person,
