@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS,
-  type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS,
@@ -28,10 +28,25 @@ export const Route = createFileRoute("/super-admin")({
   }),
   component: () => (
     <RoleGuard allow={["super_admin"]}>
-      <SuperAdminPage />
+      <SuperAdminEmailGate>
+        <SuperAdminPage />
+      </SuperAdminEmailGate>
     </RoleGuard>
   ),
 });
+
+/** Reforço de segurança: apenas o e-mail oficial da ORVIX SISTEMAS abre o Painel Master. */
+function SuperAdminEmailGate({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useSaaS();
+  const navigate = useNavigate();
+  if (!user) return null;
+  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+    logout();
+    navigate({ to: "/login" });
+    return null;
+  }
+  return <>{children}</>;
+}
 
 type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "config";
 
@@ -220,12 +235,15 @@ function CompaniesTab() {
           onClick={() => {
             const { user, company } = createDemoAccess();
             setEmailPreview({ email: user.email, password: user.password, company: company.fantasia });
-            toast.success(`Empresa ${company.fantasia} criada — e-mail de acesso disparado.`);
+            toast.success(
+              `📧 Disparo concluído! E-mail enviado ao cliente (${user.email}) com a senha temporária. Cópia de segurança de suporte enviada para ${SUPER_ADMIN_EMAIL}.`,
+              { duration: 8000 },
+            );
           }}
           className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
-          title="Cria uma nova empresa cliente e simula o disparo de e-mail de boas-vindas com senha temporária"
+          title={`Cria a empresa, envia o e-mail ao cliente e dispara cópia administrativa para ${SUPER_ADMIN_EMAIL}`}
         >
-          <Sparkles className="w-4 h-4" /> Simular Nova Venda (Gerar Acesso)
+          <Sparkles className="w-4 h-4" /> Simular Venda Automatizada (Disparar Acessos)
         </button>
       </div>
 
@@ -585,20 +603,15 @@ function SettingsTab() {
     <>
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Configurações globais</h1>
-        <p className="text-sm text-muted-foreground">Trial, limites por plano, SMTP e gateway de pagamento.</p>
+        <p className="text-sm text-muted-foreground">Limites por plano, SMTP e gateway de pagamento — cobrança 100% mensal.</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <h2 className="font-semibold inline-flex items-center gap-2"><Database className="w-4 h-4 text-primary" /> Plataforma</h2>
-          <Field label="Tempo de trial (dias)">
-            <input
-              type="number" min={1} max={90}
-              value={form.trialDays}
-              onChange={(e) => setForm((f) => ({ ...f, trialDays: Number(e.target.value) || 0 }))}
-              className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm"
-            />
-          </Field>
+          <div className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+            ORVIX SISTEMAS opera com cobrança <strong>100% mensal</strong> — sem períodos de trial ou planos gratuitos. Acessos são gerados manualmente pelo Painel Master após a venda.
+          </div>
           <div className="grid grid-cols-3 gap-3">
             {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
               <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários)`}>
