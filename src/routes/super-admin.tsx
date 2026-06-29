@@ -906,3 +906,148 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+/* ───────── Modal: alterar senha do Super Admin (apenas o hash é armazenado) ───────── */
+
+function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
+  const { user } = useSaaS();
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [show, setShow] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
+
+  const tooShort = pwd.length > 0 && pwd.length < 8;
+  const mismatch = pwd2.length > 0 && pwd !== pwd2;
+  const valid = pwd.length >= 8 && pwd === pwd2;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!valid || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = updateSuperAdminPassword(pwd);
+      if (!res.ok) {
+        toast.error(res.reason ?? "Não foi possível atualizar a senha.");
+        return;
+      }
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: null,
+        companyName: "Plataforma",
+        user: user?.name ?? "Super Admin",
+        action: "Senha do Super Admin alterada (hash atualizado).",
+      });
+      toast.success("Senha do Super Admin atualizada com segurança.");
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sa-pwd-title"
+      className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-4"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
+      >
+        <header className="px-6 pt-6 pb-4 border-b border-border flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center">
+            <KeyRound className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 id="sa-pwd-title" className="font-bold text-base leading-tight">
+              Alterar senha do Super Admin
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Apenas o hash SHA-256 é armazenado localmente — a senha em texto puro nunca é salva.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="p-1 rounded text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </header>
+
+        <div className="px-6 py-5 space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nova senha</span>
+            <div className="relative">
+              <input
+                type={show ? "text" : "password"}
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                autoFocus
+                autoComplete="new-password"
+                minLength={8}
+                placeholder="mínimo de 8 caracteres"
+                className="w-full h-10 pl-3 pr-10 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShow((s) => !s)}
+                aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground"
+              >
+                {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {tooShort && <p className="text-[11px] text-destructive">A senha precisa de pelo menos 8 caracteres.</p>}
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Confirme a nova senha</span>
+            <input
+              type={show ? "text" : "password"}
+              value={pwd2}
+              onChange={(e) => setPwd2(e.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              placeholder="digite novamente"
+              className="w-full h-10 px-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {mismatch && <p className="text-[11px] text-destructive">As senhas não coincidem.</p>}
+          </label>
+
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-muted-foreground">
+            Senhas amplamente conhecidas (como <code>admin123</code>) são bloqueadas automaticamente.
+          </div>
+        </div>
+
+        <footer className="px-6 pb-6 pt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 px-4 rounded-md border border-border text-sm font-semibold hover:bg-muted/50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={!valid || submitting}
+            className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ShieldCheck className="w-4 h-4" /> Salvar nova senha
+          </button>
+        </footer>
+      </form>
+    </div>
+  );
+}
