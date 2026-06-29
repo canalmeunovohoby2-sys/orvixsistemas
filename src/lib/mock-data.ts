@@ -184,43 +184,78 @@ export function updateTicketStatus(id: string, status: SupportTicket["status"]) 
 }
 
 /* ---------------------------------------------------------------- */
-/*  Persistência de chamados removidos/concluídos pelo Super Admin   */
-/*  Chave: orvix_tickets_removed_v1 → string[] com IDs descartados.  */
+/*  Lixeira de chamados de suporte — F5-safe e restaurável.          */
+/*  Chave: orvix_deleted_support_tickets → SupportTicket[] completo. */
+/*  Compat: orvix_tickets_removed_v1 (somente IDs, formato legado).  */
 /* ---------------------------------------------------------------- */
-const TICKETS_REMOVED_KEY = "orvix_tickets_removed_v1";
+const TICKETS_TRASH_KEY = "orvix_deleted_support_tickets";
+const TICKETS_REMOVED_LEGACY_KEY = "orvix_tickets_removed_v1";
 
-function loadRemovedTicketIds(): string[] {
+function loadTrashedTickets(): SupportTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(TICKETS_REMOVED_KEY);
+    const raw = localStorage.getItem(TICKETS_TRASH_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? (arr as SupportTicket[]) : [];
+  } catch { return []; }
+}
+function persistTrashedTickets(list: SupportTicket[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(TICKETS_TRASH_KEY, JSON.stringify(list)); } catch {}
+}
+function loadLegacyRemovedIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(TICKETS_REMOVED_LEGACY_KEY);
     if (!raw) return [];
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
   } catch { return []; }
 }
-function persistRemovedTicketIds(ids: string[]) {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(TICKETS_REMOVED_KEY, JSON.stringify(ids)); } catch {}
-}
 
 // Hidrata na carga do módulo — remove tickets já descartados em sessões anteriores.
 (() => {
-  const removed = new Set(loadRemovedTicketIds());
-  if (!removed.size) return;
+  const trashIds = new Set(loadTrashedTickets().map((t) => t.id));
+  const legacy = loadLegacyRemovedIds();
+  legacy.forEach((id) => trashIds.add(id));
+  if (!trashIds.size) return;
   for (let i = SUPPORT_TICKETS.length - 1; i >= 0; i--) {
-    if (removed.has(SUPPORT_TICKETS[i].id)) SUPPORT_TICKETS.splice(i, 1);
+    if (trashIds.has(SUPPORT_TICKETS[i].id)) SUPPORT_TICKETS.splice(i, 1);
   }
 })();
 
-/** Remove definitivamente um chamado de suporte e persiste a exclusão (F5-safe). */
+/** Remove um chamado de suporte e o move para a lixeira (restaurável). */
 export function deleteTicket(id: string): SupportTicket | null {
   const idx = SUPPORT_TICKETS.findIndex((x) => x.id === id);
   if (idx < 0) return null;
   const [removed] = SUPPORT_TICKETS.splice(idx, 1);
-  const ids = loadRemovedTicketIds();
-  if (!ids.includes(id)) { ids.push(id); persistRemovedTicketIds(ids); }
+  const trash = loadTrashedTickets();
+  if (!trash.some((t) => t.id === removed.id)) {
+    trash.push(removed);
+    persistTrashedTickets(trash);
+  }
   __emit();
   return removed;
+}
+
+/** Restaura um chamado previamente removido pelo Super Admin. */
+export function restoreTicket(id: string): SupportTicket | null {
+  const trash = loadTrashedTickets();
+  const idx = trash.findIndex((t) => t.id === id);
+  if (idx < 0) return null;
+  const [ticket] = trash.splice(idx, 1);
+  persistTrashedTickets(trash);
+  // Limpa também a chave legada, se presente.
+  const legacy = loadLegacyRemovedIds().filter((x) => x !== id);
+  if (typeof window !== "undefined") {
+    try { localStorage.setItem(TICKETS_REMOVED_LEGACY_KEY, JSON.stringify(legacy)); } catch {}
+  }
+  if (!SUPPORT_TICKETS.some((t) => t.id === ticket.id)) {
+    SUPPORT_TICKETS.unshift(ticket);
+  }
+  __emit();
+  return ticket;
 }
 
 export type SaaSSettings = {

@@ -7,7 +7,8 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
-  updateTicketStatus, deleteTicket, updateSaaSSettings, resetCommercialData,
+  updateTicketStatus, deleteTicket, restoreTicket, markLogReverted,
+  updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -578,6 +579,7 @@ function kindBadge(kind: SystemLogKind) {
 }
 
 function AuditTab() {
+  useMockStore();
   const { revertLog } = useSaaS();
   const [filter, setFilter] = useState<"all" | SystemLogKind>("all");
   const logs = useMemo<SystemLog[]>(
@@ -637,7 +639,32 @@ function AuditTab() {
                   <td className="px-4 py-3">{l.user ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{l.action}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {l.undo && !l.reverted ? (
+                    {l.kind === "SUPPORT_TICKET_CLOSED" && !l.reverted ? (
+                      (() => {
+                        const ticketId = (l.undo as { ticketId?: string } | undefined)?.ticketId;
+                        return (
+                          <button
+                            onClick={() => {
+                              if (!ticketId) {
+                                toast.error("Identificador do chamado ausente neste log.");
+                                return;
+                              }
+                              const restored = restoreTicket(ticketId);
+                              if (!restored) {
+                                toast.error("Chamado não encontrado na lixeira — talvez já tenha sido restaurado.");
+                                return;
+                              }
+                              markLogReverted(l.id);
+                              toast.success("Chamado de suporte restaurado com sucesso!");
+                            }}
+                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+                            title="Restaurar este chamado de suporte"
+                          >
+                            <Undo2 className="w-3.5 h-3.5" /> Restaurar Chamado
+                          </button>
+                        );
+                      })()
+                    ) : l.undo && !l.reverted ? (
                       <button
                         onClick={() => {
                           const r = revertLog(l.id);
@@ -712,6 +739,7 @@ function SupportTab() {
                       companyName: removed.companyName,
                       user: "Super Admin",
                       action: `Chamado ${removed.id} ("${removed.subject}") da empresa ${removed.companyName} concluído/removido pelo Administrador.`,
+                      undo: { ticketId: removed.id },
                     });
                     toast.success(`Chamado ${removed.id} concluído e removido da fila.`);
                   }}
