@@ -772,9 +772,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         : ev.amount >= PLAN_PRICE.prata - 0.5 ? "prata"
         : "bronze";
 
-      const seq = COMPANIES.length + 1;
+      const id = nextCompanyId();
+      const seq = parseInt(id.replace(/^EMP/i, ""), 10);
       const newCompany: Company = {
-        id: `EMP${String(seq).padStart(3, "0")}`,
+        id,
         razaoSocial: ev.payerName ? `${ev.payerName} (Auto-MP)` : `Cliente Mercado Pago #${seq}`,
         fantasia: ev.payerName ? ev.payerName : `Cliente MP #${seq}`,
         cnpj: "00.000.000/0001-00",
@@ -784,6 +785,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
       onboardingPending: true,
+      isDemo: false,
       };
       COMPANIES.push(newCompany);
 
