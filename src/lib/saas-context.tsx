@@ -26,6 +26,10 @@ export type SaaSUser = {
   role: Role;
   /** null para super_admin (acesso global) */
   companyId: string | null;
+  /** Senha de demonstração (mock). Em produção viveria apenas no backend, hasheada. */
+  password: string;
+  /** Quando true, o login força a abertura do modal de troca obrigatória. */
+  isTemporaryPassword: boolean;
 };
 
 export const PLAN_PRICE: Record<Plan, number> = {
@@ -50,10 +54,12 @@ const SEED_COMPANIES: Company[] = [
 export const COMPANIES: Company[] = [...SEED_COMPANIES];
 
 export const SAAS_USERS: SaaSUser[] = [
-  { id: "U000", name: "Ricardo Cunha (Plataforma)", email: "ricardo@orvix.app", role: "super_admin", companyId: null },
-  { id: "U001", name: "Ana Mendes",                 email: "ana@orvix.com.br",  role: "admin",       companyId: "EMP001" },
-  { id: "U002", name: "Bruno Caixa",                email: "bruno@orvix.com.br",role: "cashier",     companyId: "EMP001" },
-  { id: "U003", name: "Carla (Trigo Dourado)",      email: "carla@trigo.com.br",role: "admin",       companyId: "EMP002" },
+  { id: "U000", name: "Ricardo Cunha (Plataforma)", email: "ricardo@orvix.app", role: "super_admin", companyId: null,    password: "demo",    isTemporaryPassword: false },
+  { id: "U001", name: "Ana Mendes",                 email: "ana@orvix.com.br",  role: "admin",       companyId: "EMP001",password: "demo",    isTemporaryPassword: false },
+  { id: "U002", name: "Bruno Caixa",                email: "bruno@orvix.com.br",role: "cashier",     companyId: "EMP001",password: "demo",    isTemporaryPassword: false },
+  { id: "U003", name: "Carla (Trigo Dourado)",      email: "carla@trigo.com.br",role: "admin",       companyId: "EMP002",password: "demo",    isTemporaryPassword: false },
+  // Conta seed de validação do fluxo de Primeiro Acesso (Sessões 3, 4 e 18).
+  { id: "U004", name: "Novo Cliente (ORVIX)",       email: "novo-cliente@orvix.com.br", role: "admin", companyId: "EMP001", password: "temp123", isTemporaryPassword: true },
 ];
 
 const STORAGE_KEY = "saas_session_user_id";
@@ -62,12 +68,17 @@ type SaaSCtx = {
   user: SaaSUser | null;
   company: Company | null;
   companies: Company[];
+  users: SaaSUser[];
   loginAs: (userId: string) => void;
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
   setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
   setCompanyPlan: (companyId: string, plan: Plan) => void;
   setCompanyDueDate: (companyId: string, isoDate: string) => void;
+  /** Atualiza senha do usuário e zera o flag de primeiro acesso. */
+  updatePassword: (userId: string, newPassword: string) => void;
+  /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
+  createDemoAccess: () => { user: SaaSUser; company: Company };
   /** Suporte/impersonação — super_admin assume o papel de admin de uma empresa. */
   impersonating: boolean;
   impersonatedCompany: Company | null;
@@ -83,6 +94,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const [, setCompaniesTick] = useState(0);
   const [impersonatedCompanyId, setImpersonatedCompanyId] = useState<string | null>(null);
   const [originalUserId, setOriginalUserId] = useState<string | null>(null);
+  const [, setUsersTick] = useState(0);
 
   useEffect(() => {
     try {
@@ -209,14 +221,68 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     }
   }, [impersonatedCompanyId, realUser]);
 
+  const updatePassword = useCallback((id: string, newPassword: string) => {
+    const u = SAAS_USERS.find((x) => x.id === id);
+    if (!u) return;
+    u.password = newPassword;
+    u.isTemporaryPassword = false;
+    setUsersTick((t) => t + 1);
+    const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: u.companyId,
+      companyName: comp?.fantasia ?? "Plataforma",
+      user: u.name,
+      action: "Senha de primeiro acesso atualizada com sucesso (ORVIX SISTEMAS).",
+    });
+  }, []);
+
+  const createDemoAccess = useCallback(() => {
+    const seq = COMPANIES.length + 1;
+    const id = `EMP${String(seq).padStart(3, "0")}`;
+    const newCompany: Company = {
+      id,
+      razaoSocial: `Cliente ORVIX ${seq} LTDA`,
+      fantasia: `Loja ORVIX #${seq}`,
+      cnpj: "00.000.000/0001-00",
+      status: "active",
+      plan: "pro",
+      mrr: PLAN_PRICE.pro,
+      createdAt: new Date().toISOString().slice(0, 10),
+      dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+    };
+    COMPANIES.push(newCompany);
+    const newUser: SaaSUser = {
+      id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
+      name: `Admin ${newCompany.fantasia}`,
+      email: `cliente${seq}@orvix.com.br`,
+      role: "admin",
+      companyId: newCompany.id,
+      password: "temp123",
+      isTemporaryPassword: true,
+    };
+    SAAS_USERS.push(newUser);
+    setCompaniesTick((t) => t + 1);
+    setUsersTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: newCompany.id,
+      companyName: newCompany.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `Nova venda simulada — acesso ORVIX criado para ${newUser.email} (senha temporária).`,
+    });
+    return { user: newUser, company: newCompany };
+  }, [realUser]);
+
   // referência apenas para silenciar o linter sobre originalUserId
   void originalUserId;
 
   return (
     <Ctx.Provider
       value={{
-        user, company, companies: COMPANIES, loginAs, logout, hasRole,
+        user, company, companies: COMPANIES, users: SAAS_USERS, loginAs, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate,
+        updatePassword, createDemoAccess,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
       }}
