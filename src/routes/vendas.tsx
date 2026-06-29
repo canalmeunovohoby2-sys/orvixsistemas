@@ -416,6 +416,46 @@ function VendasPage() {
 
   return (
     <AppShell title="Caixa" breadcrumb={["Meu Saas", "Caixa"]}>
+      {pdvBlocked && company && (
+        <section
+          role="alert"
+          aria-live="assertive"
+          className="mb-6 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-6 md:p-8 flex flex-col md:flex-row items-start gap-5"
+        >
+          <div className="w-14 h-14 shrink-0 grid place-items-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-500">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-amber-500">🚫 Limite de Caixas Atingido</h2>
+            <p className="mt-1 text-sm text-foreground/90">
+              Seu plano <strong>{PLAN_LABEL[company.plan]}</strong> permite apenas{" "}
+              <strong>{pdvBlocked.limit} caixa{pdvBlocked.limit > 1 ? "s" : ""} operando por vez</strong>
+              {" "}— no momento já existe{pdvBlocked.active > 1 ? "m" : ""} <strong>{pdvBlocked.active}</strong> caixa(s) aberto(s) para esta empresa.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {company.plan === "bronze"
+                ? "Faça o upgrade para o Plano Prata e abra até 3 caixas simultaneamente — ou Ouro para caixas ilimitados."
+                : "Faça o upgrade para o Plano Ouro Premium e libere caixas ilimitados."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="/assinatura"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+              >
+                Fazer upgrade agora
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-md border border-border text-sm font-semibold hover:bg-accent transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+      {!pdvBlocked && (
+      <>
       <section aria-labelledby="pdv" className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         <h2 id="pdv" className="sr-only">Ponto de venda</h2>
 
