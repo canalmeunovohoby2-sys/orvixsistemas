@@ -95,6 +95,8 @@ type SaaSCtx = {
   setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
   setCompanyPlan: (companyId: string, plan: Plan) => void;
   setCompanyDueDate: (companyId: string, isoDate: string) => void;
+  /** Ativa o MRR real da empresa (chamado na 1ª venda do PDV ou simulação de pagamento). */
+  activateRevenue: (companyId: string) => void;
   /** Atualiza senha do usuário e zera o flag de primeiro acesso. */
   updatePassword: (userId: string, newPassword: string) => void;
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
