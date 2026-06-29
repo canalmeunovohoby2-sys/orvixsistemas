@@ -65,7 +65,7 @@ const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function VendasPage() {
   useMockStore();
-  const { user, company } = useSaaS();
+  const { user, company, activateRevenue } = useSaaS();
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -237,6 +237,8 @@ function VendasPage() {
       customerId: crediario ? customerId : undefined,
       customer: crediario ? companyCustomers.find((c) => c.id === customerId)?.name : undefined,
     });
+    // Recontagem de MRR — ativa o faturamento real da empresa a partir da 1ª venda.
+    activateRevenue(cid);
 
     if (crediario) {
       const c = companyCustomers.find((x) => x.id === customerId);

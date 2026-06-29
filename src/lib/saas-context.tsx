@@ -55,11 +55,14 @@ export const PLAN_LIMITS: Record<Plan, { caixas: number; users: number; advanced
   ouro:   { caixas: Infinity, users: Infinity, advancedReports: true },
 };
 
+// MRR inicia em 0 para todas as empresas-seed — o faturamento real só passa a contar
+// quando uma venda é registrada no PDV (activateRevenue) ou quando o Super Admin
+// simula o pagamento ativamente para a empresa.
 const SEED_COMPANIES: Company[] = [
-  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 149.9, createdAt: "2025-01-12", dueDate: "2026-07-12" },
-  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 99.9,  createdAt: "2026-06-02", dueDate: "2026-07-16" },
-  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 99.9,  createdAt: "2025-11-20", dueDate: "2026-05-20" },
-  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 249.9, createdAt: "2024-08-30", dueDate: "2026-07-04" },
+  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 0, createdAt: "2025-01-12", dueDate: "2026-07-12" },
+  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 0, createdAt: "2026-06-02", dueDate: "2026-07-16" },
+  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 0, createdAt: "2025-11-20", dueDate: "2026-05-20" },
+  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 0, createdAt: "2024-08-30", dueDate: "2026-07-04" },
 ];
 
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
@@ -92,6 +95,8 @@ type SaaSCtx = {
   setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
   setCompanyPlan: (companyId: string, plan: Plan) => void;
   setCompanyDueDate: (companyId: string, isoDate: string) => void;
+  /** Ativa o MRR real da empresa (chamado na 1ª venda do PDV ou simulação de pagamento). */
+  activateRevenue: (companyId: string) => void;
   /** Atualiza senha do usuário e zera o flag de primeiro acesso. */
   updatePassword: (userId: string, newPassword: string) => void;
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
@@ -215,7 +220,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (!c) return;
     const prev = c.plan;
     c.plan = plan;
-    if (c.status === "active") c.mrr = PLAN_PRICE[plan];
+    // Mantém o princípio de "recontagem": só ajusta MRR se a empresa já estava faturando.
+    if (c.status === "active" && c.mrr > 0) c.mrr = PLAN_PRICE[plan];
     setCompaniesTick((t) => t + 1);
     logEvent({
       kind: "PLAN_CHANGE",
@@ -236,6 +242,20 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Vencimento alterado: ${prev?.slice(0, 10)} → ${isoDate.slice(0, 10)}.`,
+    });
+  }, [realUser]);
+
+  const activateRevenue = useCallback((companyId: string) => {
+    const c = COMPANIES.find((x) => x.id === companyId);
+    if (!c) return;
+    if (c.status !== "active" || c.mrr > 0) return;
+    c.mrr = PLAN_PRICE[c.plan];
+    setCompaniesTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: c.id, companyName: c.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `Faturamento ativado — MRR ${PLAN_LABEL[c.plan]} reconhecido (${PLAN_PRICE[c.plan].toFixed(2)}).`,
     });
   }, [realUser]);
 
@@ -293,11 +313,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       cnpj: "00.000.000/0001-00",
       status: "active",
       plan: "bronze",
-      mrr: PLAN_PRICE.bronze,
+      mrr: 0,
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
     };
     COMPANIES.push(newCompany);
+    // Pagamento simulado ativamente → reconhece MRR da nova empresa.
+    newCompany.mrr = PLAN_PRICE[newCompany.plan];
     const newUser: SaaSUser = {
       id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
       name: `Admin ${newCompany.fantasia}`,
@@ -371,7 +393,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       value={{
         user, company, companies: COMPANIES, users: SAAS_USERS,
         loginAs, loginWithCredentials, logout, hasRole,
-        setCompanyStatus, setCompanyPlan, setCompanyDueDate,
+        setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
