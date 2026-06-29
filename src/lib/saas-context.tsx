@@ -603,6 +603,17 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       user: realUser?.name ?? "Sistema",
       action: `Venda automatizada — acesso ORVIX criado para ${newUser.email} (senha temporária) · cópia administrativa para ${SUPER_ADMIN_EMAIL}.`,
     });
+    void notifyAdminNewClient({
+      storeName: newCompany.fantasia,
+      ownerName: newUser.name,
+      contactEmail: newUser.email,
+      planLabel: PLAN_LABEL[newCompany.plan],
+      planPrice: PLAN_PRICE[newCompany.plan],
+      terminalsLimit: getPlanCaixasLimit(newCompany.plan),
+      origin: "Simulação",
+      companyId: newCompany.id,
+      cnpj: newCompany.cnpj,
+    });
     return { user: newUser, company: newCompany };
   }, [realUser]);
 
@@ -636,6 +647,20 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         companyName: c.fantasia,
         user: realUser?.name ?? "Lojista",
         action: `Cadastro obrigatório concluído pelo lojista — empresa "${fantasia}" (${cnpj}) · segmento ${segment} · contato ${phone}. Dados sincronizados com o Painel Master.`,
+      });
+      const owner = SAAS_USERS.find((u) => u.companyId === c.id && u.role === "admin");
+      void notifyAdminNewClient({
+        storeName: c.fantasia,
+        ownerName: owner?.name ?? realUser?.name ?? "Lojista",
+        contactEmail: owner?.email ?? realUser?.email ?? "—",
+        planLabel: PLAN_LABEL[c.plan],
+        planPrice: PLAN_PRICE[c.plan],
+        terminalsLimit: getPlanCaixasLimit(c.plan),
+        origin: "Cadastro Real",
+        companyId: c.id,
+        cnpj: c.cnpj,
+        phone: c.phone,
+        segment: c.segment,
       });
       return { ok: true };
     },
