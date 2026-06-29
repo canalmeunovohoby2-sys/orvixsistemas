@@ -391,6 +391,45 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     return { ok: true, user: newUser };
   }, [canAddUser, realUser]);
 
+  const deleteCompany = useCallback((companyId: string) => {
+    const idx = COMPANIES.findIndex((x) => x.id === companyId);
+    if (idx < 0) return { ok: false, reason: "Empresa não encontrada." };
+    const c = COMPANIES[idx];
+    // Remove dados vinculados (in-place para preservar referências exportadas).
+    const purge = <T extends { company_id?: string | null }>(arr: T[]) => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i].company_id === companyId) arr.splice(i, 1);
+      }
+    };
+    purge(PRODUCTS as Array<{ company_id?: string | null }>);
+    purge(SALES as Array<{ company_id?: string | null }>);
+    purge(MOVEMENTS as Array<{ company_id?: string | null }>);
+    purge(SUPPLIERS as Array<{ company_id?: string | null }>);
+    purge(CUSTOMERS as Array<{ company_id?: string | null }>);
+    purge(FINANCIAL_RECORDS as Array<{ company_id?: string | null }>);
+    purge(SUPPORT_TICKETS as Array<{ company_id?: string | null }>);
+    purge(SYSTEM_LOGS as Array<{ company_id?: string | null }>);
+    // Remove usuários vinculados.
+    for (let i = SAAS_USERS.length - 1; i >= 0; i--) {
+      if (SAAS_USERS[i].companyId === companyId) SAAS_USERS.splice(i, 1);
+    }
+    COMPANIES.splice(idx, 1);
+    if (impersonatedCompanyId === companyId) {
+      setImpersonatedCompanyId(null);
+      setOriginalUserId(null);
+    }
+    setCompaniesTick((t) => t + 1);
+    setUsersTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: null,
+      companyName: "Plataforma",
+      user: realUser?.name ?? "Sistema",
+      action: `Empresa removida permanentemente: ${c.fantasia} (${c.cnpj}). Todos os dados vinculados foram apagados.`,
+    });
+    return { ok: true };
+  }, [impersonatedCompanyId, realUser]);
+
   // referência apenas para silenciar o linter sobre originalUserId
   void originalUserId;
 
@@ -402,6 +441,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
+        deleteCompany,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
       }}
