@@ -262,6 +262,22 @@ export const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 // ============================================================
+// Tenant-scoped helpers (multi-empresa)
+// Toda nova consulta/escrita deve passar pelo company_id atual.
+// Ex.: getCompanyProducts(user.companyId)
+// ============================================================
+export const getCompanyProducts = (cid: string | null) =>
+  cid ? PRODUCTS.filter((p) => p.company_id === cid) : [];
+export const getCompanySales = (cid: string | null) =>
+  cid ? SALES.filter((s) => s.company_id === cid) : [];
+export const getCompanyMovements = (cid: string | null) =>
+  cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
+export const getCompanySuppliers = (cid: string | null) =>
+  cid ? SUPPLIERS.filter((s) => s.company_id === cid) : [];
+export const getCompanyCustomers = (cid: string | null) =>
+  cid ? CUSTOMERS.filter((c) => c.company_id === cid) : [];
+
+// ============================================================
 // Credit / Crediário store (mock — in-memory, reactive)
 // ============================================================
 
