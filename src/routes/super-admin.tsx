@@ -424,7 +424,7 @@ function CompaniesTab() {
                       onClick={() => {
                         startImpersonation(c.id);
                         toast.success(`Modo suporte iniciado em ${c.fantasia}.`);
-                        navigate({ to: "/" });
+                        navigate({ to: "/dashboard" });
                       }}
                       className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
                       title="Acessar a empresa como administrador (suporte técnico)"
