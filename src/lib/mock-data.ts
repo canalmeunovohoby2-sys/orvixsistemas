@@ -52,6 +52,10 @@ export type Movement = {
   type: "Entrada" | "Saída" | "Ajuste";
   qty: number;
   user: string;
+  /** ID do produto (auditoria). Opcional para registros legados. */
+  productId?: string;
+  /** Justificativa / origem da movimentação (ex.: "Venda PDV V20301"). */
+  reason?: string;
 };
 
 export type Person = {
