@@ -203,7 +203,7 @@ function TerminaisPage() {
                   type={showPwd ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 4 caracteres"
+                  placeholder="Crie uma senha forte"
                   className={`${inputCls} pr-10`}
                 />
                 <button
@@ -216,12 +216,13 @@ function TerminaisPage() {
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordRules value={password} />
             </label>
           </div>
 
           <button
             type="submit"
-            disabled={blocked || busy}
+            disabled={blocked || busy || !isStrongPassword(password) || !name.trim() || !email.trim()}
             className="mt-5 w-full h-11 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow"
           >
             <Plus className="w-4 h-4" /> Criar terminal
