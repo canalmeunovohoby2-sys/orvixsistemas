@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import { MOVEMENTS, PRODUCTS, deleteMovement, formatQty, type Movement } from "@/lib/mock-data";
-import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw, ClipboardList } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { toast } from "sonner";
@@ -75,7 +75,58 @@ function EstoquePage() {
       />
 
       <InventorySummary />
+
+      <AuditLog />
     </AppShell>
+  );
+}
+
+function AuditLog() {
+  const rows = MOVEMENTS;
+  return (
+    <section className="mt-8">
+      <div className="flex items-center gap-2 mb-3">
+        <ClipboardList className="w-5 h-5 text-primary" />
+        <h2 className="text-xl font-bold">Auditoria de movimentações</h2>
+        <span className="ml-2 text-xs text-muted-foreground">{rows.length} registro(s)</span>
+      </div>
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <th scope="col" className="px-4 py-3 text-left">Mov.</th>
+              <th scope="col" className="px-4 py-3 text-left">Data/Hora</th>
+              <th scope="col" className="px-4 py-3 text-left">Produto</th>
+              <th scope="col" className="px-4 py-3 text-left">ID Produto</th>
+              <th scope="col" className="px-4 py-3 text-left">Tipo</th>
+              <th scope="col" className="px-4 py-3 text-right">Qtd.</th>
+              <th scope="col" className="px-4 py-3 text-left">Usuário</th>
+              <th scope="col" className="px-4 py-3 text-left">Justificativa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 30).map((m) => (
+              <tr key={m.id} className="border-t border-border hover:bg-accent/40 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs">{m.id}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {new Date(m.date).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                </td>
+                <td className="px-4 py-3 font-medium">{m.product}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.productId ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge kind={m.type === "Entrada" ? "success" : m.type === "Saída" ? "danger" : "info"}>
+                    {m.type}
+                  </StatusBadge>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums font-semibold">{m.qty}</td>
+                <td className="px-4 py-3 text-muted-foreground">{m.user}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{m.reason ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

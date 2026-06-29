@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
-  BRL, PRODUCTS, SALES, registerSale,
+  BRL, PRODUCTS, SALES, commitPdvSale,
   formatQty, isFractional,
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
+import { useSaaS } from "@/lib/saas-context";
 import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function VendasPage() {
   useMockStore();
+  const { user, company } = useSaaS();
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -151,20 +153,16 @@ function VendasPage() {
     if (cart.length === 0) return toast.error("Carrinho vazio.");
     if (paid + 0.01 < total) return toast.error(`Pagamento incompleto. Falta ${BRL(remaining)}.`);
 
-    // Decrement stock
-    cart.forEach((item) => {
-      const p = PRODUCTS.find((pp) => pp.id === item.id);
-      if (p) p.stock = +Math.max(0, p.stock - item.qty).toFixed(3);
-    });
-
-    // Register sale into mock history (so Relatórios → Previsão captura parcelas).
+    // Baixa de estoque + registro de auditoria por item (filtrado pelo company_id)
     const credSplit = splits.find((s) => s.method === "Crédito");
     const primary = splits[0]?.method ?? "Dinheiro";
     const mappedPayment: Sale["payment"] =
       primary === "Crédito" || primary === "Débito" ? "Cartão" : primary;
-    registerSale({
+    commitPdvSale({
+      company_id: company?.id ?? user?.companyId ?? "EMP001",
+      user: user?.name ?? "operador",
+      items: cart.map((c) => ({ id: c.id, name: c.name, qty: c.qty })),
       total,
-      items: cart.length,
       payment: mappedPayment,
       installments: credSplit?.installments ?? 1,
     });
@@ -177,7 +175,7 @@ function VendasPage() {
     setDiscount(0);
     setShowDiscount(false);
     setShowPayment(false);
-  }, [cart, paid, total, remaining, splits]);
+  }, [cart, paid, total, remaining, splits, company, user]);
 
   // Cancelamento total da venda (F8 / botão vermelho)
   const cancelSale = useCallback(() => {

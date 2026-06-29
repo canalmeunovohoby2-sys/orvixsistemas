@@ -1,14 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, KPIS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE, type Sale } from "@/lib/mock-data";
+import { BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE, formatQty, type Sale } from "@/lib/mock-data";
+import { useMockStore } from "@/hooks/use-mock-store";
+import { useSaaS } from "@/lib/saas-context";
 import { motion } from "framer-motion";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +37,7 @@ const KPI_CARDS = [
 const CHART_COLORS = ["#8B0000", "#5A8FB8", "#5BA67C", "#C9A961", "#8B6F8E"];
 
 function DashboardPage() {
+  useMockStore();
   const recent = SALES.slice(0, 6);
 
   const cols: Column<Sale>[] = [
@@ -160,6 +164,112 @@ function DashboardPage() {
           />
         </section>
       </div>
+
+      <CriticalAlerts />
     </AppShell>
+  );
+}
+
+function CriticalAlerts() {
+  const { user } = useSaaS();
+  const cid = user?.companyId ?? "EMP001";
+  const low = useMemo(
+    () => PRODUCTS.filter((p) => p.company_id === cid && p.stock <= p.minStock),
+    [cid],
+  );
+  const categories = useMemo(
+    () => Array.from(new Set(low.map((p) => p.category))).sort(),
+    [low],
+  );
+  const [cat, setCat] = useState<string>("all");
+  const rows = cat === "all" ? low : low.filter((p) => p.category === cat);
+
+  return (
+    <section aria-labelledby="alertas-criticos" className="glass rounded-xl p-5 mb-6 border border-primary/30">
+      <header className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="grid place-items-center w-9 h-9 rounded-lg bg-primary/15 text-primary">
+            <AlertTriangle className="w-4 h-4" />
+          </span>
+          <div>
+            <h2 id="alertas-criticos" className="text-base font-semibold">Alertas Críticos</h2>
+            <p className="text-xs text-muted-foreground">
+              Produtos em estoque mínimo ou zerados · {rows.length} item(ns)
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="alert-cat" className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            Categoria
+          </label>
+          <select
+            id="alert-cat"
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+            className="h-8 px-2 rounded-md bg-secondary border border-border text-xs"
+          >
+            <option value="all">Todas ({low.length})</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c} ({low.filter((p) => p.category === c).length})
+              </option>
+            ))}
+          </select>
+          <Link
+            to="/estoque"
+            className="h-8 inline-flex items-center px-3 rounded-md bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90"
+          >
+            Repor
+          </Link>
+        </div>
+      </header>
+
+      {rows.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
+          🎉 Nenhum produto crítico nesta categoria. Estoque saudável.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-2.5 text-left">Produto</th>
+                <th className="px-4 py-2.5 text-left">Categoria</th>
+                <th className="px-4 py-2.5 text-right">Estoque</th>
+                <th className="px-4 py-2.5 text-right">Mínimo</th>
+                <th className="px-4 py-2.5 text-left">Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 12).map((p) => {
+                const zero = p.stock <= 0;
+                return (
+                  <tr key={p.id} className="border-t border-border bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <td className="px-4 py-2.5 font-medium">{p.name}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{p.category}</td>
+                    <td className={`px-4 py-2.5 text-right tabular-nums font-bold ${zero ? "text-primary" : "text-primary/90"}`}>
+                      {formatQty(p.stock, p.unit)} {p.unit}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                      {formatQty(p.minStock, p.unit)} {p.unit}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge kind="danger">
+                        {zero ? (<><PackageX className="w-3 h-3 mr-1 inline" />Sem estoque</>) : "Estoque baixo"}
+                      </StatusBadge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {rows.length > 12 && (
+            <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-border bg-secondary/40">
+              Mostrando 12 de {rows.length}. <Link to="/estoque" className="text-primary font-semibold hover:underline">Ver todos →</Link>
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

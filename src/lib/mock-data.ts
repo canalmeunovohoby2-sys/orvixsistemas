@@ -52,6 +52,10 @@ export type Movement = {
   type: "Entrada" | "Saída" | "Ajuste";
   qty: number;
   user: string;
+  /** ID do produto (auditoria). Opcional para registros legados. */
+  productId?: string;
+  /** Justificativa / origem da movimentação (ex.: "Venda PDV V20301"). */
+  reason?: string;
 };
 
 export type Person = {
@@ -340,10 +344,11 @@ export function registerSale(input: {
   payment: Sale["payment"];
   customer?: string;
   installments?: number;
+  company_id?: string;
 }): Sale {
   const sale: Sale = {
     id: `V${String(__saleSeq++).padStart(5, "0")}`,
-    company_id: "EMP001",
+    company_id: input.company_id ?? "EMP001",
     date: new Date().toISOString(),
     customer: input.customer || "Consumidor",
     total: +input.total.toFixed(2),
@@ -354,6 +359,74 @@ export function registerSale(input: {
   };
   SALES.unshift(sale);
   __emit();
+  return sale;
+}
+
+/* ---------------------------------------------------------------- */
+/*  Movements (auditoria de estoque)                                 */
+/* ---------------------------------------------------------------- */
+
+let __movSeq = 6000;
+export function registerMovement(input: {
+  company_id: string;
+  productId?: string;
+  product: string;
+  type: Movement["type"];
+  qty: number;
+  user: string;
+  reason?: string;
+}): Movement {
+  const mov: Movement = {
+    id: `M${String(__movSeq++).padStart(5, "0")}`,
+    company_id: input.company_id,
+    date: new Date().toISOString(),
+    product: input.product,
+    productId: input.productId,
+    type: input.type,
+    qty: +input.qty.toFixed(3),
+    user: input.user,
+    reason: input.reason,
+  };
+  MOVEMENTS.unshift(mov);
+  __emit();
+  return mov;
+}
+
+/**
+ * Finaliza uma venda do PDV: registra a venda, debita o estoque de cada item
+ * filtrando pelo company_id e cria uma movimentação de SAÍDA para auditoria.
+ */
+export function commitPdvSale(input: {
+  company_id: string;
+  user: string;
+  items: { id: string; name: string; qty: number }[];
+  total: number;
+  payment: Sale["payment"];
+  installments?: number;
+  customer?: string;
+}): Sale {
+  const sale = registerSale({
+    total: input.total,
+    items: input.items.length,
+    payment: input.payment,
+    customer: input.customer,
+    installments: input.installments,
+    company_id: input.company_id,
+  });
+  input.items.forEach((it) => {
+    const p = PRODUCTS.find((pp) => pp.id === it.id && pp.company_id === input.company_id);
+    if (!p) return;
+    p.stock = +Math.max(0, p.stock - it.qty).toFixed(3);
+    registerMovement({
+      company_id: input.company_id,
+      productId: p.id,
+      product: p.name,
+      type: "Saída",
+      qty: it.qty,
+      user: input.user,
+      reason: `Venda PDV ${sale.id}`,
+    });
+  });
   return sale;
 }
 
