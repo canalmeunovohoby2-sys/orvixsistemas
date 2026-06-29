@@ -93,6 +93,9 @@ export const SAAS_USERS: SaaSUser[] = [];
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 export const TEST_ADMIN_EMAIL = "teste@orvix.com";
 export const TEST_ADMIN_PASSWORD = "Orvix@2026";
+export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
+export const TEST_CASHIER_PASSWORD = "OrvixCaixa@2026";
+const TEST_COMPANY_ID = "EMP_TESTE";
 
 /* ============================================================
  * Snapshots de reversão (mantidos para auditoria — Phase 1 cobre
@@ -317,9 +320,56 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const normalized = email.trim().toLowerCase();
       if (!normalized || !password) return { ok: false, reason: "Informe e-mail e senha." };
 
+      const activateLocalTestBypass = (role: Role): SaaSUser => {
+        const companyRow: Company = {
+          id: TEST_COMPANY_ID,
+          razaoSocial: "ORVIX Loja de Testes LTDA",
+          fantasia: "ORVIX Loja de Testes",
+          cnpj: "00.000.000/0001-91",
+          status: "active",
+          plan: "ouro",
+          mrr: 0,
+          createdAt: new Date().toISOString().slice(0, 10),
+          dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+          phone: "(11) 99999-2026",
+          segment: "Homologação / PDV",
+          onboardingPending: false,
+          isDemo: true,
+        };
+        const adminUser: SaaSUser = {
+          id: "mock-admin-teste-orvix",
+          name: "Admin Teste ORVIX",
+          email: TEST_ADMIN_EMAIL,
+          role: "admin",
+          companyId: TEST_COMPANY_ID,
+          password: "",
+          isTemporaryPassword: false,
+        };
+        const cashierUser: SaaSUser = {
+          id: "mock-caixa-teste-orvix",
+          name: "Caixa Teste ORVIX",
+          email: TEST_CASHIER_EMAIL,
+          role: "cashier",
+          companyId: TEST_COMPANY_ID,
+          password: "",
+          isTemporaryPassword: false,
+        };
+        COMPANIES.length = 0; COMPANIES.push(companyRow);
+        SAAS_USERS.length = 0; SAAS_USERS.push(adminUser, cashierUser);
+        const selected = role === "cashier" ? cashierUser : adminUser;
+        setRealUser(selected);
+        tick();
+        logEvent({
+          kind: "LOGIN_OK", company_id: TEST_COMPANY_ID,
+          companyName: companyRow.fantasia, user: selected.name,
+          action: `Login de homologação liberado via bypass mockado (${selected.role}).`,
+        });
+        return selected;
+      };
+
       // Bypass idempotente de homologação: garante que o usuário master exista
       // no mesmo fluxo/tabela dos demais usuários antes de validar a senha.
-      if (normalized === TEST_ADMIN_EMAIL) {
+      if (normalized === TEST_ADMIN_EMAIL || normalized === TEST_CASHIER_EMAIL) {
         try { await ensureTestUser(); } catch (e) { console.warn("[ORVIX] ensureTestUser(login)", e); }
       }
 
@@ -334,6 +384,16 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (error && normalized === TEST_ADMIN_EMAIL && password === TEST_ADMIN_PASSWORD) {
         try { await ensureTestUser(); } catch {}
         ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
+      if (error && normalized === TEST_CASHIER_EMAIL && password === TEST_CASHIER_PASSWORD) {
+        try { await ensureTestUser(); } catch {}
+        ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
+      if (error && normalized === TEST_ADMIN_EMAIL && password === TEST_ADMIN_PASSWORD) {
+        return { ok: true, user: activateLocalTestBypass("admin") };
+      }
+      if (error && normalized === TEST_CASHIER_EMAIL && password === TEST_CASHIER_PASSWORD) {
+        return { ok: true, user: activateLocalTestBypass("cashier") };
       }
       if (error) return { ok: false, reason: "E-mail ou senha incorretos." };
 
@@ -372,7 +432,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       });
       return { ok: true, user: me };
     },
-    [loadAll],
+    [loadAll, tick],
   );
 
   const logout = useCallback(async () => {
