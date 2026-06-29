@@ -24,6 +24,12 @@ export type Company = {
   createdAt: string;
   /** Data de vencimento da próxima fatura (ISO). */
   dueDate: string;
+  /** Telefone comercial cadastrado pelo lojista no onboarding. */
+  phone?: string;
+  /** Segmento do negócio cadastrado pelo lojista no onboarding. */
+  segment?: string;
+  /** True enquanto o lojista ainda não preencheu o cadastro obrigatório. */
+  onboardingPending?: boolean;
 };
 
 export type SaaSUser = {
@@ -84,10 +90,10 @@ export function getPlanCaixasLimit(plan: Plan): number {
 // quando uma venda é registrada no PDV (activateRevenue) ou quando o Super Admin
 // simula o pagamento ativamente para a empresa.
 const SEED_COMPANIES: Company[] = [
-  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 0, createdAt: "2025-01-12", dueDate: "2026-07-12" },
-  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 0, createdAt: "2026-06-02", dueDate: "2026-07-16" },
-  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 0, createdAt: "2025-11-20", dueDate: "2026-05-20" },
-  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 0, createdAt: "2024-08-30", dueDate: "2026-07-04" },
+  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 0, createdAt: "2025-01-12", dueDate: "2026-07-12", onboardingPending: false },
+  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 0, createdAt: "2026-06-02", dueDate: "2026-07-16", onboardingPending: false },
+  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 0, createdAt: "2025-11-20", dueDate: "2026-05-20", onboardingPending: false },
+  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 0, createdAt: "2024-08-30", dueDate: "2026-07-04", onboardingPending: false },
 ];
 
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
