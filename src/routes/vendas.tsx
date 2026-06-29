@@ -1224,6 +1224,141 @@ function VendasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* MODAL — Abertura de Caixa (bloqueia vendas até confirmar). */}
+      <Dialog
+        open={openModal}
+        onOpenChange={(o) => {
+          // Não permite fechar sem abrir o caixa (a menos que já exista um turno).
+          if (!o && !shift) return;
+          setOpenModal(o);
+        }}
+      >
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <DoorOpen className="w-4 h-4" />
+              </span>
+              Abertura de Caixa
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Informe o <strong className="text-foreground">valor de troco inicial</strong> que está fisicamente na gaveta do caixa.
+              As vendas só serão liberadas após a abertura.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Valor de Troco Inicial (R$)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                autoFocus
+                value={openingFloat}
+                onChange={(e) => setOpeningFloat(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); openShift(); } }}
+                placeholder="Ex: 150,00"
+                className="w-full h-11 pl-10 pr-3 rounded-md bg-secondary border border-border text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Operador: <strong className="text-foreground">{user?.name ?? "—"}</strong> · Empresa: <strong className="text-foreground">{company?.fantasia ?? "—"}</strong>
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={openShift}
+              className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" /> Abrir Caixa
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL — Fechamento de Caixa (resumo do turno + dinheiro conferido). */}
+      <Dialog open={closeModal} onOpenChange={setCloseModal}>
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/15 text-primary border border-primary/30">
+                <DoorClosed className="w-4 h-4" />
+              </span>
+              Fechamento de Caixa
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Confira o resumo do turno e informe o valor em dinheiro contado na gaveta.
+              Ao confirmar, o relatório será impresso e o operador será deslogado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-border bg-secondary/40 p-4 space-y-1.5 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Operador</span><span className="font-semibold">{user?.name ?? "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Abertura</span><span className="font-mono tabular-nums">{shift ? new Date(shift.openedAt).toLocaleString("pt-BR") : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Troco inicial</span><span className="font-mono tabular-nums">{BRL(shift?.openingFloat ?? 0)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Vendas registradas</span><span className="font-mono tabular-nums">{shift?.sales.length ?? 0}</span></div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Totais por forma de pagamento</p>
+            <ul className="text-sm divide-y divide-border">
+              <li className="py-1.5 flex justify-between"><span>💵 Dinheiro</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Dinheiro"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>📱 PIX</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Pix"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>💳 Crédito</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Crédito"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>💳 Débito</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Débito"])}</span></li>
+              <li className="py-1.5 flex justify-between text-muted-foreground"><span>📝 Crediário</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Crediário"])}</span></li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-primary/40 bg-primary/5 p-4">
+            <div className="flex justify-between items-baseline mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Esperado em dinheiro</span>
+              <span className="text-lg font-bold tabular-nums text-foreground">{BRL(expectedCash)}</span>
+            </div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Valor em Dinheiro no Caixa (contado)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                autoFocus
+                value={closingCash}
+                onChange={(e) => setClosingCash(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); closeShift(); } }}
+                placeholder="Ex: 850,00"
+                className="w-full h-11 pl-10 pr-3 rounded-md bg-card border border-border text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setCloseModal(false)}
+              className="h-10 px-4 inline-flex items-center justify-center rounded-md border border-border text-sm font-semibold hover:bg-accent transition-colors"
+            >
+              Voltar
+            </button>
+            <button
+              type="button"
+              onClick={closeShift}
+              className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+            >
+              <LogOut className="w-4 h-4" /> Confirmar Fechamento
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </>
       )}
     </AppShell>
