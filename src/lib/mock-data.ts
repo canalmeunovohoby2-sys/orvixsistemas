@@ -799,6 +799,44 @@ export function deleteMovement(id: string): boolean {
 }
 
 /* ---------------------------------------------------------------- */
+/*  Reset de dados comerciais (homologação)                          */
+/*  Zera vendas, produtos, clientes, fornecedores, movimentações,    */
+/*  financeiro, crediário, logs e KPIs do dashboard — mantendo       */
+/*  intactos os usuários (logins) e as empresas cadastradas.         */
+/* ---------------------------------------------------------------- */
+export function resetCommercialData(): void {
+  // Esvazia todos os arrays mutáveis (preservando as referências exportadas).
+  [
+    PRODUCTS, SALES, MOVEMENTS, CUSTOMERS, SUPPLIERS,
+    CREDIT_DEBTS, FINANCIAL_RECORDS, SYSTEM_LOGS, SUPPORT_TICKETS,
+    SALES_BY_DAY as unknown as unknown[],
+    TOP_PRODUCTS as unknown as unknown[],
+    CATEGORY_SHARE as unknown as unknown[],
+  ].forEach((arr) => { (arr as unknown[]).splice(0, (arr as unknown[]).length); });
+
+  // Zera contadores do dashboard.
+  KPIS.vendasMes = 0;
+  KPIS.lucroMes = 0;
+  KPIS.itensEstoque = 0;
+  KPIS.estoqueBaixo = 0;
+
+  // Limpa estado de PDV aberto e configurações fiscais por empresa no navegador.
+  if (typeof window !== "undefined") {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith("orvix_pdv_open_") || k.startsWith("orvix_fiscal_")) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    } catch {}
+  }
+
+  __emit();
+}
+
+/* ---------------------------------------------------------------- */
 /*  Public EAN catalog (mock — simulates a commercial GTIN lookup)  */
 /* ---------------------------------------------------------------- */
 
