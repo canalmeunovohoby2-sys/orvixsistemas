@@ -14,6 +14,7 @@ import {
 import { useMockStore } from "@/hooks/use-mock-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
+import { CredentialsModal } from "@/components/CredentialsModal";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
