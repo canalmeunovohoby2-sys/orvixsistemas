@@ -19,7 +19,6 @@ type NavItem = {
 const NAV_FULL: NavItem[] = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
   { label: "Produtos", to: "/produtos", icon: Package },
-  { label: "Vendas", to: "/vendas", icon: ShoppingCart },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
   { label: "Clientes", to: "/clientes", icon: Users },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
@@ -28,7 +27,7 @@ const NAV_FULL: NavItem[] = [
 ];
 
 const NAV_CASHIER: NavItem[] = [
-  { label: "PDV — Vendas", to: "/vendas", icon: ShoppingCart },
+  { label: "Caixa", to: "/vendas", icon: ShoppingCart },
 ];
 
 function useStored<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
