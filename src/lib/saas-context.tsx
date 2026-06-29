@@ -33,9 +33,9 @@ export type SaaSUser = {
 };
 
 export const PLAN_PRICE: Record<Plan, number> = {
-  bronze: 149,
-  prata: 349,
-  ouro: 1290,
+  bronze: 99.9,
+  prata: 149.9,
+  ouro: 249.9,
 };
 export const PLAN_LABEL: Record<Plan, string> = {
   bronze: "Bronze (Essencial)",
@@ -56,17 +56,17 @@ export const PLAN_LIMITS: Record<Plan, { caixas: number; users: number; advanced
 };
 
 const SEED_COMPANIES: Company[] = [
-  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 349.00, createdAt: "2025-01-12", dueDate: "2026-07-12" },
-  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "trial",   plan: "bronze", mrr: 0,      createdAt: "2026-06-02", dueDate: "2026-07-16" },
-  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 149.00, createdAt: "2025-11-20", dueDate: "2026-05-20" },
-  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 1290.00,createdAt: "2024-08-30", dueDate: "2026-07-04" },
+  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 149.9, createdAt: "2025-01-12", dueDate: "2026-07-12" },
+  { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 99.9,  createdAt: "2026-06-02", dueDate: "2026-07-16" },
+  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 99.9,  createdAt: "2025-11-20", dueDate: "2026-05-20" },
+  { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 249.9, createdAt: "2024-08-30", dueDate: "2026-07-04" },
 ];
 
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
 export const COMPANIES: Company[] = [...SEED_COMPANIES];
 
 export const SAAS_USERS: SaaSUser[] = [
-  { id: "U000", name: "Ricardo Cunha", email: "ricardo@orvix.app",  role: "super_admin", companyId: null,    password: "123",     isTemporaryPassword: false },
+  { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "admin123", isTemporaryPassword: false },
   { id: "U001", name: "Ana Mendes",    email: "ana@orvix.com.br",   role: "admin",       companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U002", name: "Bruno Caixa",   email: "bruno@orvix.com.br", role: "cashier",     companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U003", name: "Carla Souza",   email: "carla@trigo.com.br", role: "admin",       companyId: "EMP002",password: "123",     isTemporaryPassword: false },
@@ -76,6 +76,9 @@ export const SAAS_USERS: SaaSUser[] = [
 
 const STORAGE_KEY = "saas_session_user_id";
 
+/** E-mail único autorizado a acessar o Painel Master da ORVIX SISTEMAS. */
+export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
+
 type SaaSCtx = {
   user: SaaSUser | null;
   company: Company | null;
@@ -84,8 +87,6 @@ type SaaSCtx = {
   loginAs: (userId: string) => void;
   /** Autenticação real por e-mail + senha contra o store. */
   loginWithCredentials: (email: string, password: string) => { ok: boolean; user?: SaaSUser; reason?: string };
-  /** Auto-cadastro de uma nova empresa em Trial no plano Bronze (entry/Starter). */
-  signUp: (input: { email: string; password: string; fantasia: string }) => { ok: boolean; user?: SaaSUser; company?: Company; reason?: string };
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
   setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
@@ -159,56 +160,6 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         action: `Login efetuado (${target.role}).`,
       });
       return { ok: true, user: target };
-    },
-    [],
-  );
-
-  const signUp = useCallback(
-    ({ email, password, fantasia }: { email: string; password: string; fantasia: string }) => {
-      const cleanEmail = email.trim().toLowerCase();
-      if (!cleanEmail || !password || !fantasia.trim()) {
-        return { ok: false, reason: "Informe nome da empresa, e-mail e senha." };
-      }
-      if (password.length < 6) {
-        return { ok: false, reason: "A senha precisa ter pelo menos 6 caracteres." };
-      }
-      if (SAAS_USERS.some((u) => u.email.toLowerCase() === cleanEmail)) {
-        return { ok: false, reason: "Já existe uma conta com este e-mail." };
-      }
-      const seq = COMPANIES.length + 1;
-      const company: Company = {
-        id: `EMP${String(seq).padStart(3, "0")}`,
-        razaoSocial: fantasia.trim(),
-        fantasia: fantasia.trim(),
-        cnpj: "—",
-        status: "trial",
-        plan: "bronze",
-        mrr: 0,
-        createdAt: new Date().toISOString().slice(0, 10),
-        dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
-      };
-      COMPANIES.push(company);
-      const user: SaaSUser = {
-        id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
-        name: fantasia.trim(),
-        email: cleanEmail,
-        role: "admin",
-        companyId: company.id,
-        password,
-        isTemporaryPassword: false,
-      };
-      SAAS_USERS.push(user);
-      setCompaniesTick((t) => t + 1);
-      setUsersTick((t) => t + 1);
-      setUserId(user.id);
-      try { localStorage.setItem(STORAGE_KEY, user.id); } catch {}
-      logEvent({
-        kind: "SETTINGS_UPDATE",
-        company_id: company.id, companyName: company.fantasia,
-        user: user.name,
-        action: `Nova empresa cadastrada (Trial · Bronze) — ${user.email}.`,
-      });
-      return { ok: true, user, company };
     },
     [],
   );
@@ -341,8 +292,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       fantasia: `Loja ORVIX #${seq}`,
       cnpj: "00.000.000/0001-00",
       status: "active",
-      plan: "prata",
-      mrr: PLAN_PRICE.prata,
+      plan: "bronze",
+      mrr: PLAN_PRICE.bronze,
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
     };
@@ -364,7 +315,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: newCompany.id,
       companyName: newCompany.fantasia,
       user: realUser?.name ?? "Sistema",
-      action: `Nova venda simulada — acesso ORVIX criado para ${newUser.email} (senha temporária).`,
+      action: `Venda automatizada — acesso ORVIX criado para ${newUser.email} (senha temporária) · cópia administrativa para ${SUPER_ADMIN_EMAIL}.`,
     });
     return { user: newUser, company: newCompany };
   }, [realUser]);
@@ -419,7 +370,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider
       value={{
         user, company, companies: COMPANIES, users: SAAS_USERS,
-        loginAs, loginWithCredentials, signUp, logout, hasRole,
+        loginAs, loginWithCredentials, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
