@@ -235,6 +235,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Status alterado: ${prev.toUpperCase()} → ${status.toUpperCase()}.`,
+      undo: { type: "SUBSCRIPTION_CHANGE", companyId: c.id, previousStatus: prev } satisfies UndoPayload,
     });
   }, [realUser]);
 
@@ -242,6 +243,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const c = COMPANIES.find((x) => x.id === companyId);
     if (!c) return;
     const prev = c.plan;
+    const prevMrr = c.mrr;
     c.plan = plan;
     // Mantém o princípio de "recontagem": só ajusta MRR se a empresa já estava faturando.
     if (c.status === "active" && c.mrr > 0) c.mrr = PLAN_PRICE[plan];
@@ -251,6 +253,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Plano alterado: ${PLAN_LABEL[prev]} → ${PLAN_LABEL[plan]}.`,
+      undo: { type: "PLAN_CHANGE", companyId: c.id, previousPlan: prev, previousMrr: prevMrr } satisfies UndoPayload,
     });
   }, [realUser]);
 
@@ -265,6 +268,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Vencimento alterado: ${prev?.slice(0, 10)} → ${isoDate.slice(0, 10)}.`,
+      undo: { type: "DUE_CHANGE", companyId: c.id, previousDueDate: prev } satisfies UndoPayload,
     });
   }, [realUser]);
 
