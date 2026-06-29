@@ -653,6 +653,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         mrr: PLAN_PRICE[plan],
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      onboardingPending: true,
       };
       COMPANIES.push(newCompany);
 
