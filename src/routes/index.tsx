@@ -64,7 +64,7 @@ function isSameLocalDay(iso: string, ref: Date): boolean {
     && d.getDate() === ref.getDate();
 }
 
-function DashboardPage() {
+export function DashboardPage() {
   useMockStore();
   const { company } = useSaaS();
   const cid = company?.id ?? null;
