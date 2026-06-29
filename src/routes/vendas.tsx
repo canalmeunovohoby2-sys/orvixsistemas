@@ -87,7 +87,17 @@ function VendasPage() {
   const [highlight, setHighlight] = useState(0);
   const [crediario, setCrediario] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
-  const [emitNfce, setEmitNfce] = useState(false);
+  /** Imprimir cupom não-fiscal (bobina térmica 80mm). Ligado por padrão. */
+  const [printReceipt, setPrintReceipt] = useState(true);
+
+  const navigate = useNavigate();
+
+  // ── Abertura / Fechamento de Caixa (Shift) ──
+  const [shift, setShift] = useState<Shift | null>(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [closeModal, setCloseModal] = useState(false);
+  const [openingFloat, setOpeningFloat] = useState<string>("");
+  const [closingCash, setClosingCash] = useState<string>("");
 
   const cid = company?.id ?? user?.companyId ?? "EMP001";
 
