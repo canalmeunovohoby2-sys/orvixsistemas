@@ -549,6 +549,40 @@ function VendasPage() {
             <p className="text-3xl font-bold tracking-tight tabular-nums">{BRL(total)}</p>
           </div>
 
+          {/* Crediário (Venda a prazo) */}
+          <div className="mt-4 rounded-lg border border-border bg-secondary/40 p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={crediario}
+                onChange={(e) => setCrediario(e.target.checked)}
+                className="accent-primary"
+              />
+              <UserCheck className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Venda no Crediário (a prazo)</span>
+            </label>
+            {crediario && (
+              <div className="mt-2 space-y-1.5">
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  aria-label="Cliente do crediário"
+                  className="w-full h-9 px-2 rounded bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                >
+                  <option value="">Selecione o cliente…</option>
+                  {companyCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.doc}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Gera uma <strong className="text-foreground">Conta a Receber</strong> com vencimento em 30 dias e atualiza o saldo do cliente.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Splits */}
           {splits.length > 0 && (
             <ul className="mt-3 space-y-1.5">
