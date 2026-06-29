@@ -617,8 +617,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   );
 
   const createDemoAccess = useCallback(() => {
-    const seq = COMPANIES.length + 1;
-    const id = `EMP${String(seq).padStart(3, "0")}`;
+    const id = nextCompanyId();
+    const seq = parseInt(id.replace(/^EMP/i, ""), 10);
     const newCompany: Company = {
       id,
       razaoSocial: `Cliente ORVIX ${seq} LTDA`,
@@ -630,6 +630,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
       onboardingPending: true,
+      isDemo: false,
     };
     COMPANIES.push(newCompany);
     // Pagamento simulado ativamente → reconhece MRR da nova empresa.
