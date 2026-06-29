@@ -416,6 +416,19 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const idx = COMPANIES.findIndex((x) => x.id === companyId);
     if (idx < 0) return { ok: false, reason: "Empresa não encontrada." };
     const c = COMPANIES[idx];
+    // Captura snapshot ANTES de purgar — habilita reversão completa via Auditoria.
+    const snapshot = {
+      type: "COMPANY_DELETE" as const,
+      company: { ...c },
+      users: SAAS_USERS.filter((u) => u.companyId === companyId).map((u) => ({ ...u })),
+      products: PRODUCTS.filter((p) => p.company_id === companyId).map((p) => ({ ...p })),
+      sales: SALES.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      movements: MOVEMENTS.filter((m) => m.company_id === companyId).map((m) => ({ ...m })),
+      suppliers: SUPPLIERS.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      customers: CUSTOMERS.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      financialRecords: FINANCIAL_RECORDS.filter((f) => f.company_id === companyId).map((f) => ({ ...f })),
+      supportTickets: SUPPORT_TICKETS.filter((t) => t.company_id === companyId).map((t) => ({ ...t })),
+    } satisfies UndoPayload;
     // Remove dados vinculados (in-place para preservar referências exportadas).
     const purge = <T extends { company_id?: string | null }>(arr: T[]) => {
       for (let i = arr.length - 1; i >= 0; i--) {
@@ -429,7 +442,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     purge(CUSTOMERS as Array<{ company_id?: string | null }>);
     purge(FINANCIAL_RECORDS as Array<{ company_id?: string | null }>);
     purge(SUPPORT_TICKETS as Array<{ company_id?: string | null }>);
-    purge(SYSTEM_LOGS as Array<{ company_id?: string | null }>);
+    // NOTA: SYSTEM_LOGS são preservados intencionalmente para manter o histórico de auditoria.
     // Remove usuários vinculados.
     for (let i = SAAS_USERS.length - 1; i >= 0; i--) {
       if (SAAS_USERS[i].companyId === companyId) SAAS_USERS.splice(i, 1);
@@ -447,9 +460,71 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       companyName: "Plataforma",
       user: realUser?.name ?? "Sistema",
       action: `Empresa removida permanentemente: ${c.fantasia} (${c.cnpj}). Todos os dados vinculados foram apagados.`,
+      undo: snapshot,
     });
     return { ok: true };
   }, [impersonatedCompanyId, realUser]);
+
+  const revertLog = useCallback((logId: string) => {
+    const log = SYSTEM_LOGS.find((l) => l.id === logId);
+    if (!log) return { ok: false, reason: "Log não encontrado." };
+    if (log.reverted) return { ok: false, reason: "Este evento já foi revertido." };
+    const undo = log.undo as UndoPayload | undefined;
+    if (!undo) return { ok: false, reason: "Este evento não é elegível para reversão." };
+
+    switch (undo.type) {
+      case "SUBSCRIPTION_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.status = undo.previousStatus;
+        break;
+      }
+      case "PLAN_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.plan = undo.previousPlan;
+        c.mrr = undo.previousMrr;
+        break;
+      }
+      case "DUE_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.dueDate = undo.previousDueDate;
+        break;
+      }
+      case "SETTINGS_UPDATE": {
+        updateSaaSSettings(undo.previousSettings);
+        break;
+      }
+      case "COMPANY_DELETE": {
+        if (COMPANIES.some((x) => x.id === undo.company.id)) {
+          return { ok: false, reason: "A empresa já foi restaurada." };
+        }
+        COMPANIES.push({ ...undo.company });
+        undo.users.forEach((u) => SAAS_USERS.push({ ...u }));
+        (PRODUCTS as Product[]).push(...(undo.products as Product[]));
+        (SALES as Sale[]).push(...(undo.sales as Sale[]));
+        (MOVEMENTS as Movement[]).push(...(undo.movements as Movement[]));
+        (SUPPLIERS as Person[]).push(...(undo.suppliers as Person[]));
+        (CUSTOMERS as Person[]).push(...(undo.customers as Person[]));
+        (FINANCIAL_RECORDS as FinancialRecord[]).push(...(undo.financialRecords as FinancialRecord[]));
+        (SUPPORT_TICKETS as SupportTicket[]).push(...(undo.supportTickets as SupportTicket[]));
+        break;
+      }
+    }
+
+    markLogReverted(logId);
+    setCompaniesTick((t) => t + 1);
+    setUsersTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: null,
+      companyName: "Plataforma",
+      user: realUser?.name ?? "Sistema",
+      action: `Reversão aplicada (log ${logId}): estado anterior restaurado [${undo.type}].`,
+    });
+    return { ok: true };
+  }, [realUser]);
 
   // referência apenas para silenciar o linter sobre originalUserId
   void originalUserId;
