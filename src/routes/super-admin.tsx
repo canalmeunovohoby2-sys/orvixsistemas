@@ -6,7 +6,7 @@ import {
   SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
-  BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS,
+  BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
   updateTicketStatus, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
@@ -16,7 +16,7 @@ import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
-  LogOut, Trash2,
+  LogOut, Trash2, Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
