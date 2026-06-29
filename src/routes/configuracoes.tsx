@@ -242,7 +242,7 @@ function ChangePasswordCard({
     current: string,
     next: string,
     confirm: string,
-  ) => { ok: boolean; reason?: string };
+  ) => Promise<{ ok: boolean; reason?: string }>;
   onAfterSuccess: () => void;
 }) {
   const [current, setCurrent] = useState("");
@@ -252,11 +252,11 @@ function ChangePasswordCard({
   const [showNext, setShowNext] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const handle = (e: React.FormEvent) => {
+  const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
-    const res = onSubmit(current, next, confirm);
+    const res = await onSubmit(current, next, confirm);
     if (!res.ok) {
       toast.error(res.reason ?? "Não foi possível alterar a senha.");
       setBusy(false);

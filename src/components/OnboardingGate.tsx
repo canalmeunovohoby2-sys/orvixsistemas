@@ -61,7 +61,7 @@ export function OnboardingGate() {
   if (!mustBlock) return null;
 
   // ───── Etapa 1: salva dados da empresa e avança para a etapa 2.
-  const handleStep1 = (e: React.FormEvent) => {
+  const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy || !company) return;
     if (!fantasia.trim() || !cnpj.trim() || !phone.trim() || !segment) {
@@ -69,7 +69,7 @@ export function OnboardingGate() {
       return;
     }
     setBusy(true);
-    const res = completeOnboarding(company.id, { fantasia, cnpj, phone, segment });
+    const res = await completeOnboarding(company.id, { fantasia, cnpj, phone, segment });
     setBusy(false);
     if (!res.ok) {
       toast.error(res.reason ?? "Não foi possível concluir o cadastro.");
@@ -80,7 +80,7 @@ export function OnboardingGate() {
   };
 
   // ───── Etapa 2: cria o primeiro operador de caixa e libera o sistema.
-  const handleStep2 = (e: React.FormEvent) => {
+  const handleStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy || !company) return;
     if (!opName.trim() || !opEmail.trim()) {
@@ -92,7 +92,7 @@ export function OnboardingGate() {
       return;
     }
     setBusy(true);
-    const res = createCashier(company.id, { name: opName, email: opEmail, password: opPwd });
+    const res = await createCashier(company.id, { name: opName, email: opEmail, password: opPwd });
     setBusy(false);
     if (!res.ok) {
       toast.error(res.reason ?? "Não foi possível criar o terminal.");

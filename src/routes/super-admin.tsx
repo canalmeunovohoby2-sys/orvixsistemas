@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
-  SUPER_ADMIN_EMAIL, updateSuperAdminPassword, type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
@@ -86,7 +86,7 @@ function SuperAdminPage() {
         if (!events.length || cancelled) return;
         const handled: string[] = [];
         for (const ev of events) {
-          const result = processWebhookPayment(ev);
+          const result = await processWebhookPayment(ev);
           handled.push(ev.id);
           if (result.ok && result.company) {
             toast.success(`Webhook MP: empresa ${result.company.fantasia} criada automaticamente.`);
@@ -310,11 +310,15 @@ function CompaniesTab() {
           <p className="text-sm text-muted-foreground">Plano, vencimento, status e acesso de suporte (impersonação).</p>
         </div>
         <button
-          onClick={() => {
-            const { user, company } = createDemoAccess();
-            setEmailPreview({ email: user.email, password: user.password, company: company.fantasia });
+          onClick={async () => {
+            const res = await createDemoAccess();
+            if (!res.ok || !res.user || !res.company) {
+              toast.error(res.reason ?? "Não foi possível gerar o acesso.");
+              return;
+            }
+            setEmailPreview({ email: res.user.email, password: "(enviada por e-mail)", company: res.company.fantasia });
             toast.success(
-              `📧 Disparo concluído! E-mail enviado ao cliente (${user.email}) com a senha temporária. Cópia de segurança de suporte enviada para ${SUPER_ADMIN_EMAIL}.`,
+              `📧 Disparo concluído! E-mail enviado ao cliente (${res.user.email}) com a senha temporária. Cópia de segurança de suporte enviada para ${SUPER_ADMIN_EMAIL}.`,
               { duration: 8000 },
             );
           }}
@@ -401,8 +405,8 @@ function CompaniesTab() {
                             {used}/{limitLbl}
                           </span>
                           <button
-                            onClick={() => {
-                              const res = inviteUser(c.id, "cashier");
+                            onClick={async () => {
+                              const res = await inviteUser(c.id, "cashier");
                               if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
                               else toast.success(`Convite enviado: ${res.user?.email}`);
                             }}
@@ -454,8 +458,8 @@ function CompaniesTab() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => {
-                              const r = deleteCompany(c.id);
+                            onClick={async () => {
+                              const r = await deleteCompany(c.id);
                               if (r.ok) toast.success(`${c.fantasia} foi removida da plataforma.`);
                               else toast.error(r.reason ?? "Não foi possível remover a empresa.");
                             }}
@@ -941,7 +945,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 /* ───────── Modal: alterar senha do Super Admin (apenas o hash é armazenado) ───────── */
 
 function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
-  const { user } = useSaaS();
+  const { user, updatePassword } = useSaaS();
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
   const [show, setShow] = useState(false);
@@ -959,12 +963,12 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
   const mismatch = pwd2.length > 0 && pwd !== pwd2;
   const valid = pwd.length >= 8 && pwd === pwd2;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid || submitting) return;
     setSubmitting(true);
     try {
-      const res = updateSuperAdminPassword(pwd);
+      const res = await updatePassword(pwd);
       if (!res.ok) {
         toast.error(res.reason ?? "Não foi possível atualizar a senha.");
         return;

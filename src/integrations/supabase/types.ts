@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_users: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          id: string
+          is_temporary_password: boolean
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          id: string
+          is_temporary_password?: boolean
+          name?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_temporary_password?: boolean
+          name?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          cnpj: string
+          created_at: string
+          due_date: string | null
+          fantasia: string
+          id: string
+          is_demo: boolean
+          mrr: number
+          onboarding_pending: boolean
+          phone: string | null
+          plan: Database["public"]["Enums"]["plan_tier"]
+          razao_social: string
+          segment: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string
+          created_at?: string
+          due_date?: string | null
+          fantasia: string
+          id: string
+          is_demo?: boolean
+          mrr?: number
+          onboarding_pending?: boolean
+          phone?: string | null
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          razao_social: string
+          segment?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          due_date?: string | null
+          fantasia?: string
+          id?: string
+          is_demo?: boolean
+          mrr?: number
+          onboarding_pending?: boolean
+          phone?: string | null
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          razao_social?: string
+          segment?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       habit_logs: {
         Row: {
           created_at: string
@@ -108,10 +200,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_company_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      next_company_id: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "cashier"
+      plan_tier: "bronze" | "prata" | "ouro"
+      subscription_status:
+        | "trial"
+        | "active"
+        | "pending"
+        | "blocked"
+        | "canceled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -238,6 +345,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "cashier"],
+      plan_tier: ["bronze", "prata", "ouro"],
+      subscription_status: [
+        "trial",
+        "active",
+        "pending",
+        "blocked",
+        "canceled",
+      ],
+    },
   },
 } as const
