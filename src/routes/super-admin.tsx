@@ -128,7 +128,7 @@ function DashboardTab() {
     <>
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Visão geral da plataforma</h1>
-        <p className="text-sm text-muted-foreground">Métricas financeiras consolidadas em tempo real (mock store).</p>
+        <p className="text-sm text-muted-foreground">Métricas financeiras consolidadas em tempo real.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
