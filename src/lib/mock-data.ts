@@ -89,7 +89,8 @@ export type SystemLogKind =
   | "DUE_CHANGE"
   | "IMPERSONATION_START"
   | "IMPERSONATION_END"
-  | "SETTINGS_UPDATE";
+  | "SETTINGS_UPDATE"
+  | "SUPPORT_TICKET_CLOSED";
 
 export type SystemLog = {
   id: string;
@@ -180,6 +181,46 @@ export function updateTicketStatus(id: string, status: SupportTicket["status"]) 
   if (!t) return;
   t.status = status;
   __emit();
+}
+
+/* ---------------------------------------------------------------- */
+/*  Persistência de chamados removidos/concluídos pelo Super Admin   */
+/*  Chave: orvix_tickets_removed_v1 → string[] com IDs descartados.  */
+/* ---------------------------------------------------------------- */
+const TICKETS_REMOVED_KEY = "orvix_tickets_removed_v1";
+
+function loadRemovedTicketIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(TICKETS_REMOVED_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
+  } catch { return []; }
+}
+function persistRemovedTicketIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(TICKETS_REMOVED_KEY, JSON.stringify(ids)); } catch {}
+}
+
+// Hidrata na carga do módulo — remove tickets já descartados em sessões anteriores.
+(() => {
+  const removed = new Set(loadRemovedTicketIds());
+  if (!removed.size) return;
+  for (let i = SUPPORT_TICKETS.length - 1; i >= 0; i--) {
+    if (removed.has(SUPPORT_TICKETS[i].id)) SUPPORT_TICKETS.splice(i, 1);
+  }
+})();
+
+/** Remove definitivamente um chamado de suporte e persiste a exclusão (F5-safe). */
+export function deleteTicket(id: string): SupportTicket | null {
+  const idx = SUPPORT_TICKETS.findIndex((x) => x.id === id);
+  if (idx < 0) return null;
+  const [removed] = SUPPORT_TICKETS.splice(idx, 1);
+  const ids = loadRemovedTicketIds();
+  if (!ids.includes(id)) { ids.push(id); persistRemovedTicketIds(ids); }
+  __emit();
+  return removed;
 }
 
 export type SaaSSettings = {

@@ -7,7 +7,7 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
-  updateTicketStatus, updateSaaSSettings, resetCommercialData,
+  updateTicketStatus, deleteTicket, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -547,6 +547,7 @@ const LOG_KIND_LABEL: Record<SystemLogKind, string> = {
   IMPERSONATION_START:  "Suporte iniciado",
   IMPERSONATION_END:    "Suporte encerrado",
   SETTINGS_UPDATE:      "Configuração",
+  SUPPORT_TICKET_CLOSED: "Chamado concluído",
 };
 
 function kindBadge(kind: SystemLogKind) {
@@ -559,6 +560,7 @@ function kindBadge(kind: SystemLogKind) {
     case "DUE_CHANGE": return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
     case "IMPERSONATION_START":
     case "IMPERSONATION_END": return "bg-primary/15 text-primary";
+    case "SUPPORT_TICKET_CLOSED": return "bg-destructive/15 text-destructive";
     default: return "bg-muted text-muted-foreground";
   }
 }
@@ -677,15 +679,37 @@ function SupportTab() {
 
       <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-3">
         {SUPPORT_TICKETS.map((t) => (
-          <article key={t.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+          <article key={t.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3 relative">
             <header className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{t.id} · {t.companyName}</p>
                 <h3 className="font-semibold leading-tight truncate">{t.subject}</h3>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${PRIO_BADGE[t.priority]}`}>
-                {t.priority.toUpperCase()}
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${PRIO_BADGE[t.priority]}`}>
+                  {t.priority.toUpperCase()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const removed = deleteTicket(t.id);
+                    if (!removed) return;
+                    logEvent({
+                      kind: "SUPPORT_TICKET_CLOSED",
+                      company_id: removed.company_id,
+                      companyName: removed.companyName,
+                      user: "Super Admin",
+                      action: `Chamado ${removed.id} ("${removed.subject}") da empresa ${removed.companyName} concluído/removido pelo Administrador.`,
+                    });
+                    toast.success(`Chamado ${removed.id} concluído e removido da fila.`);
+                  }}
+                  aria-label={`Concluir e remover chamado ${t.id}`}
+                  title="Concluir e remover chamado"
+                  className="w-7 h-7 grid place-items-center rounded-md border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </header>
             <p className="text-sm text-muted-foreground line-clamp-3">{t.message}</p>
             <footer className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border text-xs">
