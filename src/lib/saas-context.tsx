@@ -762,11 +762,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       COMPANIES.push(newCompany);
 
       const email = ev.payerEmail?.trim() || `cliente${seq}@orvix.com.br`;
+      const normalizedEmail = email.toLowerCase();
       const tempPassword = `orvix-${Math.random().toString(36).slice(2, 8)}`;
       const newUser: SaaSUser = {
         id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
         name: ev.payerName ? `Admin ${ev.payerName}` : `Admin ${newCompany.fantasia}`,
-        email,
+        email: normalizedEmail,
         role: "admin",
         companyId: newCompany.id,
         password: tempPassword,
@@ -777,6 +778,18 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setCompaniesTick((t) => t + 1);
       setUsersTick((t) => t + 1);
       persistCompanies();
+      persistUsers();
+      // eslint-disable-next-line no-console
+      console.log(
+        `[ORVIX] Cliente (webhook MP) criado — Usuário: ${normalizedEmail} | Senha: ${tempPassword}`,
+      );
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: newCompany.id,
+        companyName: newCompany.fantasia,
+        user: "Webhook Mercado Pago",
+        action: `🔐 Credenciais de acesso — Usuário: ${normalizedEmail} | Senha: ${tempPassword} (role=admin, empresa=${newCompany.id}).`,
+      });
 
       logEvent({
         kind: "SETTINGS_UPDATE",
@@ -824,6 +837,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     };
     SAAS_USERS.push(newUser);
     setUsersTick((t) => t + 1);
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: c.id, companyName: c.fantasia,
@@ -876,6 +890,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
