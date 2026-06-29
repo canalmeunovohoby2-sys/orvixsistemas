@@ -522,7 +522,7 @@ function kindBadge(kind: SystemLogKind) {
 }
 
 function AuditTab() {
-  const { revertLog, user } = useSaaS();
+  const { revertLog } = useSaaS();
   const [filter, setFilter] = useState<"all" | SystemLogKind>("all");
   const logs = useMemo<SystemLog[]>(
     () => filter === "all" ? SYSTEM_LOGS : SYSTEM_LOGS.filter((l) => l.kind === filter),
@@ -584,7 +584,6 @@ function AuditTab() {
                     {l.undo && !l.reverted ? (
                       <button
                         onClick={() => {
-                          void user;
                           const r = revertLog(l.id);
                           if (r.ok) toast.success("Ação revertida com sucesso! O estado anterior foi restaurado.");
                           else toast.error(r.reason ?? "Não foi possível reverter este evento.");
