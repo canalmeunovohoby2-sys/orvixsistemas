@@ -294,6 +294,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (stored) setUserId(stored);
     } catch {}
     hydrateCompaniesFromStorage();
+    applyUserPasswordOverrides();
     setCompaniesTick((t) => t + 1);
     setHydrated(true);
   }, []);
