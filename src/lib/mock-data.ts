@@ -180,16 +180,60 @@ export type SaaSSettings = {
 
 export const SAAS_SETTINGS: SaaSSettings = {
   trialDays: 14,
-  usersLimit: { bronze: 1, prata: 5, ouro: 50 },
+  // ouro = ilimitado (representado por Infinity; UI mostra "∞ Ilimitado")
+  usersLimit: { bronze: 1, prata: 3, ouro: Infinity },
   smtpHost: "smtp.sendgrid.net",
   smtpUser: "apikey",
   smtpFrom: "no-reply@orvix.app",
-  paymentGateway: "Stripe",
-  paymentPublicKey: "pk_live_•••••••••••••••",
+  paymentGateway: "Mercado Pago",
+  paymentPublicKey: "",
 };
+
+// Persistência local — garante que ajustes feitos no Painel Master sobrevivam ao refresh.
+const SAAS_SETTINGS_KEY = "orvix_saas_settings_v2";
+if (typeof window !== "undefined") {
+  try {
+    const raw = window.localStorage.getItem(SAAS_SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<SaaSSettings> & {
+        usersLimit?: { bronze?: number; prata?: number; ouro?: number | "INF" };
+      };
+      if (parsed.usersLimit && (parsed.usersLimit.ouro as unknown) === "INF") {
+        parsed.usersLimit.ouro = Infinity;
+      }
+      Object.assign(SAAS_SETTINGS, parsed);
+      // Ouro é sempre ilimitado por contrato comercial.
+      SAAS_SETTINGS.usersLimit.ouro = Infinity;
+    }
+  } catch {
+    /* ignore corrupted settings */
+  }
+}
+
+function persistSaaSSettings() {
+  if (typeof window === "undefined") return;
+  try {
+    const serializable = {
+      ...SAAS_SETTINGS,
+      usersLimit: {
+        ...SAAS_SETTINGS.usersLimit,
+        // JSON.stringify converte Infinity em null — usamos sentinela "INF".
+        ouro: Number.isFinite(SAAS_SETTINGS.usersLimit.ouro)
+          ? SAAS_SETTINGS.usersLimit.ouro
+          : "INF",
+      },
+    };
+    window.localStorage.setItem(SAAS_SETTINGS_KEY, JSON.stringify(serializable));
+  } catch {
+    /* storage cheio ou indisponível */
+  }
+}
 
 export function updateSaaSSettings(patch: Partial<SaaSSettings>) {
   Object.assign(SAAS_SETTINGS, patch);
+  // Ouro permanece ilimitado mesmo se alguém tentar sobrescrever.
+  SAAS_SETTINGS.usersLimit.ouro = Infinity;
+  persistSaaSSettings();
   __emit();
 }
 

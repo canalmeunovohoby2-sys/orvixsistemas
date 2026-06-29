@@ -673,7 +673,7 @@ function SettingsTab() {
             ORVIX SISTEMAS opera com cobrança <strong>100% mensal</strong> — sem períodos de trial ou planos gratuitos. Acessos são gerados manualmente pelo Painel Master após a venda.
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
+            {(["bronze", "prata"] as Plan[]).map((p) => (
               <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários)`}>
                 <input
                   type="number" min={1}
@@ -683,6 +683,15 @@ function SettingsTab() {
                 />
               </Field>
             ))}
+            <Field label={`Limite ${PLAN_LABEL.ouro} (usuários)`}>
+              <div
+                aria-label="Limite Ouro: ilimitado"
+                title="Plano Ouro possui usuários ilimitados por contrato comercial."
+                className="w-full h-10 px-3 rounded-md border border-primary/40 bg-primary/10 text-primary text-sm font-semibold inline-flex items-center justify-center gap-1.5 tabular-nums"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> ∞ Ilimitado
+              </div>
+            </Field>
           </div>
         </section>
 
@@ -713,12 +722,16 @@ function SettingsTab() {
                 onChange={(e) => setForm((f) => ({ ...f, paymentGateway: e.target.value as typeof form.paymentGateway }))}
                 className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm"
               >
-                <option>Stripe</option><option>Pagar.me</option><option>Mercado Pago</option>
+                <option>Mercado Pago</option><option>Stripe</option><option>Pagar.me</option>
               </select>
             </Field>
             <Field label="Chave pública">
-              <input value={form.paymentPublicKey} onChange={(e) => setForm((f) => ({ ...f, paymentPublicKey: e.target.value }))}
-                className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm font-mono" />
+              <input
+                value={form.paymentPublicKey}
+                onChange={(e) => setForm((f) => ({ ...f, paymentPublicKey: e.target.value }))}
+                placeholder={form.paymentGateway === "Mercado Pago" ? "APP_USR-..." : form.paymentGateway === "Stripe" ? "pk_live_..." : "ak_live_..."}
+                className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm font-mono"
+              />
             </Field>
           </div>
           <p className="text-xs text-muted-foreground">As credenciais privadas (secret keys) ficam apenas no servidor — nunca exibidas no painel.</p>
