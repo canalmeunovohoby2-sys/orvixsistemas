@@ -338,8 +338,8 @@ function CompaniesTab() {
                   <td className="px-4 py-3">
                     {(() => {
                       const used = countUsers(c.id);
-                      const limit = PLAN_LIMITS[c.plan].users;
-                      const limitLbl = limit === Infinity ? "∞" : String(limit);
+                      const limit = getPlanUsersLimit(c.plan);
+                      const limitLbl = String(limit);
                       const full = used >= limit;
                       return (
                         <div className="flex items-center gap-2">
