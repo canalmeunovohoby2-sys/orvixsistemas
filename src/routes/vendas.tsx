@@ -323,6 +323,74 @@ function VendasPage() {
     };
   }, [cid, company]);
 
+  // Carrega turno aberto (se existir) para o operador+empresa atual.
+  // Se não houver turno aberto, abre automaticamente o modal de Abertura
+  // — vendas ficam bloqueadas até o operador informar o troco inicial.
+  useEffect(() => {
+    if (!user || !cid) return;
+    const s = loadShift(cid, user.id);
+    setShift(s);
+    if (!s) setOpenModal(true);
+  }, [user, cid]);
+
+  // Totais agregados do turno por método (para o modal de fechamento).
+  const shiftTotals = useMemo<Record<ShiftPaymentKey, number>>(() => {
+    const base: Record<ShiftPaymentKey, number> = {
+      Dinheiro: 0, Pix: 0, "Crédito": 0, "Débito": 0, "Crediário": 0,
+    };
+    shift?.sales.forEach((s) => { base[s.method] = +(base[s.method] + s.amount).toFixed(2); });
+    return base;
+  }, [shift]);
+
+  const expectedCash = useMemo(
+    () => +((shift?.openingFloat ?? 0) + shiftTotals["Dinheiro"]).toFixed(2),
+    [shift, shiftTotals],
+  );
+
+  const openShift = useCallback(() => {
+    if (!user || !cid) return;
+    const float = parseFloat(openingFloat.replace(",", ".")) || 0;
+    if (float < 0) return toast.error("Valor de troco inválido.");
+    const s: Shift = {
+      id: `SH_${Date.now()}`,
+      cid, userId: user.id, userName: user.name,
+      openedAt: Date.now(), openingFloat: float, sales: [],
+    };
+    saveShift(s);
+    setShift(s);
+    setOpenModal(false);
+    setOpeningFloat("");
+    toast.success(`Caixa aberto — troco inicial ${BRL(float)}`);
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, [user, cid, openingFloat]);
+
+  const closeShift = useCallback(() => {
+    if (!shift || !user || !company) return;
+    const informed = parseFloat(closingCash.replace(",", ".")) || 0;
+    if (informed < 0) return toast.error("Valor em dinheiro inválido.");
+    const closed: Shift = { ...shift, closedAt: Date.now(), closingCash: informed };
+    archiveShift(closed);
+    // Imprime relatório de fechamento (bobina térmica).
+    const html = buildClosingHTML({
+      storeName: company.fantasia,
+      operator: user.name,
+      shift: closed,
+      totals: shiftTotals,
+      expectedCash,
+      informedCash: informed,
+    });
+    printHTML(html);
+    toast.success("Caixa fechado — relatório enviado para impressão.");
+    setShift(null);
+    setCloseModal(false);
+    setClosingCash("");
+    // Desloga o operador para que outro turno comece com login novo.
+    window.setTimeout(() => {
+      logout();
+      navigate({ to: "/login" });
+    }, 600);
+  }, [shift, user, company, closingCash, shiftTotals, expectedCash, logout, navigate]);
+
   const companyCustomers = useMemo(
     () => CUSTOMERS.filter((c) => c.company_id === cid),
     [cid],
