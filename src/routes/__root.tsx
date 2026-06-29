@@ -1,7 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { SaaSProvider } from "@/lib/saas-context";
-import { DevRoleSwitcher } from "@/components/DevRoleSwitcher";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import appCss from "../styles.css?url";
@@ -69,7 +68,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <SaaSProvider>
-      <DevRoleSwitcher />
       <SubscriptionBanner />
       <ImpersonationBanner />
       <Outlet />
