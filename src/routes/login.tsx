@@ -85,7 +85,7 @@ function LoginPage() {
             Gestão de produtos, estoque, vendas e relatórios — com isolamento total de dados por empresa.
           </p>
           <ul className="space-y-3 text-sm">
-            <li className="flex gap-2"><ShieldCheck className="w-4 h-4 mt-0.5 text-primary" /> Controle de acesso por papel (Admin, Caixa, Super Admin)</li>
+            <li className="flex gap-2"><ShieldCheck className="w-4 h-4 mt-0.5 text-primary" /> Controle de acesso por papel (Admin e Caixa)</li>
             <li className="flex gap-2"><Store className="w-4 h-4 mt-0.5 text-primary" /> Cada empresa enxerga apenas seus próprios dados</li>
             <li className="flex gap-2"><ShoppingCart className="w-4 h-4 mt-0.5 text-primary" /> PDV otimizado para operação 100% via teclado</li>
           </ul>
@@ -93,8 +93,10 @@ function LoginPage() {
 
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
-            <div className="space-y-3">
-              <Logo height={36} priority />
+            <div className="space-y-4">
+              <div className="flex justify-center lg:justify-start">
+                <Logo height={84} priority />
+              </div>
               <h2 className="sr-only">Entrar na ORVIX SISTEMAS</h2>
               <p className="text-sm text-muted-foreground">
                 Acesse o painel da sua empresa com o e-mail e senha enviados pela equipe da ORVIX SISTEMAS.
