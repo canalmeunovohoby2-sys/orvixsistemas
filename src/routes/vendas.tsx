@@ -360,7 +360,7 @@ function VendasPage() {
   ];
 
   return (
-    <AppShell title="Frente de Caixa (PDV)" breadcrumb={["Meu Saas", "Vendas"]}>
+    <AppShell title="Caixa" breadcrumb={["Meu Saas", "Caixa"]}>
       <section aria-labelledby="pdv" className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         <h2 id="pdv" className="sr-only">Ponto de venda</h2>
 
