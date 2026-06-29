@@ -605,6 +605,42 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     return { user: newUser, company: newCompany };
   }, [realUser]);
 
+  const completeOnboarding = useCallback(
+    (
+      companyId: string,
+      data: { fantasia: string; cnpj: string; phone: string; segment: string },
+    ): { ok: boolean; reason?: string } => {
+      const c = COMPANIES.find((x) => x.id === companyId);
+      if (!c) return { ok: false, reason: "Empresa não encontrada." };
+      const fantasia = data.fantasia.trim();
+      const cnpj = data.cnpj.trim();
+      const phone = data.phone.trim();
+      const segment = data.segment.trim();
+      if (fantasia.length < 2) return { ok: false, reason: "Informe o nome da loja / razão social." };
+      if (cnpj.length < 11) return { ok: false, reason: "Informe um CNPJ ou CPF válido (mínimo 11 dígitos)." };
+      if (phone.length < 8) return { ok: false, reason: "Informe um telefone comercial válido." };
+      if (!segment) return { ok: false, reason: "Selecione o segmento do negócio." };
+
+      c.fantasia = fantasia;
+      c.razaoSocial = fantasia;
+      c.cnpj = cnpj;
+      c.phone = phone;
+      c.segment = segment;
+      c.onboardingPending = false;
+      setCompaniesTick((t) => t + 1);
+      persistCompanies();
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: c.id,
+        companyName: c.fantasia,
+        user: realUser?.name ?? "Lojista",
+        action: `Cadastro obrigatório concluído pelo lojista — empresa "${fantasia}" (${cnpj}) · segmento ${segment} · contato ${phone}. Dados sincronizados com o Painel Master.`,
+      });
+      return { ok: true };
+    },
+    [realUser],
+  );
+
   /**
    * Recebe um evento normalizado vindo do webhook do Mercado Pago e materializa
    * a empresa + usuário admin com senha temporária — exatamente o mesmo fluxo
