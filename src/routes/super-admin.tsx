@@ -784,16 +784,19 @@ function SettingsTab() {
           <div className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
             ORVIX SISTEMAS opera com cobrança <strong>100% mensal</strong> — sem períodos de trial ou planos gratuitos. Acessos são gerados manualmente pelo Painel Master após a venda.
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
-              <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários/terminais)`}>
+              <label key={p} className="flex flex-col gap-1.5 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-tight min-h-[2.25rem] flex items-end">
+                  Limite {PLAN_LABEL[p]} <span className="ml-1 normal-case tracking-normal text-muted-foreground/70">(usuários/terminais)</span>
+                </span>
                 <input
                   type="number" min={1}
                   value={form.usersLimit[p]}
                   onChange={(e) => setForm((f) => ({ ...f, usersLimit: { ...f.usersLimit, [p]: Math.max(1, Math.floor(Number(e.target.value) || 1)) } }))}
                   className="w-full h-10 px-3 rounded-md bg-secondary border border-border text-sm tabular-nums"
                 />
-              </Field>
+              </label>
             ))}
           </div>
         </section>
