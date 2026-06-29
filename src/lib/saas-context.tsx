@@ -249,6 +249,12 @@ type SaaSCtx = {
   activateRevenue: (companyId: string) => void;
   /** Atualiza senha do usuário e zera o flag de primeiro acesso. */
   updatePassword: (userId: string, newPassword: string) => void;
+  /** Permite ao usuário logado (admin/cashier) trocar a própria senha. */
+  changeOwnPassword: (
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) => { ok: boolean; reason?: string };
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
   createDemoAccess: () => { user: SaaSUser; company: Company };
   /** Processa um evento de webhook do Mercado Pago: cria empresa + usuário e registra auditoria. */
