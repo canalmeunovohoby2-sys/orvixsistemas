@@ -5,6 +5,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { PasswordRules } from "@/components/PasswordRules";
+import { isStrongPassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -194,9 +196,9 @@ function ForcePasswordChangeModal({
     };
   }, []);
 
-  const tooShort = pwd.length > 0 && pwd.length < 6;
+  const weak = pwd.length > 0 && !isStrongPassword(pwd);
   const mismatch = pwd2.length > 0 && pwd !== pwd2;
-  const valid = pwd.length >= 6 && pwd === pwd2;
+  const valid = isStrongPassword(pwd) && pwd === pwd2;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,8 +248,7 @@ function ForcePasswordChangeModal({
                 onChange={(e) => setPwd(e.target.value)}
                 autoFocus
                 autoComplete="new-password"
-                minLength={6}
-                placeholder="mínimo de 6 caracteres"
+                placeholder="Crie uma senha forte"
                 className="w-full h-10 pl-3 pr-10 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <button
@@ -259,7 +260,12 @@ function ForcePasswordChangeModal({
                 {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {tooShort && <p className="text-[11px] text-destructive">A senha precisa de pelo menos 6 caracteres.</p>}
+            <PasswordRules value={pwd} />
+            {weak && (
+              <p className="text-[11px] text-destructive">
+                A senha ainda não atende às regras de segurança acima.
+              </p>
+            )}
           </label>
 
           <label className="block space-y-1.5">
@@ -269,7 +275,6 @@ function ForcePasswordChangeModal({
               value={pwd2}
               onChange={(e) => setPwd2(e.target.value)}
               autoComplete="new-password"
-              minLength={6}
               placeholder="digite novamente"
               className="w-full h-10 px-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
