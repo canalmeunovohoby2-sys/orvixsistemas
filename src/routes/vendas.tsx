@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -9,8 +9,11 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS, PLAN_LIMITS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock, FileText } from "lucide-react";
+import { useSaaS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
+import {
+  Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X,
+  UserCheck, Lock, Printer, DoorOpen, DoorClosed, LogOut, Wallet,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -23,6 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/vendas")({
@@ -63,9 +74,177 @@ type Split = { method: PaymentMethod; amount: number; installments?: number };
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
+// ──────────────────────────────────────────────────────────────────────
+// Abertura / Fechamento de Caixa (Shift)
+// ──────────────────────────────────────────────────────────────────────
+type ShiftPaymentKey = PaymentMethod | "Crediário";
+type ShiftSaleEntry = { ts: number; method: ShiftPaymentKey; amount: number };
+type Shift = {
+  id: string;
+  cid: string;
+  userId: string;
+  userName: string;
+  openedAt: number;
+  openingFloat: number;
+  sales: ShiftSaleEntry[];
+  closedAt?: number;
+  closingCash?: number;
+};
+
+const SHIFT_KEY = (cid: string, uid: string) => `orvix_pdv_shift_${cid}_${uid}`;
+const SHIFT_HISTORY_KEY = (cid: string) => `orvix_pdv_shifts_history_${cid}`;
+
+function loadShift(cid: string, uid: string): Shift | null {
+  try {
+    const raw = localStorage.getItem(SHIFT_KEY(cid, uid));
+    if (!raw) return null;
+    const s = JSON.parse(raw) as Shift;
+    if (s.closedAt) return null;
+    return s;
+  } catch { return null; }
+}
+function saveShift(s: Shift) {
+  try { localStorage.setItem(SHIFT_KEY(s.cid, s.userId), JSON.stringify(s)); } catch {}
+}
+function archiveShift(s: Shift) {
+  try {
+    const raw = localStorage.getItem(SHIFT_HISTORY_KEY(s.cid));
+    const list: Shift[] = raw ? JSON.parse(raw) : [];
+    list.unshift(s);
+    localStorage.setItem(SHIFT_HISTORY_KEY(s.cid), JSON.stringify(list.slice(0, 200)));
+    localStorage.removeItem(SHIFT_KEY(s.cid, s.userId));
+  } catch {}
+}
+
+/** Impressão silenciosa via iframe oculto (evita popup blocker). */
+function printHTML(html: string) {
+  const iframe = document.createElement("iframe");
+  Object.assign(iframe.style, {
+    position: "fixed", right: "0", bottom: "0",
+    width: "0", height: "0", border: "0",
+  });
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  if (!doc) { document.body.removeChild(iframe); return; }
+  doc.open(); doc.write(html); doc.close();
+  window.setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    window.setTimeout(() => { document.body.removeChild(iframe); }, 1500);
+  }, 250);
+}
+
+const RECEIPT_CSS = `
+  @page { size: 80mm auto; margin: 4mm 4mm 6mm 4mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; line-height: 1.35; color: #000; background: #fff; margin: 0; padding: 0; width: 72mm; }
+  h1 { font-size: 14px; margin: 0 0 2px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+  .muted { color: #000; opacity: 0.8; }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  .row { display: flex; justify-content: space-between; gap: 8px; }
+  .sep { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 2px 0; vertical-align: top; }
+  th { text-align: left; border-bottom: 1px solid #000; }
+  td.qty, td.unit, td.total, th.qty, th.unit, th.total { text-align: right; white-space: nowrap; }
+  .name { word-break: break-word; }
+  .totals { font-size: 13px; }
+  .totals .row.big { font-size: 15px; font-weight: bold; }
+  .footer { margin-top: 10px; text-align: center; font-size: 11px; }
+  @media print {
+    html, body { width: 80mm; }
+  }
+`;
+
+function buildReceiptHTML(opts: {
+  storeName: string; operator: string; saleId: string;
+  items: { name: string; qty: number; unit: string; price: number }[];
+  subtotal: number; discount: number; total: number;
+  splits: { method: string; amount: number; installments?: number }[];
+  crediario?: { customer?: string };
+}): string {
+  const now = new Date();
+  const dt = now.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
+  const itemsRows = opts.items.map((it) => `
+    <tr>
+      <td class="name">${escapeHTML(it.name)}</td>
+      <td class="qty">${it.qty.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+      <td class="unit">${escapeHTML(it.unit)}</td>
+      <td class="total">${BRL(it.price * it.qty)}</td>
+    </tr>`).join("");
+  const paymentLines = opts.crediario
+    ? `<div class="row"><span>Crediário</span><span>${BRL(opts.total)}</span></div>
+       <div class="row muted"><span>Cliente</span><span>${escapeHTML(opts.crediario.customer ?? "—")}</span></div>`
+    : opts.splits.map((s) => `
+        <div class="row"><span>${escapeHTML(s.method)}${s.method === "Crédito" && s.installments && s.installments > 1 ? ` ${s.installments}x` : ""}</span><span>${BRL(s.amount)}</span></div>
+      `).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Cupom</title><style>${RECEIPT_CSS}</style></head>
+  <body>
+    <h1>${escapeHTML(opts.storeName)}</h1>
+    <div class="center muted">CUPOM NÃO FISCAL</div>
+    <div class="row muted"><span>${dt}</span><span>#${escapeHTML(opts.saleId)}</span></div>
+    <div class="muted">Operador: ${escapeHTML(opts.operator)}</div>
+    <hr class="sep" />
+    <table>
+      <thead><tr><th>Item</th><th class="qty">Qtd</th><th class="unit">Un</th><th class="total">Total</th></tr></thead>
+      <tbody>${itemsRows}</tbody>
+    </table>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Subtotal</span><span>${BRL(opts.subtotal)}</span></div>
+      ${opts.discount > 0 ? `<div class="row"><span>Desconto</span><span>- ${BRL(opts.discount)}</span></div>` : ""}
+      <div class="row big"><span>TOTAL</span><span>${BRL(opts.total)}</span></div>
+    </div>
+    <hr class="sep" />
+    <div>${paymentLines}</div>
+    <div class="footer">
+      Obrigado pela preferência<br/>Cupom Não Fiscal
+    </div>
+  </body></html>`;
+}
+
+function buildClosingHTML(opts: {
+  storeName: string; operator: string; shift: Shift; totals: Record<ShiftPaymentKey, number>;
+  expectedCash: number; informedCash: number;
+}): string {
+  const opened = new Date(opts.shift.openedAt).toLocaleString("pt-BR");
+  const closed = new Date().toLocaleString("pt-BR");
+  const diff = opts.informedCash - opts.expectedCash;
+  const diffLabel = diff === 0 ? "Sem diferença" : diff > 0 ? `Sobra ${BRL(diff)}` : `Falta ${BRL(Math.abs(diff))}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Fechamento</title><style>${RECEIPT_CSS}</style></head>
+  <body>
+    <h1>${escapeHTML(opts.storeName)}</h1>
+    <div class="center muted">FECHAMENTO DE CAIXA</div>
+    <div class="muted">Operador: ${escapeHTML(opts.operator)}</div>
+    <div class="row muted"><span>Abertura</span><span>${opened}</span></div>
+    <div class="row muted"><span>Fechamento</span><span>${closed}</span></div>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Troco inicial</span><span>${BRL(opts.shift.openingFloat)}</span></div>
+      <div class="row"><span>Dinheiro</span><span>${BRL(opts.totals["Dinheiro"])}</span></div>
+      <div class="row"><span>PIX</span><span>${BRL(opts.totals["Pix"])}</span></div>
+      <div class="row"><span>Crédito</span><span>${BRL(opts.totals["Crédito"])}</span></div>
+      <div class="row"><span>Débito</span><span>${BRL(opts.totals["Débito"])}</span></div>
+      <div class="row muted"><span>Crediário</span><span>${BRL(opts.totals["Crediário"])}</span></div>
+    </div>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Esperado em dinheiro</span><span>${BRL(opts.expectedCash)}</span></div>
+      <div class="row"><span>Conferido</span><span>${BRL(opts.informedCash)}</span></div>
+      <div class="row big"><span>${diff >= 0 ? "Diferença" : "Diferença"}</span><span>${diffLabel}</span></div>
+    </div>
+    <div class="footer">Relatório interno · ORVIX SISTEMAS</div>
+  </body></html>`;
+}
+
+function escapeHTML(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
 function VendasPage() {
   useMockStore();
-  const { user, company, activateRevenue } = useSaaS();
+  const { user, company, activateRevenue, logout } = useSaaS();
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -76,7 +255,17 @@ function VendasPage() {
   const [highlight, setHighlight] = useState(0);
   const [crediario, setCrediario] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
-  const [emitNfce, setEmitNfce] = useState(false);
+  /** Imprimir cupom não-fiscal (bobina térmica 80mm). Ligado por padrão. */
+  const [printReceipt, setPrintReceipt] = useState(true);
+
+  const navigate = useNavigate();
+
+  // ── Abertura / Fechamento de Caixa (Shift) ──
+  const [shift, setShift] = useState<Shift | null>(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [closeModal, setCloseModal] = useState(false);
+  const [openingFloat, setOpeningFloat] = useState<string>("");
+  const [closingCash, setClosingCash] = useState<string>("");
 
   const cid = company?.id ?? user?.companyId ?? "EMP001";
 
@@ -133,6 +322,74 @@ function VendasPage() {
       release();
     };
   }, [cid, company]);
+
+  // Carrega turno aberto (se existir) para o operador+empresa atual.
+  // Se não houver turno aberto, abre automaticamente o modal de Abertura
+  // — vendas ficam bloqueadas até o operador informar o troco inicial.
+  useEffect(() => {
+    if (!user || !cid) return;
+    const s = loadShift(cid, user.id);
+    setShift(s);
+    if (!s) setOpenModal(true);
+  }, [user, cid]);
+
+  // Totais agregados do turno por método (para o modal de fechamento).
+  const shiftTotals = useMemo<Record<ShiftPaymentKey, number>>(() => {
+    const base: Record<ShiftPaymentKey, number> = {
+      Dinheiro: 0, Pix: 0, "Crédito": 0, "Débito": 0, "Crediário": 0,
+    };
+    shift?.sales.forEach((s) => { base[s.method] = +(base[s.method] + s.amount).toFixed(2); });
+    return base;
+  }, [shift]);
+
+  const expectedCash = useMemo(
+    () => +((shift?.openingFloat ?? 0) + shiftTotals["Dinheiro"]).toFixed(2),
+    [shift, shiftTotals],
+  );
+
+  const openShift = useCallback(() => {
+    if (!user || !cid) return;
+    const float = parseFloat(openingFloat.replace(",", ".")) || 0;
+    if (float < 0) return toast.error("Valor de troco inválido.");
+    const s: Shift = {
+      id: `SH_${Date.now()}`,
+      cid, userId: user.id, userName: user.name,
+      openedAt: Date.now(), openingFloat: float, sales: [],
+    };
+    saveShift(s);
+    setShift(s);
+    setOpenModal(false);
+    setOpeningFloat("");
+    toast.success(`Caixa aberto — troco inicial ${BRL(float)}`);
+    requestAnimationFrame(() => searchRef.current?.focus());
+  }, [user, cid, openingFloat]);
+
+  const closeShift = useCallback(() => {
+    if (!shift || !user || !company) return;
+    const informed = parseFloat(closingCash.replace(",", ".")) || 0;
+    if (informed < 0) return toast.error("Valor em dinheiro inválido.");
+    const closed: Shift = { ...shift, closedAt: Date.now(), closingCash: informed };
+    archiveShift(closed);
+    // Imprime relatório de fechamento (bobina térmica).
+    const html = buildClosingHTML({
+      storeName: company.fantasia,
+      operator: user.name,
+      shift: closed,
+      totals: shiftTotals,
+      expectedCash,
+      informedCash: informed,
+    });
+    printHTML(html);
+    toast.success("Caixa fechado — relatório enviado para impressão.");
+    setShift(null);
+    setCloseModal(false);
+    setClosingCash("");
+    // Desloga o operador para que outro turno comece com login novo.
+    window.setTimeout(() => {
+      logout();
+      navigate({ to: "/login" });
+    }, 600);
+  }, [shift, user, company, closingCash, shiftTotals, expectedCash, logout, navigate]);
 
   const companyCustomers = useMemo(
     () => CUSTOMERS.filter((c) => c.company_id === cid),
@@ -215,6 +472,10 @@ function VendasPage() {
 
   const finalize = useCallback(() => {
     if (cart.length === 0) return toast.error("Carrinho vazio.");
+    if (!shift) {
+      setOpenModal(true);
+      return toast.error("Abra o caixa antes de registrar vendas.");
+    }
     if (crediario) {
       if (!customerId) return toast.error("Selecione o cliente para a venda no crediário.");
     } else if (paid + 0.01 < total) {
@@ -240,6 +501,14 @@ function VendasPage() {
     // Recontagem de MRR — ativa o faturamento real da empresa a partir da 1ª venda.
     activateRevenue(cid);
 
+    // Registra movimento no turno (caixa) — para conferência no fechamento.
+    const shiftEntries: ShiftSaleEntry[] = crediario
+      ? [{ ts: Date.now(), method: "Crediário", amount: total }]
+      : splits.map((s) => ({ ts: Date.now(), method: s.method, amount: s.amount }));
+    const updated: Shift = { ...shift, sales: [...shift.sales, ...shiftEntries] };
+    saveShift(updated);
+    setShift(updated);
+
     if (crediario) {
       const c = companyCustomers.find((x) => x.id === customerId);
       toast.success(`Crediário registrado — ${BRL(total)}`, {
@@ -251,18 +520,22 @@ function VendasPage() {
       });
     }
 
-    if (emitNfce) {
-      const loadingId = toast.loading("⏳ Comunicando com a SEFAZ... Aguarde.");
-      window.setTimeout(() => {
-        const chave = Array.from({ length: 11 }, () =>
-          Math.floor(1000 + Math.random() * 9000),
-        ).join(" ");
-        toast.success("✅ Nota Fiscal Emitida com Sucesso!", {
-          id: loadingId,
-          description: `Chave de Acesso: ${chave}`,
-          duration: 6000,
-        });
-      }, 1500);
+    // Impressão de cupom não-fiscal (bobina térmica) — silenciosa via iframe.
+    if (printReceipt) {
+      const html = buildReceiptHTML({
+        storeName: company?.fantasia ?? "Loja",
+        operator: user?.name ?? "operador",
+        saleId: `V${Date.now().toString().slice(-6)}`,
+        items: cart.map((c) => ({ name: c.name, qty: c.qty, unit: c.unit, price: c.price })),
+        subtotal,
+        discount: discountValue,
+        total,
+        splits: crediario ? [] : splits,
+        crediario: crediario
+          ? { customer: companyCustomers.find((c) => c.id === customerId)?.name }
+          : undefined,
+      });
+      printHTML(html);
     }
 
     setCart([]);
@@ -272,8 +545,7 @@ function VendasPage() {
     setShowPayment(false);
     setCrediario(false);
     setCustomerId("");
-    setEmitNfce(false);
-  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers, emitNfce]);
+  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers, printReceipt, shift, subtotal, discountValue, company, activateRevenue]);
 
   // Cancelamento total da venda (F8 / botão vermelho)
   const cancelSale = useCallback(() => {
@@ -475,6 +747,70 @@ function VendasPage() {
       )}
       {!pdvBlocked && (
       <>
+      {/* Cabeçalho do turno (status do caixa + ações de abrir/fechar). */}
+      <section
+        aria-label="Status do caixa"
+        className="mb-4 rounded-xl border border-border bg-card/70 p-3 md:p-4 flex flex-wrap items-center gap-3 md:gap-4"
+      >
+        <div className={`shrink-0 w-10 h-10 grid place-items-center rounded-lg ${shift ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-primary/15 text-primary border border-primary/30"}`}>
+          {shift ? <DoorOpen className="w-5 h-5" /> : <DoorClosed className="w-5 h-5" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight">
+            {shift ? `Caixa aberto · Operador: ${user?.name ?? "—"}` : "Caixa fechado"}
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {shift
+              ? `Abertura ${new Date(shift.openedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · Troco inicial ${BRL(shift.openingFloat)} · ${shift.sales.length} venda(s) registrada(s)`
+              : "Abra o caixa para começar a registrar vendas no PDV."}
+          </p>
+        </div>
+        {shift && (
+          <div className="hidden md:flex items-center gap-2 text-[11px] text-muted-foreground border-l border-border pl-3">
+            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-mono tabular-nums">Esperado em dinheiro: <strong className="text-foreground">{BRL(expectedCash)}</strong></span>
+          </div>
+        )}
+        {shift ? (
+          <button
+            type="button"
+            onClick={() => setCloseModal(true)}
+            className="h-10 px-4 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+          >
+            <DoorClosed className="w-4 h-4" /> Fechar Caixa
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpenModal(true)}
+            className="h-10 px-4 inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+          >
+            <DoorOpen className="w-4 h-4" /> Abrir Caixa
+          </button>
+        )}
+      </section>
+
+      {!shift && (
+        <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 flex items-start gap-4">
+          <div className="w-12 h-12 shrink-0 grid place-items-center rounded-xl bg-primary/15 text-primary border border-primary/30">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-primary">Caixa fechado — vendas bloqueadas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              O operador precisa <strong className="text-foreground">abrir o caixa</strong> e informar o valor de troco inicial antes de registrar qualquer venda.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpenModal(true)}
+              className="mt-3 h-10 px-4 inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" /> Abrir Caixa agora
+            </button>
+          </div>
+        </div>
+      )}
+
       <section aria-labelledby="pdv" className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         <h2 id="pdv" className="sr-only">Ponto de venda</h2>
 
@@ -776,22 +1112,22 @@ function VendasPage() {
 
           <label
             className={`mt-3 flex items-center gap-2.5 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
-              emitNfce
+              printReceipt
                 ? "border-primary bg-primary/10"
                 : "border-border bg-secondary/40 hover:border-primary/60"
             }`}
           >
             <input
               type="checkbox"
-              checked={emitNfce}
-              onChange={(e) => setEmitNfce(e.target.checked)}
+              checked={printReceipt}
+              onChange={(e) => setPrintReceipt(e.target.checked)}
               className="accent-primary w-4 h-4"
             />
-            <FileText className={`w-4 h-4 ${emitNfce ? "text-primary" : "text-muted-foreground"}`} />
+            <Printer className={`w-4 h-4 ${printReceipt ? "text-primary" : "text-muted-foreground"}`} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">🧾 Emitir Nota Fiscal (NFC-e)</p>
+              <p className="text-sm font-semibold">🧾 Imprimir Recibo / Cupom Não Fiscal</p>
               <p className="text-[11px] text-muted-foreground">
-                A nota será transmitida à SEFAZ automaticamente ao finalizar.
+                Ao finalizar, abre a janela de impressão com o cupom formatado para bobina térmica (80mm).
               </p>
             </div>
           </label>
@@ -888,6 +1224,141 @@ function VendasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* MODAL — Abertura de Caixa (bloqueia vendas até confirmar). */}
+      <Dialog
+        open={openModal}
+        onOpenChange={(o) => {
+          // Não permite fechar sem abrir o caixa (a menos que já exista um turno).
+          if (!o && !shift) return;
+          setOpenModal(o);
+        }}
+      >
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <DoorOpen className="w-4 h-4" />
+              </span>
+              Abertura de Caixa
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Informe o <strong className="text-foreground">valor de troco inicial</strong> que está fisicamente na gaveta do caixa.
+              As vendas só serão liberadas após a abertura.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Valor de Troco Inicial (R$)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                autoFocus
+                value={openingFloat}
+                onChange={(e) => setOpeningFloat(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); openShift(); } }}
+                placeholder="Ex: 150,00"
+                className="w-full h-11 pl-10 pr-3 rounded-md bg-secondary border border-border text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Operador: <strong className="text-foreground">{user?.name ?? "—"}</strong> · Empresa: <strong className="text-foreground">{company?.fantasia ?? "—"}</strong>
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={openShift}
+              className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" /> Abrir Caixa
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL — Fechamento de Caixa (resumo do turno + dinheiro conferido). */}
+      <Dialog open={closeModal} onOpenChange={setCloseModal}>
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/15 text-primary border border-primary/30">
+                <DoorClosed className="w-4 h-4" />
+              </span>
+              Fechamento de Caixa
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Confira o resumo do turno e informe o valor em dinheiro contado na gaveta.
+              Ao confirmar, o relatório será impresso e o operador será deslogado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-border bg-secondary/40 p-4 space-y-1.5 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Operador</span><span className="font-semibold">{user?.name ?? "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Abertura</span><span className="font-mono tabular-nums">{shift ? new Date(shift.openedAt).toLocaleString("pt-BR") : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Troco inicial</span><span className="font-mono tabular-nums">{BRL(shift?.openingFloat ?? 0)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Vendas registradas</span><span className="font-mono tabular-nums">{shift?.sales.length ?? 0}</span></div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Totais por forma de pagamento</p>
+            <ul className="text-sm divide-y divide-border">
+              <li className="py-1.5 flex justify-between"><span>💵 Dinheiro</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Dinheiro"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>📱 PIX</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Pix"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>💳 Crédito</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Crédito"])}</span></li>
+              <li className="py-1.5 flex justify-between"><span>💳 Débito</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Débito"])}</span></li>
+              <li className="py-1.5 flex justify-between text-muted-foreground"><span>📝 Crediário</span><span className="font-mono tabular-nums">{BRL(shiftTotals["Crediário"])}</span></li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-primary/40 bg-primary/5 p-4">
+            <div className="flex justify-between items-baseline mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Esperado em dinheiro</span>
+              <span className="text-lg font-bold tabular-nums text-foreground">{BRL(expectedCash)}</span>
+            </div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Valor em Dinheiro no Caixa (contado)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">R$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                autoFocus
+                value={closingCash}
+                onChange={(e) => setClosingCash(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); closeShift(); } }}
+                placeholder="Ex: 850,00"
+                className="w-full h-11 pl-10 pr-3 rounded-md bg-card border border-border text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/60"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setCloseModal(false)}
+              className="h-10 px-4 inline-flex items-center justify-center rounded-md border border-border text-sm font-semibold hover:bg-accent transition-colors"
+            >
+              Voltar
+            </button>
+            <button
+              type="button"
+              onClick={closeShift}
+              className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+            >
+              <LogOut className="w-4 h-4" /> Confirmar Fechamento
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </>
       )}
     </AppShell>
