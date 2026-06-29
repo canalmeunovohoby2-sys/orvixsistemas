@@ -8,6 +8,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { HelpCenter } from "@/components/HelpCenter";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { useSaaS, ROLE_LABEL } from "@/lib/saas-context";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -186,6 +187,9 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
           <X className="w-5 h-5" />
         </button>
       )}
+
+      {/* Bloqueio de primeiro acesso — cadastro obrigatório da empresa */}
+      <OnboardingGate />
     </div>
   );
 }
