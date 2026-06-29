@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
   BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE,
-  formatQty, isDemoCompany, type Sale,
+  formatQty, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS } from "@/lib/saas-context";
@@ -36,7 +36,11 @@ function DashboardPage() {
   useMockStore();
   const { company } = useSaaS();
   const cid = company?.id ?? null;
-  const demo = isDemoCompany(cid);
+  // Dashboard só mostra dados fictícios para empresas marcadas explicitamente
+  // como demonstração (flag estável `isDemo`). Empresas reais — criadas via
+  // Super Admin, webhook MP ou self-signup — começam SEMPRE zeradas, mesmo
+  // após delete/recreate (a flag não é herdada por ID reciclado).
+  const demo = company?.isDemo === true;
 
   // Em empresas reais (não-demo) os dados ficam zerados até o lojista operar o sistema.
   const tenantProducts = useMemo(

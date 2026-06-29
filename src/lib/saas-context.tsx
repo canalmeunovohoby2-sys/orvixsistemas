@@ -32,6 +32,10 @@ export type Company = {
   segment?: string;
   /** True enquanto o lojista ainda não preencheu o cadastro obrigatório. */
   onboardingPending?: boolean;
+  /** Marca a empresa como "perfil de demonstração" (Dashboard inicia populado).
+   *  Empresas reais — criadas por Super Admin, webhook MP ou self-signup —
+   *  começam SEMPRE com isDemo=false, garantindo dashboard zerado. */
+  isDemo?: boolean;
 };
 
 export type SaaSUser = {
@@ -92,7 +96,7 @@ export function getPlanCaixasLimit(plan: Plan): number {
 // quando uma venda é registrada no PDV (activateRevenue) ou quando o Super Admin
 // simula o pagamento ativamente para a empresa.
 const SEED_COMPANIES: Company[] = [
-  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 0, createdAt: "2025-01-12", dueDate: "2026-07-12", onboardingPending: false },
+  { id: "EMP001", razaoSocial: "Orvix Comercial LTDA",    fantasia: "Mercadinho Orvix",  cnpj: "12.345.678/0001-90", status: "active",  plan: "prata",  mrr: 0, createdAt: "2025-01-12", dueDate: "2026-07-12", onboardingPending: false, isDemo: true },
   { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME",fantasia: "Trigo Dourado",     cnpj: "98.765.432/0001-10", status: "active",  plan: "bronze", mrr: 0, createdAt: "2026-06-02", dueDate: "2026-07-16", onboardingPending: false },
   { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA",    fantasia: "Boi Bom",           cnpj: "55.444.333/0001-22", status: "blocked", plan: "bronze", mrr: 0, createdAt: "2025-11-20", dueDate: "2026-05-20", onboardingPending: false },
   { id: "EMP004", razaoSocial: "Distribuidora Norte SA",  fantasia: "Norte Distribuição",cnpj: "11.222.333/0001-44", status: "pending", plan: "ouro",   mrr: 0, createdAt: "2024-08-30", dueDate: "2026-07-04", onboardingPending: false },
@@ -100,6 +104,15 @@ const SEED_COMPANIES: Company[] = [
 
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
 export const COMPANIES: Company[] = [...SEED_COMPANIES];
+
+/** Gera o próximo ID de empresa sem colisão (max numérico + 1). */
+function nextCompanyId(): string {
+  const max = COMPANIES.reduce((m, c) => {
+    const n = parseInt(c.id.replace(/^EMP/i, ""), 10);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return `EMP${String(max + 1).padStart(3, "0")}`;
+}
 
 /** Chave de persistência das empresas (sobrevive a F5 / refresh). */
 const COMPANIES_STORAGE_KEY = "orvix_companies_v2";
@@ -604,8 +617,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   );
 
   const createDemoAccess = useCallback(() => {
-    const seq = COMPANIES.length + 1;
-    const id = `EMP${String(seq).padStart(3, "0")}`;
+    const id = nextCompanyId();
+    const seq = parseInt(id.replace(/^EMP/i, ""), 10);
     const newCompany: Company = {
       id,
       razaoSocial: `Cliente ORVIX ${seq} LTDA`,
@@ -617,6 +630,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
       onboardingPending: true,
+      isDemo: false,
     };
     COMPANIES.push(newCompany);
     // Pagamento simulado ativamente → reconhece MRR da nova empresa.
@@ -758,9 +772,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         : ev.amount >= PLAN_PRICE.prata - 0.5 ? "prata"
         : "bronze";
 
-      const seq = COMPANIES.length + 1;
+      const id = nextCompanyId();
+      const seq = parseInt(id.replace(/^EMP/i, ""), 10);
       const newCompany: Company = {
-        id: `EMP${String(seq).padStart(3, "0")}`,
+        id,
         razaoSocial: ev.payerName ? `${ev.payerName} (Auto-MP)` : `Cliente Mercado Pago #${seq}`,
         fantasia: ev.payerName ? ev.payerName : `Cliente MP #${seq}`,
         cnpj: "00.000.000/0001-00",
@@ -770,6 +785,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
       onboardingPending: true,
+      isDemo: false,
       };
       COMPANIES.push(newCompany);
 
