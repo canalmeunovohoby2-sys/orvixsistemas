@@ -170,7 +170,7 @@ export function updateTicketStatus(id: string, status: SupportTicket["status"]) 
 
 export type SaaSSettings = {
   trialDays: number;
-  usersLimit: { starter: number; pro: number; enterprise: number };
+  usersLimit: { bronze: number; prata: number; ouro: number };
   smtpHost: string;
   smtpUser: string;
   smtpFrom: string;
@@ -180,7 +180,7 @@ export type SaaSSettings = {
 
 export const SAAS_SETTINGS: SaaSSettings = {
   trialDays: 14,
-  usersLimit: { starter: 3, pro: 10, enterprise: 50 },
+  usersLimit: { bronze: 1, prata: 5, ouro: 50 },
   smtpHost: "smtp.sendgrid.net",
   smtpUser: "apikey",
   smtpFrom: "no-reply@orvix.app",
