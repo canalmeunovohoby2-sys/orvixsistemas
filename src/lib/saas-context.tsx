@@ -391,7 +391,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       value={{
         user, company, companies: COMPANIES, users: SAAS_USERS,
         loginAs, loginWithCredentials, logout, hasRole,
-        setCompanyStatus, setCompanyPlan, setCompanyDueDate,
+        setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
