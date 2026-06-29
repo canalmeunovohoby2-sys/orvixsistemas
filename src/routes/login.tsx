@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock, Building2, UserPlus } from "lucide-react";
+import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -16,13 +16,11 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { user, loginWithCredentials, signUp, updatePassword } = useSaaS();
+  const { user, loginWithCredentials, updatePassword } = useSaaS();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [fantasia, setFantasia] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingUser, setPendingUser] = useState<SaaSUser | null>(null);
 
@@ -48,16 +46,6 @@ function LoginPage() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      if (mode === "signup") {
-        const res = signUp({ email, password, fantasia });
-        if (!res.ok || !res.user) {
-          toast.error(res.reason ?? "Não foi possível concluir o cadastro.");
-          return;
-        }
-        toast.success("Conta criada! Bem-vindo à ORVIX SISTEMAS.");
-        routeForRole(res.user.role);
-        return;
-      }
       const res = loginWithCredentials(email, password);
       if (!res.ok || !res.user) {
         toast.error(res.reason ?? "Credenciais inválidas.");
@@ -113,31 +101,11 @@ function LoginPage() {
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
             <div>
-              <h2 className="text-2xl font-bold">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
+              <h2 className="text-2xl font-bold">Entrar na ORVIX SISTEMAS</h2>
               <p className="text-sm text-muted-foreground">
-                {mode === "login"
-                  ? "Acesse o painel da sua empresa com e-mail e senha."
-                  : "Cadastre sua empresa e comece com 14 dias de Trial no plano Bronze."}
+                Acesse o painel da sua empresa com o e-mail e senha enviados pela ORVIX SISTEMAS.
               </p>
             </div>
-
-            {mode === "signup" && (
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nome da empresa</span>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={fantasia}
-                    onChange={(e) => setFantasia(e.target.value)}
-                    autoComplete="organization"
-                    required
-                    placeholder="Ex.: Mercadinho Boa Vista"
-                    className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-              </label>
-            )}
 
             <label className="block space-y-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">E-mail</span>
@@ -163,10 +131,9 @@ function LoginPage() {
                   type={showPwd ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  minLength={mode === "signup" ? 6 : undefined}
+                  autoComplete="current-password"
                   required
-                  placeholder={mode === "signup" ? "mínimo de 6 caracteres" : "Sua senha"}
+                  placeholder="Sua senha"
                   className="w-full h-11 pl-9 pr-10 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <button
@@ -185,26 +152,12 @@ function LoginPage() {
               disabled={submitting}
               className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-60"
             >
-              {mode === "login" ? (<><LogIn className="w-4 h-4" /> Entrar na plataforma</>) : (<><UserPlus className="w-4 h-4" /> Criar conta e entrar</>)}
+              <LogIn className="w-4 h-4" /> Entrar na plataforma
             </button>
 
-            <div className="text-center text-xs text-muted-foreground">
-              {mode === "login" ? (
-                <>
-                  Ainda não tem conta?{" "}
-                  <button type="button" onClick={() => setMode("signup")} className="font-semibold text-primary hover:underline">
-                    Criar conta gratuita
-                  </button>
-                </>
-              ) : (
-                <>
-                  Já possui uma conta?{" "}
-                  <button type="button" onClick={() => setMode("login")} className="font-semibold text-primary hover:underline">
-                    Voltar para o login
-                  </button>
-                </>
-              )}
-            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Acesso fornecido exclusivamente pela equipe <strong>ORVIX SISTEMAS</strong> após a contratação do plano.
+            </p>
           </form>
         </section>
       </main>
