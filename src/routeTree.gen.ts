@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VendasRouteImport } from './routes/vendas'
+import { Route as TerminaisRouteImport } from './routes/terminais'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as ProdutosRouteImport } from './routes/produtos'
@@ -27,6 +28,11 @@ import { Route as ApiPublicNotifyAdminRouteImport } from './routes/api/public/no
 const VendasRoute = VendasRouteImport.update({
   id: '/vendas',
   path: '/vendas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminaisRoute = TerminaisRouteImport.update({
+  id: '/terminais',
+  path: '/terminais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
   '/super-admin': typeof SuperAdminRoute
+  '/terminais': typeof TerminaisRoute
   '/vendas': typeof VendasRoute
   '/api/public/notify-admin': typeof ApiPublicNotifyAdminRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
   '/super-admin': typeof SuperAdminRoute
+  '/terminais': typeof TerminaisRoute
   '/vendas': typeof VendasRoute
   '/api/public/notify-admin': typeof ApiPublicNotifyAdminRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
   '/super-admin': typeof SuperAdminRoute
+  '/terminais': typeof TerminaisRoute
   '/vendas': typeof VendasRoute
   '/api/public/notify-admin': typeof ApiPublicNotifyAdminRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/relatorios'
     | '/super-admin'
+    | '/terminais'
     | '/vendas'
     | '/api/public/notify-admin'
     | '/api/webhooks/mercadopago'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/relatorios'
     | '/super-admin'
+    | '/terminais'
     | '/vendas'
     | '/api/public/notify-admin'
     | '/api/webhooks/mercadopago'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/relatorios'
     | '/super-admin'
+    | '/terminais'
     | '/vendas'
     | '/api/public/notify-admin'
     | '/api/webhooks/mercadopago'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   ProdutosRoute: typeof ProdutosRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SuperAdminRoute: typeof SuperAdminRoute
+  TerminaisRoute: typeof TerminaisRoute
   VendasRoute: typeof VendasRoute
   ApiPublicNotifyAdminRoute: typeof ApiPublicNotifyAdminRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/vendas'
       fullPath: '/vendas'
       preLoaderRoute: typeof VendasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminais': {
+      id: '/terminais'
+      path: '/terminais'
+      fullPath: '/terminais'
+      preLoaderRoute: typeof TerminaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin': {
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosRoute: ProdutosRoute,
   RelatoriosRoute: RelatoriosRoute,
   SuperAdminRoute: SuperAdminRoute,
+  TerminaisRoute: TerminaisRoute,
   VendasRoute: VendasRoute,
   ApiPublicNotifyAdminRoute: ApiPublicNotifyAdminRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRoute,
