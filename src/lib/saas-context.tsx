@@ -245,6 +245,20 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     });
   }, [realUser]);
 
+  const activateRevenue = useCallback((companyId: string) => {
+    const c = COMPANIES.find((x) => x.id === companyId);
+    if (!c) return;
+    if (c.status !== "active" || c.mrr > 0) return;
+    c.mrr = PLAN_PRICE[c.plan];
+    setCompaniesTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: c.id, companyName: c.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `Faturamento ativado — MRR ${PLAN_LABEL[c.plan]} reconhecido (${PLAN_PRICE[c.plan].toFixed(2)}).`,
+    });
+  }, [realUser]);
+
   const startImpersonation = useCallback((companyId: string) => {
     if (realUser?.role !== "super_admin") return;
     const target = COMPANIES.find((c) => c.id === companyId);
