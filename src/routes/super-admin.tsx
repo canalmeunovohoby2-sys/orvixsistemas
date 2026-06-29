@@ -179,6 +179,9 @@ function SuperAdminPage() {
         {tab === "suporte"   && <SupportTab />}
         {tab === "config"    && <SettingsTab />}
       </main>
+      {pwdModal && (
+        <ChangeSuperAdminPasswordModal onClose={() => setPwdModal(false)} />
+      )}
     </div>
   );
 }
