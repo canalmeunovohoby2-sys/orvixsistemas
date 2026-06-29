@@ -1,5 +1,6 @@
-import { logEvent, type Plan } from "./mock-data";
-import { PLAN_LABEL, PLAN_PRICE, SUPER_ADMIN_EMAIL, getPlanCaixasLimit } from "./saas-context-constants";
+import { logEvent } from "./mock-data";
+
+export const ADMIN_NOTIFY_EMAIL = "orvixsistemas@gmail.com";
 
 export type AdminNotificationOrigin = "Cadastro Real" | "Simulação";
 
@@ -7,7 +8,9 @@ export type AdminNotificationPayload = {
   storeName: string;
   ownerName: string;
   contactEmail: string;
-  plan: Plan;
+  planLabel: string;
+  planPrice: number;
+  terminalsLimit: number;
   origin: AdminNotificationOrigin;
   companyId: string;
   cnpj?: string;
@@ -16,9 +19,7 @@ export type AdminNotificationPayload = {
 };
 
 function buildEmailBody(p: AdminNotificationPayload): { subject: string; text: string; html: string } {
-  const terminals = getPlanCaixasLimit(p.plan);
-  const price = PLAN_PRICE[p.plan];
-  const subject = `[ORVIX] ${p.origin} — ${p.storeName} (${PLAN_LABEL[p.plan]})`;
+  const subject = `[ORVIX] ${p.origin} — ${p.storeName} (${p.planLabel})`;
   const lines = [
     `Origem do cadastro:  ${p.origin}`,
     `Loja / Razão Social: ${p.storeName}`,
@@ -27,8 +28,8 @@ function buildEmailBody(p: AdminNotificationPayload): { subject: string; text: s
     `CNPJ/CPF:            ${p.cnpj ?? "—"}`,
     `Telefone:            ${p.phone ?? "—"}`,
     `Segmento:            ${p.segment ?? "—"}`,
-    `Plano selecionado:   ${PLAN_LABEL[p.plan]} (R$ ${price.toFixed(2)}/mês)`,
-    `Limite de terminais: ${terminals}`,
+    `Plano selecionado:   ${p.planLabel} (R$ ${p.planPrice.toFixed(2)}/mês)`,
+    `Limite de terminais: ${p.terminalsLimit}`,
     `ID da empresa:       ${p.companyId}`,
   ];
   const text = lines.join("\n");
@@ -56,8 +57,7 @@ export async function notifyAdminNewClient(payload: AdminNotificationPayload): P
     company_id: payload.companyId,
     companyName: payload.storeName,
     user: "Notificação Admin",
-    action:
-      `📧 E-mail para ${SUPER_ADMIN_EMAIL} — ${subject}\n\n${text}`,
+    action: `📧 E-mail para ${ADMIN_NOTIFY_EMAIL} — ${subject}\n\n${text}`,
   });
 
   // 2) Tenta disparar o e-mail real (silencioso se a chave não estiver setada).
@@ -65,7 +65,7 @@ export async function notifyAdminNewClient(payload: AdminNotificationPayload): P
     const res = await fetch("/api/public/notify-admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: SUPER_ADMIN_EMAIL, subject, text, html }),
+      body: JSON.stringify({ to: ADMIN_NOTIFY_EMAIL, subject, text, html }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
