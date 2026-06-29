@@ -87,6 +87,20 @@ const STORAGE_KEY = "saas_session_user_id";
 /** E-mail único autorizado a acessar o Painel Master da ORVIX SISTEMAS. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 
+/**
+ * Snapshots de reversão anexados a logs críticos.
+ * Cada variante carrega o estado anterior suficiente para restaurar a operação.
+ */
+export type UndoPayload =
+  | { type: "COMPANY_DELETE"; company: Company; users: SaaSUser[];
+      products: unknown[]; sales: unknown[]; movements: unknown[];
+      suppliers: unknown[]; customers: unknown[];
+      financialRecords: unknown[]; supportTickets: unknown[] }
+  | { type: "PLAN_CHANGE"; companyId: string; previousPlan: Plan; previousMrr: number }
+  | { type: "DUE_CHANGE"; companyId: string; previousDueDate: string }
+  | { type: "SUBSCRIPTION_CHANGE"; companyId: string; previousStatus: SubscriptionStatus }
+  | { type: "SETTINGS_UPDATE"; previousSettings: SaaSSettings };
+
 type SaaSCtx = {
   user: SaaSUser | null;
   company: Company | null;
@@ -114,6 +128,8 @@ type SaaSCtx = {
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
   /** Remove a empresa e TODOS os dados vinculados (usuários, produtos, vendas, financeiro, tickets, logs). */
   deleteCompany: (companyId: string) => { ok: boolean; reason?: string };
+  /** Reverte o estado capturado no `undo` de um log de auditoria. */
+  revertLog: (logId: string) => { ok: boolean; reason?: string };
   /** Suporte/impersonação — super_admin assume o papel de admin de uma empresa. */
   impersonating: boolean;
   impersonatedCompany: Company | null;
