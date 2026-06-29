@@ -676,10 +676,25 @@ function SupportTab() {
 /* ─────────────────────── Configurações tab ─────────────────────── */
 
 function SettingsTab() {
+  const { user } = useSaaS();
   const [form, setForm] = useState({ ...SAAS_SETTINGS });
 
   const save = () => {
+    // Snapshot do estado anterior — habilita reversão pelo log de auditoria.
+    const previousSettings = JSON.parse(JSON.stringify(SAAS_SETTINGS));
+    // JSON.stringify perde Infinity → restaura o sentinela do plano Ouro.
+    if (!Number.isFinite(previousSettings.usersLimit?.ouro)) {
+      previousSettings.usersLimit.ouro = Infinity;
+    }
     updateSaaSSettings(form);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: null,
+      companyName: "Plataforma",
+      user: user?.name ?? "Super Admin",
+      action: `Configurações globais atualizadas (gateway: ${form.paymentGateway}, limites Bronze/Prata: ${form.usersLimit.bronze}/${form.usersLimit.prata}).`,
+      undo: { type: "SETTINGS_UPDATE", previousSettings },
+    });
     toast.success("Configurações globais atualizadas.");
   };
 
