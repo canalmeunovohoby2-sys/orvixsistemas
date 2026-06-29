@@ -318,6 +318,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
     };
     COMPANIES.push(newCompany);
+    // Pagamento simulado ativamente → reconhece MRR da nova empresa.
+    newCompany.mrr = PLAN_PRICE[newCompany.plan];
     const newUser: SaaSUser = {
       id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
       name: `Admin ${newCompany.fantasia}`,
