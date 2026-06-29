@@ -698,6 +698,13 @@ export function commitPdvSale(input: {
     });
     addCreditDebt(input.customerId, input.total, sale.id);
   }
+  // Auditoria global da plataforma
+  logEvent({
+    kind: "SALE_OK",
+    company_id: input.company_id,
+    user: input.user,
+    action: `Venda ${sale.id} concluída (R$ ${input.total.toFixed(2).replace(".", ",")})${input.crediario ? " — crediário" : ""}.`,
+  });
   __emit();
   return sale;
 }
