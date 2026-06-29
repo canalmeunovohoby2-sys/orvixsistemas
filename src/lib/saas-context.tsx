@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 
 export type Role = "super_admin" | "admin" | "cashier";
 
-export type SubscriptionStatus = "trial" | "active" | "overdue" | "canceled";
+export type SubscriptionStatus = "trial" | "active" | "pending" | "blocked" | "canceled";
 export type Plan = "starter" | "pro" | "enterprise";
 
 export type Company = {
@@ -25,12 +25,15 @@ export type SaaSUser = {
   companyId: string | null;
 };
 
-export const COMPANIES: Company[] = [
+const SEED_COMPANIES: Company[] = [
   { id: "EMP001", razaoSocial: "Orvix Comercial LTDA", fantasia: "Mercadinho Orvix", cnpj: "12.345.678/0001-90", status: "active",  plan: "pro",        mrr: 349.00, createdAt: "2025-01-12" },
   { id: "EMP002", razaoSocial: "Padaria Trigo Dourado ME", fantasia: "Trigo Dourado", cnpj: "98.765.432/0001-10", status: "trial",   plan: "starter",    mrr: 0,      createdAt: "2026-06-02" },
-  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA", fantasia: "Boi Bom", cnpj: "55.444.333/0001-22", status: "overdue", plan: "starter",    mrr: 149.00, createdAt: "2025-11-20" },
-  { id: "EMP004", razaoSocial: "Distribuidora Norte SA", fantasia: "Norte Distribuição", cnpj: "11.222.333/0001-44", status: "active",  plan: "enterprise", mrr: 1290.00, createdAt: "2024-08-30" },
+  { id: "EMP003", razaoSocial: "Açougue Boi Bom LTDA", fantasia: "Boi Bom", cnpj: "55.444.333/0001-22", status: "blocked", plan: "starter",    mrr: 149.00, createdAt: "2025-11-20" },
+  { id: "EMP004", razaoSocial: "Distribuidora Norte SA", fantasia: "Norte Distribuição", cnpj: "11.222.333/0001-44", status: "pending", plan: "enterprise", mrr: 1290.00, createdAt: "2024-08-30" },
 ];
+
+/** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
+export const COMPANIES: Company[] = [...SEED_COMPANIES];
 
 export const SAAS_USERS: SaaSUser[] = [
   { id: "U000", name: "Ricardo Cunha (Plataforma)", email: "ricardo@orvix.app", role: "super_admin", companyId: null },
@@ -48,6 +51,7 @@ type SaaSCtx = {
   loginAs: (userId: string) => void;
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
+  setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
 };
 
 const Ctx = createContext<SaaSCtx | null>(null);
@@ -55,6 +59,7 @@ const Ctx = createContext<SaaSCtx | null>(null);
 export function SaaSProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [, setCompaniesTick] = useState(0);
 
   useEffect(() => {
     try {
@@ -82,8 +87,15 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const setCompanyStatus = useCallback((companyId: string, status: SubscriptionStatus) => {
+    const c = COMPANIES.find((x) => x.id === companyId);
+    if (!c) return;
+    c.status = status;
+    setCompaniesTick((t) => t + 1);
+  }, []);
+
   return (
-    <Ctx.Provider value={{ user, company, companies: COMPANIES, loginAs, logout, hasRole }}>
+    <Ctx.Provider value={{ user, company, companies: COMPANIES, loginAs, logout, hasRole, setCompanyStatus }}>
       {children}
     </Ctx.Provider>
   );
@@ -104,6 +116,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 export const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   trial: "Trial",
   active: "Ativa",
-  overdue: "Inadimplente",
+  pending: "Vencendo",
+  blocked: "Bloqueada",
   canceled: "Cancelada",
 };

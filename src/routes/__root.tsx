@@ -2,6 +2,7 @@ import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-r
 import { Toaster } from "@/components/ui/sonner";
 import { SaaSProvider } from "@/lib/saas-context";
 import { DevRoleSwitcher } from "@/components/DevRoleSwitcher";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -68,6 +69,7 @@ function RootComponent() {
   return (
     <SaaSProvider>
       <DevRoleSwitcher />
+      <SubscriptionBanner />
       <Outlet />
       <Toaster position="top-right" />
     </SaaSProvider>

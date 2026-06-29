@@ -51,6 +51,9 @@ function RelatoriosPage() {
       {/* ─── Fechamento de caixa ─── */}
       <CashClosing closing={closing} totals={totals} />
 
+      {/* ─── Faturamento e Lucro Real ─── */}
+      <ProfitPanel totals={totals} />
+
       {/* ─── Previsão de recebimento futuro ─── */}
       <Forecast forecast={forecast} />
 
@@ -168,6 +171,38 @@ function Forecast({ forecast }: { forecast: { months: ForecastMonth[]; total: nu
 }
 
 /* ─────────────── Cash closing ─────────────── */
+
+function ProfitPanel({ totals }: { totals: ReturnType<typeof computeReport>["totals"] }) {
+  const items = [
+    { label: "Faturamento Bruto", value: BRL(totals.bruto), hint: `${totals.qtdVendas} venda(s) concluída(s)`, tone: "default" as const },
+    { label: "Custo dos Produtos", value: BRL(totals.custoReal), hint: "Soma do preço de custo × quantidade", tone: "warn" as const },
+    { label: "Lucro Real", value: BRL(totals.lucroReal), hint: `Margem real ${totals.margemReal.toFixed(1)}%`, tone: "success" as const },
+    { label: "Ticket Médio", value: BRL(totals.ticketMedio), hint: "Faturamento ÷ nº de vendas", tone: "default" as const },
+  ];
+  return (
+    <section aria-labelledby="profit" className="glass rounded-xl p-5 mb-6 border border-border">
+      <header className="mb-5">
+        <h2 id="profit" className="text-base font-semibold inline-flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" /> Faturamento & Lucro Real
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Lucro calculado item a item (preço de venda − preço de custo cadastrado no produto).
+        </p>
+      </header>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {items.map((k) => (
+          <div key={k.label} className="p-3 rounded-lg bg-secondary/60 border border-border">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{k.label}</p>
+            <p className={`mt-1 text-xl font-bold tabular-nums ${
+              k.tone === "success" ? "text-emerald-500" : k.tone === "warn" ? "text-amber-500" : ""
+            }`}>{k.value}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{k.hint}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function CashClosing({ closing, totals }: { closing: PaymentRow[]; totals: ReturnType<typeof computeReport>["totals"] }) {
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
@@ -359,6 +394,15 @@ function computeReport() {
   const qtdVendas = concluded.length;
   const ticketMedio = qtdVendas > 0 ? bruto / qtdVendas : 0;
 
+  // Lucro REAL = bruto − custo de cada item vendido.
+  // Para vendas seedadas sem `cost`, usa aproximação de 65% do total como custo.
+  const custoReal = concluded.reduce(
+    (a, s) => a + (typeof s.cost === "number" ? s.cost : s.total * 0.65),
+    0,
+  );
+  const lucroReal = bruto - custoReal;
+  const margemReal = bruto > 0 ? (lucroReal / bruto) * 100 : 0;
+
   // ABC curve — synthesize per-product 30d sales from a deterministic seed.
   const abcRows: ABCRow[] = PRODUCTS.map((p, i) => {
     const seed = (i * 9301 + 49297) % 233280;
@@ -375,7 +419,13 @@ function computeReport() {
 
   return {
     closing,
-    totals: { bruto, liquido, qtdVendas, ticketMedio, lucroOp: liquido * 0.324 },
+    totals: {
+      bruto, liquido, qtdVendas, ticketMedio,
+      lucroOp: liquido * 0.324,
+      custoReal: +custoReal.toFixed(2),
+      lucroReal: +lucroReal.toFixed(2),
+      margemReal: +margemReal.toFixed(1),
+    },
     abc: { byVolume, byReceita },
     forecast: computeForecast(),
   };

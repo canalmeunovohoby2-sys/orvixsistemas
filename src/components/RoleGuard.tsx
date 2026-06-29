@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useSaaS, type Role } from "@/lib/saas-context";
 import { ShieldAlert } from "lucide-react";
 
@@ -9,8 +9,9 @@ import { ShieldAlert } from "lucide-react";
  * - Sessão sem permissão: caixa vai para /vendas; super_admin para /super-admin; demais ficam bloqueados.
  */
 export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactNode }) {
-  const { user } = useSaaS();
+  const { user, company } = useSaaS();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -21,12 +22,22 @@ export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactN
       navigate({ to: "/login" });
       return;
     }
+    // Bloqueio progressivo da assinatura: empresa BLOQUEADA → /assinatura.
+    // super_admin nunca é bloqueado (gerencia a plataforma).
+    if (
+      user.role !== "super_admin" &&
+      company?.status === "blocked" &&
+      pathname !== "/assinatura"
+    ) {
+      navigate({ to: "/assinatura" });
+      return;
+    }
     if (!allow.includes(user.role)) {
       if (user.role === "cashier") navigate({ to: "/vendas" });
       else if (user.role === "super_admin") navigate({ to: "/super-admin" });
       else navigate({ to: "/" });
     }
-  }, [mounted, user, allow, navigate]);
+  }, [mounted, user, company, pathname, allow, navigate]);
 
   if (!mounted) {
     return <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">Carregando…</div>;

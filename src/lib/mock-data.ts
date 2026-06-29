@@ -42,6 +42,12 @@ export type Sale = {
   status: "concluida" | "pendente" | "cancelada";
   /** Parcelas no crédito (1 = à vista). Definido apenas quando payment === "Cartão". */
   installments?: number;
+  /** Custo total dos itens vendidos (para cálculo de Lucro Real). */
+  cost?: number;
+  /** Quando true, a venda foi feita no crediário (gera Conta a Receber). */
+  crediario?: boolean;
+  /** ID do cliente do crediário (quando crediario === true). */
+  customerId?: string;
 };
 
 export type Movement = {
@@ -68,6 +74,26 @@ export type Person = {
   city: string;
   creditLimit: number;
   currentDebt: number;
+};
+
+/* ============================================================
+ * Financeiro — Contas a Pagar e Contas a Receber (multiempresa)
+ * ============================================================ */
+export type FinancialType = "PAGAR" | "RECEBER";
+export type FinancialStatus = "PENDENTE" | "PAGO" | "ATRASADO";
+
+export type FinancialRecord = {
+  id: string;
+  company_id: string;
+  type: FinancialType;
+  description: string;
+  amount: number;
+  dueDate: string;   // ISO
+  paidDate?: string; // ISO
+  status: FinancialStatus;
+  customerId?: string;
+  supplierId?: string;
+  saleRef?: string;
 };
 
 const CATS = ["Alimentos", "Bebidas", "Limpeza", "Higiene", "Hortifruti", "Papelaria", "Eletrônicos", "Utilidades", "Vestuário", "Variedades"];
@@ -203,12 +229,14 @@ export const SALES: Sale[] = Array.from({ length: 28 }, (_, i) => {
     payment === "Cartão"
       ? (r() > 0.4 ? pick([2, 3, 4, 6, 10, 12] as const) : 1)
       : undefined;
+  const total = +(num(80, 4500) + r()).toFixed(2);
   return {
     id: `V${String(20240 + i).padStart(5, "0")}`,
     company_id: "EMP001",
     date: d.toISOString(),
     customer: pick(CUST_NAMES),
-    total: +(num(80, 4500) + r()).toFixed(2),
+    total,
+    cost: +(total * (0.55 + r() * 0.15)).toFixed(2),
     items: num(1, 12),
     payment,
     installments,
@@ -280,6 +308,102 @@ export const getCompanySuppliers = (cid: string | null) =>
   cid ? SUPPLIERS.filter((s) => s.company_id === cid) : [];
 export const getCompanyCustomers = (cid: string | null) =>
   cid ? CUSTOMERS.filter((c) => c.company_id === cid) : [];
+
+/* ============================================================
+ * Financeiro — seed + helpers tenant-scoped
+ * ============================================================ */
+function isOverdue(rec: { status: FinancialStatus; dueDate: string }) {
+  if (rec.status !== "PENDENTE") return false;
+  return new Date(rec.dueDate).getTime() < Date.now() - 24 * 3600 * 1000;
+}
+
+export const FINANCIAL_RECORDS: FinancialRecord[] = (() => {
+  const out: FinancialRecord[] = [];
+  let seq = 7000;
+  const now = new Date();
+  // Contas a pagar (fornecedores) — recorrentes do mês corrente
+  const pagar = [
+    { desc: "Aluguel — loja matriz", amount: 4800, daysFromNow: 5 },
+    { desc: "Energia elétrica — CPFL", amount: 1240.55, daysFromNow: -3 },
+    { desc: "Internet fibra empresarial", amount: 299.9, daysFromNow: 10 },
+    { desc: "Fornecedor Distribuidora Central LTDA", amount: 6890.0, daysFromNow: -8 },
+    { desc: "Folha de pagamento — operadores", amount: 9500.0, daysFromNow: 15 },
+  ];
+  pagar.forEach((p, i) => {
+    const d = new Date(now); d.setDate(d.getDate() + p.daysFromNow);
+    const rec: FinancialRecord = {
+      id: `FR${seq++}`,
+      company_id: "EMP001",
+      type: "PAGAR",
+      description: p.desc,
+      amount: p.amount,
+      dueDate: d.toISOString(),
+      status: i === 1 ? "PAGO" : "PENDENTE",
+      paidDate: i === 1 ? new Date(d.getTime() - 86400000).toISOString() : undefined,
+    };
+    if (isOverdue(rec)) rec.status = "ATRASADO";
+    out.push(rec);
+  });
+  // Contas a receber (clientes em crediário)
+  CUSTOMERS.slice(0, 4).forEach((c, i) => {
+    const d = new Date(now); d.setDate(d.getDate() + (i * 7 - 4));
+    const rec: FinancialRecord = {
+      id: `FR${seq++}`,
+      company_id: "EMP001",
+      type: "RECEBER",
+      description: `Crediário — ${c.name}`,
+      amount: +(380 + i * 220).toFixed(2),
+      dueDate: d.toISOString(),
+      status: i === 0 ? "PAGO" : "PENDENTE",
+      paidDate: i === 0 ? new Date(d.getTime() - 86400000).toISOString() : undefined,
+      customerId: c.id,
+      saleRef: `V${20100 + i}`,
+    };
+    if (isOverdue(rec)) rec.status = "ATRASADO";
+    out.push(rec);
+  });
+  return out;
+})();
+
+export const getCompanyFinancialRecords = (cid: string | null): FinancialRecord[] => {
+  if (!cid) return [];
+  // Reavalia status (PENDENTE → ATRASADO se vencido) a cada leitura.
+  return FINANCIAL_RECORDS
+    .filter((r) => r.company_id === cid)
+    .map((r) => (isOverdue(r) ? { ...r, status: "ATRASADO" as FinancialStatus } : r));
+};
+
+let __finSeq = 8000;
+export function addFinancialRecord(input: Omit<FinancialRecord, "id" | "status"> & { status?: FinancialStatus }): FinancialRecord {
+  const rec: FinancialRecord = {
+    id: `FR${__finSeq++}`,
+    status: input.status ?? "PENDENTE",
+    ...input,
+  };
+  if (isOverdue(rec)) rec.status = "ATRASADO";
+  FINANCIAL_RECORDS.push(rec);
+  __emit();
+  return rec;
+}
+
+export function markFinancialPaid(id: string, paidDate = new Date().toISOString()): boolean {
+  const rec = FINANCIAL_RECORDS.find((r) => r.id === id);
+  if (!rec) return false;
+  rec.status = "PAGO";
+  rec.paidDate = paidDate;
+  __emit();
+  return true;
+}
+
+export function markFinancialPending(id: string): boolean {
+  const rec = FINANCIAL_RECORDS.find((r) => r.id === id);
+  if (!rec) return false;
+  rec.status = "PENDENTE";
+  rec.paidDate = undefined;
+  if (isOverdue(rec)) rec.status = "ATRASADO";
+  __emit();
+  return true;
+}
 
 // ============================================================
 // Credit / Crediário store (mock — in-memory, reactive)
@@ -404,7 +528,18 @@ export function commitPdvSale(input: {
   payment: Sale["payment"];
   installments?: number;
   customer?: string;
+  /** Quando informado, registra a venda como crediário e gera Conta a Receber. */
+  customerId?: string;
+  crediario?: boolean;
+  /** Dias para vencimento da Conta a Receber (default 30). */
+  crediarioDueDays?: number;
 }): Sale {
+  // Custo real da venda (soma cost × qty por item).
+  let cost = 0;
+  input.items.forEach((it) => {
+    const p = PRODUCTS.find((pp) => pp.id === it.id && pp.company_id === input.company_id);
+    if (p) cost += p.costPrice * it.qty;
+  });
   const sale = registerSale({
     total: input.total,
     items: input.items.length,
@@ -413,6 +548,9 @@ export function commitPdvSale(input: {
     installments: input.installments,
     company_id: input.company_id,
   });
+  sale.cost = +cost.toFixed(2);
+  sale.crediario = !!input.crediario;
+  sale.customerId = input.customerId;
   input.items.forEach((it) => {
     const p = PRODUCTS.find((pp) => pp.id === it.id && pp.company_id === input.company_id);
     if (!p) return;
@@ -427,6 +565,23 @@ export function commitPdvSale(input: {
       reason: `Venda PDV ${sale.id}`,
     });
   });
+  // Crediário → cria Conta a Receber + atualiza saldo do cliente.
+  if (input.crediario && input.customerId) {
+    const days = input.crediarioDueDays ?? 30;
+    const due = new Date(); due.setDate(due.getDate() + days);
+    const cust = CUSTOMERS.find((c) => c.id === input.customerId);
+    addFinancialRecord({
+      company_id: input.company_id,
+      type: "RECEBER",
+      description: `Crediário — ${cust?.name ?? "Cliente"} · ${sale.id}`,
+      amount: input.total,
+      dueDate: due.toISOString(),
+      customerId: input.customerId,
+      saleRef: sale.id,
+    });
+    addCreditDebt(input.customerId, input.total, sale.id);
+  }
+  __emit();
   return sale;
 }
 

@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
-  BRL, PRODUCTS, SALES, commitPdvSale,
+  BRL, CUSTOMERS, PRODUCTS, SALES, commitPdvSale,
   formatQty, isFractional,
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X } from "lucide-react";
+import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -74,6 +74,14 @@ function VendasPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [crediario, setCrediario] = useState(false);
+  const [customerId, setCustomerId] = useState<string>("");
+
+  const cid = company?.id ?? user?.companyId ?? "EMP001";
+  const companyCustomers = useMemo(
+    () => CUSTOMERS.filter((c) => c.company_id === cid),
+    [cid],
+  );
 
   const searchRef = useRef<HTMLInputElement>(null);
   const discountRef = useRef<HTMLInputElement>(null);
@@ -151,31 +159,47 @@ function VendasPage() {
 
   const finalize = useCallback(() => {
     if (cart.length === 0) return toast.error("Carrinho vazio.");
-    if (paid + 0.01 < total) return toast.error(`Pagamento incompleto. Falta ${BRL(remaining)}.`);
+    if (crediario) {
+      if (!customerId) return toast.error("Selecione o cliente para a venda no crediário.");
+    } else if (paid + 0.01 < total) {
+      return toast.error(`Pagamento incompleto. Falta ${BRL(remaining)}.`);
+    }
 
     // Baixa de estoque + registro de auditoria por item (filtrado pelo company_id)
     const credSplit = splits.find((s) => s.method === "Crédito");
     const primary = splits[0]?.method ?? "Dinheiro";
     const mappedPayment: Sale["payment"] =
-      primary === "Crédito" || primary === "Débito" ? "Cartão" : primary;
+      crediario ? "Pix" : (primary === "Crédito" || primary === "Débito" ? "Cartão" : primary);
     commitPdvSale({
-      company_id: company?.id ?? user?.companyId ?? "EMP001",
+      company_id: cid,
       user: user?.name ?? "operador",
       items: cart.map((c) => ({ id: c.id, name: c.name, qty: c.qty })),
       total,
       payment: mappedPayment,
       installments: credSplit?.installments ?? 1,
+      crediario,
+      customerId: crediario ? customerId : undefined,
+      customer: crediario ? companyCustomers.find((c) => c.id === customerId)?.name : undefined,
     });
 
-    toast.success(`Venda concluída — ${BRL(total)}`, {
-      description: `${cart.length} item(ns) · ${splits.map((s) => s.method === "Crédito" && s.installments && s.installments > 1 ? `Crédito ${s.installments}x` : s.method).join(" + ") || "—"}`,
-    });
+    if (crediario) {
+      const c = companyCustomers.find((x) => x.id === customerId);
+      toast.success(`Crediário registrado — ${BRL(total)}`, {
+        description: `${cart.length} item(ns) · Conta a Receber criada para ${c?.name ?? "cliente"} (venc. 30 dias).`,
+      });
+    } else {
+      toast.success(`Venda concluída — ${BRL(total)}`, {
+        description: `${cart.length} item(ns) · ${splits.map((s) => s.method === "Crédito" && s.installments && s.installments > 1 ? `Crédito ${s.installments}x` : s.method).join(" + ") || "—"}`,
+      });
+    }
     setCart([]);
     setSplits([]);
     setDiscount(0);
     setShowDiscount(false);
     setShowPayment(false);
-  }, [cart, paid, total, remaining, splits, company, user]);
+    setCrediario(false);
+    setCustomerId("");
+  }, [cart, paid, total, remaining, splits, cid, user, crediario, customerId, companyCustomers]);
 
   // Cancelamento total da venda (F8 / botão vermelho)
   const cancelSale = useCallback(() => {
@@ -523,6 +547,40 @@ function VendasPage() {
           <div className="flex items-baseline justify-between">
             <p className="text-sm text-muted-foreground">Total</p>
             <p className="text-3xl font-bold tracking-tight tabular-nums">{BRL(total)}</p>
+          </div>
+
+          {/* Crediário (Venda a prazo) */}
+          <div className="mt-4 rounded-lg border border-border bg-secondary/40 p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={crediario}
+                onChange={(e) => setCrediario(e.target.checked)}
+                className="accent-primary"
+              />
+              <UserCheck className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Venda no Crediário (a prazo)</span>
+            </label>
+            {crediario && (
+              <div className="mt-2 space-y-1.5">
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  aria-label="Cliente do crediário"
+                  className="w-full h-9 px-2 rounded bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/60"
+                >
+                  <option value="">Selecione o cliente…</option>
+                  {companyCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.doc}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Gera uma <strong className="text-foreground">Conta a Receber</strong> com vencimento em 30 dias e atualiza o saldo do cliente.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Splits */}

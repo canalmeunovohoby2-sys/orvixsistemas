@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3,
+  LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3, Users, Wallet,
   Search, ChevronLeft, ChevronRight, Menu, X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,7 +21,9 @@ const NAV_FULL: NavItem[] = [
   { label: "Produtos", to: "/produtos", icon: Package },
   { label: "Vendas", to: "/vendas", icon: ShoppingCart },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
+  { label: "Clientes", to: "/clientes", icon: Users },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
+  { label: "Financeiro", to: "/financeiro", icon: Wallet },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
 ];
 

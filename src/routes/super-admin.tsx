@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
-import { COMPANIES, STATUS_LABEL, useSaaS } from "@/lib/saas-context";
+import { STATUS_LABEL, useSaaS, type SubscriptionStatus } from "@/lib/saas-context";
 import { BRL } from "@/lib/mock-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/super-admin")({
   head: () => ({
@@ -20,19 +21,22 @@ export const Route = createFileRoute("/super-admin")({
 });
 
 function SuperAdminPage() {
-  const { user } = useSaaS();
-  const total = COMPANIES.length;
-  const ativas = COMPANIES.filter((c) => c.status === "active").length;
-  const trial = COMPANIES.filter((c) => c.status === "trial").length;
-  const inadimplentes = COMPANIES.filter((c) => c.status === "overdue").length;
-  const mrr = COMPANIES.reduce((a, c) => a + (c.status === "active" ? c.mrr : 0), 0);
+  const { user, companies, setCompanyStatus } = useSaaS();
+  const total = companies.length;
+  const ativas = companies.filter((c) => c.status === "active").length;
+  const trial = companies.filter((c) => c.status === "trial").length;
+  const pendentes = companies.filter((c) => c.status === "pending").length;
+  const bloqueadas = companies.filter((c) => c.status === "blocked").length;
+  const mrr = companies.reduce((a, c) => a + (c.status === "active" ? c.mrr : 0), 0);
 
   const KPI = [
     { label: "Empresas ativas", value: `${ativas}/${total}`, icon: Building2 },
     { label: "MRR consolidado", value: BRL(mrr), icon: TrendingUp },
-    { label: "Em trial", value: String(trial), icon: CheckCircle2 },
-    { label: "Inadimplentes", value: String(inadimplentes), icon: AlertTriangle, alert: true },
+    { label: "Trial / Vencendo", value: `${trial} / ${pendentes}`, icon: CheckCircle2 },
+    { label: "Bloqueadas", value: String(bloqueadas), icon: AlertTriangle, alert: true },
   ];
+
+  const STATUS_OPTIONS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -75,10 +79,11 @@ function SuperAdminPage() {
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-right px-4 py-3">MRR</th>
                 <th className="text-left px-4 py-3">Desde</th>
+                <th className="text-left px-4 py-3">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {COMPANIES.map((c) => (
+              {companies.map((c) => (
                 <tr key={c.id} className="border-t border-border">
                   <td className="px-4 py-3">
                     <div className="font-semibold">{c.fantasia}</div>
@@ -90,7 +95,8 @@ function SuperAdminPage() {
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${
                       c.status === "active" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                       : c.status === "trial" ? "bg-sky-500/15 text-sky-600 dark:text-sky-400"
-                      : c.status === "overdue" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      : c.status === "pending" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      : c.status === "blocked" ? "bg-primary/15 text-primary"
                       : "bg-muted text-muted-foreground"
                     }`}>
                       {STATUS_LABEL[c.status]}
@@ -98,6 +104,22 @@ function SuperAdminPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-semibold">{BRL(c.mrr)}</td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("pt-BR")}</td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={c.status}
+                      onChange={(e) => {
+                        const next = e.target.value as SubscriptionStatus;
+                        setCompanyStatus(c.id, next);
+                        toast.success(`${c.fantasia}: status alterado para ${STATUS_LABEL[next]}.`);
+                      }}
+                      aria-label={`Alterar status de ${c.fantasia}`}
+                      className="h-8 px-2 rounded-md bg-secondary border border-border text-xs"
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                      ))}
+                    </select>
+                  </td>
                 </tr>
               ))}
             </tbody>
