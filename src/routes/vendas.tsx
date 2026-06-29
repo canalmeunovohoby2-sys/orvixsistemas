@@ -9,7 +9,7 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
+import { useSaaS, PLAN_LIMITS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
 import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -90,7 +90,7 @@ function VendasPage() {
     if (!company) return;
     const STORAGE_KEY = `orvix_pdv_open_${cid}`;
     const MY_ID = sessionIdRef.current;
-    const limit = PLAN_LIMITS[company.plan].caixas;
+    const limit = getPlanCaixasLimit(company.plan);
 
     const read = (): Record<string, number> => {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; }
@@ -453,8 +453,8 @@ function VendasPage() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               {company.plan === "bronze"
-                ? "Faça o upgrade para o Plano Prata e abra até 3 caixas simultaneamente — ou Ouro para caixas ilimitados."
-                : "Faça o upgrade para o Plano Ouro Premium e libere caixas ilimitados."}
+                ? `Faça o upgrade para o Plano Prata e abra até ${getPlanCaixasLimit("prata")} caixas simultaneamente — ou Ouro para até ${getPlanCaixasLimit("ouro")} terminais.`
+                : `Faça o upgrade para o Plano Ouro Premium e libere até ${getPlanCaixasLimit("ouro")} terminais simultâneos.`}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a

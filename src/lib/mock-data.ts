@@ -194,8 +194,8 @@ export type SaaSSettings = {
 
 export const SAAS_SETTINGS: SaaSSettings = {
   trialDays: 14,
-  // ouro = ilimitado (representado por Infinity; UI mostra "∞ Ilimitado")
-  usersLimit: { bronze: 1, prata: 3, ouro: Infinity },
+  // Limites padrão por plano (usuários/terminais). Super Admin pode ajustar em Configurações.
+  usersLimit: { bronze: 1, prata: 3, ouro: 10 },
   smtpHost: "smtp.sendgrid.net",
   smtpUser: "apikey",
   smtpFrom: "no-reply@orvix.app",
@@ -209,15 +209,13 @@ if (typeof window !== "undefined") {
   try {
     const raw = window.localStorage.getItem(SAAS_SETTINGS_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Partial<SaaSSettings> & {
-        usersLimit?: { bronze?: number; prata?: number; ouro?: number | "INF" };
-      };
-      if (parsed.usersLimit && (parsed.usersLimit.ouro as unknown) === "INF") {
-        parsed.usersLimit.ouro = Infinity;
-      }
+      const parsed = JSON.parse(raw) as Partial<SaaSSettings>;
       Object.assign(SAAS_SETTINGS, parsed);
-      // Ouro é sempre ilimitado por contrato comercial.
-      SAAS_SETTINGS.usersLimit.ouro = Infinity;
+      // Normaliza limites para inteiros válidos (>=1).
+      const ul = SAAS_SETTINGS.usersLimit;
+      ul.bronze = Math.max(1, Number(ul.bronze) || 1);
+      ul.prata  = Math.max(1, Number(ul.prata)  || 3);
+      ul.ouro   = Math.max(1, Number(ul.ouro)   || 10);
     }
   } catch {
     /* ignore corrupted settings */
@@ -227,17 +225,7 @@ if (typeof window !== "undefined") {
 function persistSaaSSettings() {
   if (typeof window === "undefined") return;
   try {
-    const serializable = {
-      ...SAAS_SETTINGS,
-      usersLimit: {
-        ...SAAS_SETTINGS.usersLimit,
-        // JSON.stringify converte Infinity em null — usamos sentinela "INF".
-        ouro: Number.isFinite(SAAS_SETTINGS.usersLimit.ouro)
-          ? SAAS_SETTINGS.usersLimit.ouro
-          : "INF",
-      },
-    };
-    window.localStorage.setItem(SAAS_SETTINGS_KEY, JSON.stringify(serializable));
+    window.localStorage.setItem(SAAS_SETTINGS_KEY, JSON.stringify(SAAS_SETTINGS));
   } catch {
     /* storage cheio ou indisponível */
   }
@@ -245,8 +233,11 @@ function persistSaaSSettings() {
 
 export function updateSaaSSettings(patch: Partial<SaaSSettings>) {
   Object.assign(SAAS_SETTINGS, patch);
-  // Ouro permanece ilimitado mesmo se alguém tentar sobrescrever.
-  SAAS_SETTINGS.usersLimit.ouro = Infinity;
+  // Normaliza limites — sempre inteiros >=1.
+  const ul = SAAS_SETTINGS.usersLimit;
+  ul.bronze = Math.max(1, Math.floor(Number(ul.bronze) || 1));
+  ul.prata  = Math.max(1, Math.floor(Number(ul.prata)  || 3));
+  ul.ouro   = Math.max(1, Math.floor(Number(ul.ouro)   || 10));
   persistSaaSSettings();
   __emit();
 }
