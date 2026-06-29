@@ -199,7 +199,7 @@ type SaaSCtx = {
     data: { fantasia: string; cnpj: string; phone: string; segment: string },
   ) => Promise<{ ok: boolean; reason?: string }>;
 
-  createDemoAccess: () => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; company?: Company }>;
+  createDemoAccess: () => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; company?: Company; password?: string }>;
   processWebhookPayment: (ev: {
     id: string; externalId: string;
     type: "payment" | "subscription" | "unknown";
@@ -210,13 +210,13 @@ type SaaSCtx = {
   countUsers: (companyId: string) => number;
   canAddUser: (companyId: string) => { ok: boolean; reason?: string };
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) =>
-    Promise<{ ok: boolean; user?: SaaSUser; reason?: string }>;
+    Promise<{ ok: boolean; user?: SaaSUser; reason?: string; password?: string }>;
 
   countCashiers: (companyId: string) => number;
   canAddCashier: (companyId: string) => { ok: boolean; reason?: string; limit: number; current: number };
   createCashier: (
     companyId: string, data: { name: string; email: string; password: string },
-  ) => Promise<{ ok: boolean; reason?: string; user?: SaaSUser }>;
+  ) => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; password?: string }>;
   deleteCashier: (userId: string) => Promise<{ ok: boolean; reason?: string }>;
 
   deleteCompany: (companyId: string) => Promise<{ ok: boolean; reason?: string }>;
