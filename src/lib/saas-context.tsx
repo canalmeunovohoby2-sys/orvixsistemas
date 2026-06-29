@@ -58,8 +58,26 @@ export const PLAN_LABEL: Record<Plan, string> = {
 export const PLAN_LIMITS: Record<Plan, { caixas: number; users: number; advancedReports: boolean }> = {
   bronze: { caixas: 1, users: 1, advancedReports: false },
   prata:  { caixas: 3, users: 5, advancedReports: false },
-  ouro:   { caixas: Infinity, users: Infinity, advancedReports: true },
+  ouro:   { caixas: 10, users: 10, advancedReports: true },
 };
+
+/**
+ * Resolve o limite efetivo de usuários do plano consultando SAAS_SETTINGS
+ * (configurável pelo Super Admin). Faz fallback para o default em PLAN_LIMITS.
+ */
+export function getPlanUsersLimit(plan: Plan): number {
+  const cfg = Number(SAAS_SETTINGS.usersLimit?.[plan]);
+  return Number.isFinite(cfg) && cfg > 0 ? cfg : PLAN_LIMITS[plan].users;
+}
+
+/**
+ * Para o Plano Ouro os terminais (caixas) respeitam o mesmo teto configurável
+ * de usuários — protegendo a infraestrutura contra escalonamento ilimitado.
+ */
+export function getPlanCaixasLimit(plan: Plan): number {
+  if (plan === "ouro") return getPlanUsersLimit("ouro");
+  return PLAN_LIMITS[plan].caixas;
+}
 
 // MRR inicia em 0 para todas as empresas-seed — o faturamento real só passa a contar
 // quando uma venda é registrada no PDV (activateRevenue) ou quando o Super Admin
@@ -407,12 +425,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const canAddUser = useCallback((companyId: string) => {
     const c = COMPANIES.find((x) => x.id === companyId);
     if (!c) return { ok: false, reason: "Empresa não encontrada." };
-    const limit = PLAN_LIMITS[c.plan].users;
+    const limit = getPlanUsersLimit(c.plan);
     const current = SAAS_USERS.filter((u) => u.companyId === companyId).length;
     if (current >= limit) {
       return {
         ok: false,
-        reason: `🚫 Limite Atingido: Seu plano ${PLAN_LABEL[c.plan]} permite até ${limit === Infinity ? "∞" : limit} usuário(s). Faça upgrade para o Plano ${c.plan === "bronze" ? "Prata ou Ouro" : "Ouro"}!`,
+        reason: `🚫 Limite Atingido: Seu plano ${PLAN_LABEL[c.plan]} permite até ${limit} usuário(s)/terminal(is). ${c.plan === "ouro" ? "Solicite ampliação do teto ao administrador da plataforma." : `Faça upgrade para o Plano ${c.plan === "bronze" ? "Prata ou Ouro" : "Ouro"}!`}`,
       };
     }
     return { ok: true };
