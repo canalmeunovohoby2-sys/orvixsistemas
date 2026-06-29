@@ -6,7 +6,7 @@ import { ShieldAlert } from "lucide-react";
 /**
  * Protege uma rota verificando se o usuário logado tem um dos papéis permitidos.
  * - Sem sessão: redireciona para /login.
- * - Sessão sem permissão: caixa vai para /vendas; super_admin para /super-admin; demais ficam bloqueados.
+ * - Sessão sem permissão: caixa vai para /caixa; super_admin para /super-admin; admin vai para /dashboard.
  */
 export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactNode }) {
   const { user, company } = useSaaS();
@@ -33,9 +33,9 @@ export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactN
       return;
     }
     if (!allow.includes(user.role)) {
-      if (user.role === "cashier") navigate({ to: "/vendas" });
+      if (user.role === "cashier") navigate({ to: "/caixa" });
       else if (user.role === "super_admin") navigate({ to: "/super-admin" });
-      else navigate({ to: "/" });
+      else navigate({ to: "/dashboard" });
     }
   }, [mounted, user, company, pathname, allow, navigate]);
 
