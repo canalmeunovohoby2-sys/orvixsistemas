@@ -3,7 +3,10 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE, formatQty, type Sale } from "@/lib/mock-data";
+import {
+  BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE,
+  formatQty, isDemoCompany, type Sale,
+} from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS } from "@/lib/saas-context";
 import { motion } from "framer-motion";
@@ -11,7 +14,7 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,18 +30,51 @@ export const Route = createFileRoute("/")({
   component: () => (<RoleGuard allow={["admin"]}><DashboardPage /></RoleGuard>),
 });
 
-const KPI_CARDS = [
-  { label: "Vendas (mês)", value: BRL(KPIS.vendasMes), trend: 12.4, icon: DollarSign, positive: true },
-  { label: "Lucro (mês)", value: BRL(KPIS.lucroMes), trend: 8.1, icon: TrendingUp, positive: true },
-  { label: "Itens em Estoque", value: KPIS.itensEstoque.toLocaleString("pt-BR"), trend: -2.3, icon: Boxes, positive: false },
-  { label: "Estoque Baixo", value: String(KPIS.estoqueBaixo), trend: 4, icon: AlertTriangle, positive: false, alert: true },
-];
-
 const CHART_COLORS = ["#8B0000", "#5A8FB8", "#5BA67C", "#C9A961", "#8B6F8E"];
 
 function DashboardPage() {
   useMockStore();
-  const recent = SALES.slice(0, 6);
+  const { company } = useSaaS();
+  const cid = company?.id ?? null;
+  const demo = isDemoCompany(cid);
+
+  // Em empresas reais (não-demo) os dados ficam zerados até o lojista operar o sistema.
+  const tenantProducts = useMemo(
+    () => (cid ? PRODUCTS.filter((p) => p.company_id === cid) : []),
+    [cid],
+  );
+  const tenantSales = useMemo(
+    () => (cid ? SALES.filter((s) => s.company_id === cid) : []),
+    [cid],
+  );
+
+  const vendasMes = demo
+    ? KPIS.vendasMes
+    : tenantSales.filter((s) => s.status === "concluida").reduce((a, s) => a + s.total, 0);
+  const lucroMes = demo
+    ? KPIS.lucroMes
+    : tenantSales.filter((s) => s.status === "concluida").reduce((a, s) => a + (s.total - (s.cost ?? 0)), 0);
+  const itensEstoque = tenantProducts.reduce((a, p) => a + p.stock, 0);
+  const estoqueBaixo = tenantProducts.filter((p) => p.stock <= p.minStock).length;
+
+  const kpiCards = [
+    { label: "Vendas (mês)", value: BRL(vendasMes), trend: demo ? 12.4 : 0, icon: DollarSign, positive: true },
+    { label: "Lucro (mês)", value: BRL(lucroMes), trend: demo ? 8.1 : 0, icon: TrendingUp, positive: true },
+    { label: "Itens em Estoque", value: itensEstoque.toLocaleString("pt-BR"), trend: demo ? -2.3 : 0, icon: Boxes, positive: false },
+    { label: "Estoque Baixo", value: String(estoqueBaixo), trend: demo ? 4 : 0, icon: AlertTriangle, positive: false, alert: true },
+  ];
+
+  // Charts: demo usa séries pré-povoadas; tenants reais começam com séries vazias (14 dias zerados).
+  const salesByDay = demo
+    ? SALES_BY_DAY
+    : Array.from({ length: 14 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (13 - i));
+        return { day: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), vendas: 0, lucro: 0 };
+      });
+  const topProducts = demo ? TOP_PRODUCTS : [];
+  const categoryShare = demo ? CATEGORY_SHARE : [];
+
+  const recent = tenantSales.slice(0, 6);
 
   const cols: Column<Sale>[] = [
     { key: "id", label: "Pedido", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
@@ -57,10 +93,24 @@ function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" breadcrumb={["Meu Saas", "Visão Geral"]}>
+      {!demo && (
+        <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary grid place-items-center shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div className="text-sm">
+            <p className="font-semibold text-foreground">Bem-vindo(a) à sua loja na ORVIX SISTEMAS</p>
+            <p className="text-muted-foreground mt-0.5">
+              Sua conta começa zerada. Cadastre produtos, registre vendas no Caixa e seus indicadores aparecerão aqui em tempo real.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       <section aria-labelledby="kpis" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <h2 id="kpis" className="sr-only">Indicadores</h2>
-        {KPI_CARDS.map((k, i) => (
+        {kpiCards.map((k, i) => (
           <motion.article
             key={k.label}
             initial={{ opacity: 0, y: 8 }}
@@ -75,10 +125,14 @@ function DashboardPage() {
               </div>
             </div>
             <p className="mt-3 text-2xl font-bold tracking-tight">{k.value}</p>
-            <p className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${k.positive ? "text-emerald-400" : "text-primary"}`}>
-              {k.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-              {Math.abs(k.trend)}% vs mês anterior
-            </p>
+            {demo ? (
+              <p className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${k.positive ? "text-emerald-400" : "text-primary"}`}>
+                {k.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {Math.abs(k.trend)}% vs mês anterior
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Sem histórico ainda</p>
+            )}
           </motion.article>
         ))}
       </section>
@@ -97,7 +151,7 @@ function DashboardPage() {
           </header>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SALES_BY_DAY}>
+              <AreaChart data={salesByDay}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#8B0000" stopOpacity={0.55} />
@@ -124,15 +178,19 @@ function DashboardPage() {
           <h2 id="categorias" className="text-base font-semibold mb-1">Mix por categoria</h2>
           <p className="text-xs text-muted-foreground mb-3">Participação nas vendas</p>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={CATEGORY_SHARE} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
-                  {CATEGORY_SHARE.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryShare.length === 0 ? (
+              <EmptyChart label="Nenhuma venda categorizada ainda." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={categoryShare} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                    {categoryShare.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
       </div>
@@ -142,15 +200,19 @@ function DashboardPage() {
           <h2 id="top-produtos" className="text-base font-semibold mb-1">Produtos mais vendidos</h2>
           <p className="text-xs text-muted-foreground mb-3">Unidades · mês atual</p>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TOP_PRODUCTS} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                <XAxis type="number" stroke="#888" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" stroke="#888" fontSize={10} tickLine={false} axisLine={false} width={130} />
-                <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="vendas" fill="#8B0000" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {topProducts.length === 0 ? (
+              <EmptyChart label="Cadastre produtos e registre vendas no Caixa para ver o ranking." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topProducts} layout="vertical" margin={{ left: 10 }}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                  <XAxis type="number" stroke="#888" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" stroke="#888" fontSize={10} tickLine={false} axisLine={false} width={130} />
+                  <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="vendas" fill="#8B0000" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
 
@@ -167,6 +229,19 @@ function DashboardPage() {
 
       <CriticalAlerts />
     </AppShell>
+  );
+}
+
+function EmptyChart({ label }: { label: string }) {
+  return (
+    <div className="h-full w-full grid place-items-center text-center px-6">
+      <div>
+        <div className="w-12 h-12 mx-auto rounded-full bg-secondary border border-border grid place-items-center mb-2">
+          <Boxes className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <p className="text-xs text-muted-foreground max-w-xs">{label}</p>
+      </div>
+    </div>
   );
 }
 

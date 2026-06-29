@@ -309,6 +309,17 @@ type SaaSCtx = {
   canAddUser: (companyId: string) => { ok: boolean; reason?: string };
   /** Convida (mock) um novo usuário. Aplica trava do plano antes de criar. */
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
+  /** Conta operadores de caixa (role=cashier) cadastrados na empresa. */
+  countCashiers: (companyId: string) => number;
+  /** Verifica se a empresa pode receber mais um terminal/caixa conforme PLAN_LIMITS.caixas. */
+  canAddCashier: (companyId: string) => { ok: boolean; reason?: string; limit: number; current: number };
+  /** Cria um operador de caixa (terminal) com credenciais explícitas, respeitando o limite do plano. */
+  createCashier: (
+    companyId: string,
+    data: { name: string; email: string; password: string },
+  ) => { ok: boolean; reason?: string; user?: SaaSUser };
+  /** Remove um operador de caixa criado pelo dono da loja. */
+  deleteCashier: (userId: string) => { ok: boolean; reason?: string };
   /** Remove a empresa e TODOS os dados vinculados (usuários, produtos, vendas, financeiro, tickets, logs). */
   deleteCompany: (companyId: string) => { ok: boolean; reason?: string };
   /** Reverte o estado capturado no `undo` de um log de auditoria. */
@@ -847,6 +858,91 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     return { ok: true, user: newUser };
   }, [canAddUser, realUser]);
 
+  const countCashiers = useCallback(
+    (companyId: string) =>
+      SAAS_USERS.filter((u) => u.companyId === companyId && u.role === "cashier").length,
+    [],
+  );
+
+  const canAddCashier = useCallback((companyId: string) => {
+    const c = COMPANIES.find((x) => x.id === companyId);
+    if (!c) return { ok: false, reason: "Empresa não encontrada.", limit: 0, current: 0 };
+    const limit = getPlanCaixasLimit(c.plan);
+    const current = SAAS_USERS.filter((u) => u.companyId === companyId && u.role === "cashier").length;
+    if (current >= limit) {
+      return {
+        ok: false,
+        limit,
+        current,
+        reason: `🚫 Limite Atingido: seu plano ${PLAN_LABEL[c.plan]} permite até ${limit} terminal(is)/caixa(s). ${
+          c.plan === "ouro"
+            ? "Solicite ampliação do teto à ORVIX SISTEMAS."
+            : `Faça upgrade para o Plano ${c.plan === "bronze" ? "Prata ou Ouro" : "Ouro"}.`
+        }`,
+      };
+    }
+    return { ok: true, limit, current };
+  }, []);
+
+  const createCashier = useCallback(
+    (companyId: string, data: { name: string; email: string; password: string }) => {
+      const c = COMPANIES.find((x) => x.id === companyId);
+      if (!c) return { ok: false, reason: "Empresa não encontrada." };
+      const guard = canAddCashier(companyId);
+      if (!guard.ok) return { ok: false, reason: guard.reason };
+
+      const name = data.name.trim();
+      const email = data.email.trim().toLowerCase();
+      const password = data.password;
+      if (name.length < 2) return { ok: false, reason: "Informe o nome do operador." };
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, reason: "Informe um e-mail válido." };
+      if (!password || password.length < 4) return { ok: false, reason: "A senha do caixa precisa ter pelo menos 4 caracteres." };
+      if (SAAS_USERS.some((u) => u.email.toLowerCase() === email)) {
+        return { ok: false, reason: "Já existe um usuário com este e-mail." };
+      }
+
+      const newUser: SaaSUser = {
+        id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
+        name,
+        email,
+        role: "cashier",
+        companyId,
+        password,
+        isTemporaryPassword: false,
+      };
+      SAAS_USERS.push(newUser);
+      setUsersTick((t) => t + 1);
+      persistUsers();
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: c.id,
+        companyName: c.fantasia,
+        user: realUser?.name ?? "Lojista",
+        action: `Operador de caixa criado: ${name} (${email}) — plano ${PLAN_LABEL[c.plan]}.`,
+      });
+      return { ok: true, user: newUser };
+    },
+    [canAddCashier, realUser],
+  );
+
+  const deleteCashier = useCallback((userId: string) => {
+    const idx = SAAS_USERS.findIndex((u) => u.id === userId && u.role === "cashier");
+    if (idx < 0) return { ok: false, reason: "Operador não encontrado." };
+    const removed = SAAS_USERS[idx];
+    SAAS_USERS.splice(idx, 1);
+    setUsersTick((t) => t + 1);
+    persistUsers();
+    const c = removed.companyId ? COMPANIES.find((x) => x.id === removed.companyId) : null;
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: removed.companyId,
+      companyName: c?.fantasia ?? "Plataforma",
+      user: realUser?.name ?? "Lojista",
+      action: `Operador de caixa removido: ${removed.name} (${removed.email}).`,
+    });
+    return { ok: true };
+  }, [realUser]);
+
   const deleteCompany = useCallback((companyId: string) => {
     const idx = COMPANIES.findIndex((x) => x.id === companyId);
     if (idx < 0) return { ok: false, reason: "Empresa não encontrada." };
@@ -977,6 +1073,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         updatePassword, changeOwnPassword, completeOnboarding,
         createDemoAccess, processWebhookPayment,
         countUsers, canAddUser, inviteUser,
+        countCashiers, canAddCashier, createCashier, deleteCashier,
         deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
