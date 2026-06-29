@@ -945,7 +945,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 /* ───────── Modal: alterar senha do Super Admin (apenas o hash é armazenado) ───────── */
 
 function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
-  const { user } = useSaaS();
+  const { user, updatePassword } = useSaaS();
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
   const [show, setShow] = useState(false);
@@ -963,12 +963,12 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
   const mismatch = pwd2.length > 0 && pwd !== pwd2;
   const valid = pwd.length >= 8 && pwd === pwd2;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid || submitting) return;
     setSubmitting(true);
     try {
-      const res = updateSuperAdminPassword(pwd);
+      const res = await updatePassword(pwd);
       if (!res.ok) {
         toast.error(res.reason ?? "Não foi possível atualizar a senha.");
         return;
