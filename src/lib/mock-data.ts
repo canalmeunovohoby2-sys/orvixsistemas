@@ -120,6 +120,7 @@ export const PRODUCTS: Product[] = PROD_SEEDS.map(({ name, unit, category }, i) 
   const rawMin = num(10, 40) + (isFractional(unit) ? +r().toFixed(2) : 0);
   return {
     id: `P${String(i + 1).padStart(4, "0")}`,
+    company_id: "EMP001",
     ean: String(7890000000000 + num(1000, 999999)),
     name,
     category,
@@ -143,6 +144,7 @@ const SCAN_DEMO: { ean: string; name: string; unit: Unit; category: string; pric
 SCAN_DEMO.forEach((d, i) => {
   PRODUCTS.push({
     id: `PScan${i + 1}`,
+    company_id: "EMP001",
     ean: d.ean,
     name: d.name,
     category: d.category,
@@ -164,6 +166,7 @@ const CUST_NAMES = [
 
 export const CUSTOMERS: Person[] = CUST_NAMES.map((name, i) => ({
   id: `C${String(i + 1).padStart(3, "0")}`,
+  company_id: "EMP001",
   name,
   doc: name.includes("LTDA") || name.includes("ME") || name.includes("Construções") || name.includes("Materiais") || name.includes("Engenharia") || name.includes("Reformas")
     ? `${num(10, 99)}.${num(100, 999)}.${num(100, 999)}/0001-${num(10, 99)}`
@@ -177,6 +180,7 @@ export const CUSTOMERS: Person[] = CUST_NAMES.map((name, i) => ({
 
 export const SUPPLIERS: Person[] = SUPS.map((name, i) => ({
   id: `F${String(i + 1).padStart(3, "0")}`,
+  company_id: "EMP001",
   name,
   doc: `${num(10, 99)}.${num(100, 999)}.${num(100, 999)}/0001-${num(10, 99)}`,
   email: `comercial@${name.toLowerCase().replace(/[^a-z]/g, "")}.com.br`,
@@ -197,6 +201,7 @@ export const SALES: Sale[] = Array.from({ length: 28 }, (_, i) => {
       : undefined;
   return {
     id: `V${String(20240 + i).padStart(5, "0")}`,
+    company_id: "EMP001",
     date: d.toISOString(),
     customer: pick(CUST_NAMES),
     total: +(num(80, 4500) + r()).toFixed(2),
@@ -212,6 +217,7 @@ export const MOVEMENTS: Movement[] = Array.from({ length: 24 }, (_, i) => {
   d.setDate(d.getDate() - i);
   return {
     id: `M${String(5000 + i).padStart(5, "0")}`,
+    company_id: "EMP001",
     date: d.toISOString(),
     product: pick(PROD_SEEDS).name,
     type: pick(["Entrada", "Saída", "Ajuste"] as const),
@@ -321,6 +327,7 @@ export function registerSale(input: {
 }): Sale {
   const sale: Sale = {
     id: `V${String(__saleSeq++).padStart(5, "0")}`,
+    company_id: "EMP001",
     date: new Date().toISOString(),
     customer: input.customer || "Consumidor",
     total: +input.total.toFixed(2),
@@ -674,6 +681,7 @@ export function addProduct(input: {
 }): Product {
   const p: Product = {
     id: `P${String(__prodSeq++).padStart(4, "0")}`,
+    company_id: "EMP001",
     ean: input.ean,
     name: input.brand ? `${input.name}${input.name.toLowerCase().includes(input.brand.toLowerCase()) ? "" : ` — ${input.brand}`}` : input.name,
     category: input.category,
