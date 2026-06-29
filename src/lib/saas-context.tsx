@@ -576,6 +576,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       u.password = newPassword;
       u.isTemporaryPassword = false;
       persistUserPasswordOverride(u.id, newPassword);
+      persistUsers();
       setUsersTick((t) => t + 1);
       const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
       logEvent({
