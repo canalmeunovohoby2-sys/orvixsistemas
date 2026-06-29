@@ -115,7 +115,10 @@ function hydrateCompaniesFromStorage() {
 }
 
 export const SAAS_USERS: SaaSUser[] = [
-  { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "admin123", isTemporaryPassword: false },
+  // Super Admin: a senha NÃO é mais comparada via campo `password`.
+  // O login do super_admin é validado contra um SHA-256 (default em código + override em localStorage).
+  // O placeholder abaixo nunca é usado para autenticar — qualquer tentativa cai na verificação por hash.
+  { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "__hash_only__", isTemporaryPassword: false },
   { id: "U001", name: "Ana Mendes",    email: "ana@orvix.com.br",   role: "admin",       companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U002", name: "Bruno Caixa",   email: "bruno@orvix.com.br", role: "cashier",     companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U003", name: "Carla Souza",   email: "carla@trigo.com.br", role: "admin",       companyId: "EMP002",password: "123",     isTemporaryPassword: false },
