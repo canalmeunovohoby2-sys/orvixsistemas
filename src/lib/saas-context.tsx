@@ -896,7 +896,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const password = data.password;
       if (name.length < 2) return { ok: false, reason: "Informe o nome do operador." };
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, reason: "Informe um e-mail válido." };
-      if (!password || password.length < 4) return { ok: false, reason: "A senha do caixa precisa ter pelo menos 4 caracteres." };
+      if (!isStrongPassword(password)) {
+        return {
+          ok: false,
+          reason:
+            "A senha do caixa precisa ter no mínimo 8 caracteres com 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.",
+        };
+      }
       if (SAAS_USERS.some((u) => u.email.toLowerCase() === email)) {
         return { ok: false, reason: "Já existe um usuário com este e-mail." };
       }
