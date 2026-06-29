@@ -1065,3 +1065,31 @@ export function addProduct(input: {
   __emit();
   return p;
 }
+
+/* ---------------------------------------------------------------- */
+/*  Supplier registration (tenant-scoped)                           */
+/* ---------------------------------------------------------------- */
+
+let __supSeq = SUPPLIERS.length + 1;
+export function addSupplier(companyId: string, input: {
+  name: string;
+  doc: string;
+  email: string;
+  phone: string;
+  city: string;
+}): Person {
+  const s: Person = {
+    id: `F${String(__supSeq++).padStart(3, "0")}`,
+    company_id: companyId,
+    name: input.name.trim(),
+    doc: input.doc.trim(),
+    email: input.email.trim(),
+    phone: input.phone.trim(),
+    city: input.city.trim(),
+    creditLimit: 0,
+    currentDebt: 0,
+  };
+  SUPPLIERS.unshift(s);
+  __emit();
+  return s;
+}
