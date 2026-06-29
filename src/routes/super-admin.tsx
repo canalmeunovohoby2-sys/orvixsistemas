@@ -448,14 +448,12 @@ function EmailPreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="px-6 pt-6 pb-4 border-b border-border flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 id="email-preview-title" className="font-bold leading-tight">
-              📧 E-mail enviado com sucesso!
+          <div className="min-w-0 flex-1 flex flex-col gap-2">
+            <Logo height={28} />
+            <h2 id="email-preview-title" className="font-bold leading-tight inline-flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" /> E-mail enviado com sucesso!
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Pré-visualização da mensagem enviada para o novo cliente</p>
+            <p className="text-xs text-muted-foreground">Pré-visualização da mensagem enviada para o novo cliente</p>
           </div>
           <button
             onClick={onClose}
