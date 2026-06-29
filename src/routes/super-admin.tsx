@@ -16,6 +16,7 @@ import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
+  LogOut, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,7 +58,8 @@ type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "config";
 
 function SuperAdminPage() {
   useMockStore();
-  const { user } = useSaaS();
+  const { user, logout } = useSaaS();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
 
   const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
@@ -79,7 +81,21 @@ function SuperAdminPage() {
             <p className="font-bold leading-tight truncate">Painel Master da Plataforma</p>
             <p className="text-xs text-muted-foreground truncate">Acesso de plataforma · {user?.name}</p>
           </div>
-          <div className="ml-auto"><ThemeToggle /></div>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => {
+                logout();
+                toast.success("Sessão encerrada. Até logo!");
+                navigate({ to: "/login" });
+              }}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+              title="Encerrar sessão do Super Admin"
+              aria-label="Sair"
+            >
+              <LogOut className="w-4 h-4" /> Sair
+            </button>
+          </div>
         </div>
         <nav aria-label="Seções do painel master" className="px-4 lg:px-6 flex gap-1 overflow-x-auto">
           {TABS.map((t) => {
