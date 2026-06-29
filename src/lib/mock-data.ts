@@ -89,7 +89,8 @@ export type SystemLogKind =
   | "DUE_CHANGE"
   | "IMPERSONATION_START"
   | "IMPERSONATION_END"
-  | "SETTINGS_UPDATE";
+  | "SETTINGS_UPDATE"
+  | "SUPPORT_TICKET_CLOSED";
 
 export type SystemLog = {
   id: string;
