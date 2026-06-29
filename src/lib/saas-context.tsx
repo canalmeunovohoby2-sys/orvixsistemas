@@ -954,6 +954,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
