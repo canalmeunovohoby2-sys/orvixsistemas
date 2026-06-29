@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RoleGuard } from "@/components/RoleGuard";
 import { useMemo } from "react";
 import { AppShell } from "@/components/AppShell";
 import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/lib/mock-data";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/relatorios")({
     ],
     links: [{ rel: "canonical", href: "/relatorios" }],
   }),
-  component: RelatoriosPage,
+  component: () => (<RoleGuard allow={["admin"]}><RelatoriosPage /></RoleGuard>),
 });
 
 type PaymentRow = {

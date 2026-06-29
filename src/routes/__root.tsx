@@ -1,5 +1,7 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { SaaSProvider } from "@/lib/saas-context";
+import { DevRoleSwitcher } from "@/components/DevRoleSwitcher";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -64,9 +66,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <>
+    <SaaSProvider>
+      <DevRoleSwitcher />
       <Outlet />
       <Toaster position="top-right" />
-    </>
+    </SaaSProvider>
   );
 }

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RoleGuard } from "@/components/RoleGuard";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/estoque")({
     ],
     links: [{ rel: "canonical", href: "/estoque" }],
   }),
-  component: EstoquePage,
+  component: () => (<RoleGuard allow={["admin"]}><EstoquePage /></RoleGuard>),
 });
 
 function EstoquePage() {

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HelpCenter } from "@/components/HelpCenter";
+import { useSaaS, ROLE_LABEL } from "@/lib/saas-context";
 
 type NavItem = {
   label: string;
@@ -15,13 +16,17 @@ type NavItem = {
   children?: { label: string; to: string }[];
 };
 
-const NAV: NavItem[] = [
+const NAV_FULL: NavItem[] = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
   { label: "Produtos", to: "/produtos", icon: Package },
   { label: "Vendas", to: "/vendas", icon: ShoppingCart },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
+];
+
+const NAV_CASHIER: NavItem[] = [
+  { label: "PDV — Vendas", to: "/vendas", icon: ShoppingCart },
 ];
 
 function useStored<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
@@ -42,6 +47,9 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
   const isCollapsed = collapsed === "1";
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, company } = useSaaS();
+  const isCashier = user?.role === "cashier";
+  const NAV = isCashier ? NAV_CASHIER : NAV_FULL;
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
@@ -71,8 +79,8 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <p className="font-bold text-sidebar-foreground leading-tight truncate">Meu Saas</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ERP B2B</p>
+                <p className="font-bold text-sidebar-foreground leading-tight truncate">{company?.fantasia ?? "Meu Saas"}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{isCashier ? "Modo Caixa" : "ERP B2B"}</p>
               </div>
             )}
           </Link>
@@ -128,11 +136,11 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
 
           <div className="flex items-center gap-3 pl-3 ml-1 border-l border-border">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-[#5A0000] grid place-items-center text-white font-bold text-sm">
-              RC
+              {(user?.name ?? "RC").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
             </div>
             <div className="hidden sm:block min-w-0">
-              <p className="text-sm font-semibold leading-tight truncate">Ricardo Cunha</p>
-              <p className="text-xs text-muted-foreground truncate">Administrador</p>
+              <p className="text-sm font-semibold leading-tight truncate">{user?.name ?? "—"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user ? ROLE_LABEL[user.role] : ""}</p>
             </div>
           </div>
         </header>

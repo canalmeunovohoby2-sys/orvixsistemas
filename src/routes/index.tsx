@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RoleGuard } from "@/components/RoleGuard";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import { BRL, KPIS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE, type Sale } from "@/lib/mock-data";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "canonical", href: "/" }],
   }),
-  component: DashboardPage,
+  component: () => (<RoleGuard allow={["admin"]}><DashboardPage /></RoleGuard>),
 });
 
 const KPI_CARDS = [
