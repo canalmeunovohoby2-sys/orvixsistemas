@@ -244,7 +244,7 @@ function escapeHTML(s: string): string {
 
 function VendasPage() {
   useMockStore();
-  const { user, company, activateRevenue } = useSaaS();
+  const { user, company, activateRevenue, logout } = useSaaS();
   const [q, setQ] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
