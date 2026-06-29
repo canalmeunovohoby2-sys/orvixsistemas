@@ -74,6 +74,28 @@ const SEED_COMPANIES: Company[] = [
 /** Lista mutável compartilhada (super_admin pode alterar status em runtime). */
 export const COMPANIES: Company[] = [...SEED_COMPANIES];
 
+/** Chave de persistência das empresas (sobrevive a F5 / refresh). */
+const COMPANIES_STORAGE_KEY = "orvix_companies_v2";
+
+/** Salva a lista atual de empresas no localStorage. */
+function persistCompanies() {
+  try {
+    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(COMPANIES));
+  } catch {}
+}
+
+/** Hidrata COMPANIES a partir do localStorage (executa 1x no client). */
+function hydrateCompaniesFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(COMPANIES_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Company[];
+    if (!Array.isArray(parsed)) return;
+    COMPANIES.splice(0, COMPANIES.length, ...parsed);
+  } catch {}
+}
+
 export const SAAS_USERS: SaaSUser[] = [
   { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "admin123", isTemporaryPassword: false },
   { id: "U001", name: "Ana Mendes",    email: "ana@orvix.com.br",   role: "admin",       companyId: "EMP001",password: "123",     isTemporaryPassword: false },
@@ -153,6 +175,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) setUserId(stored);
     } catch {}
+    hydrateCompaniesFromStorage();
+    setCompaniesTick((t) => t + 1);
     setHydrated(true);
   }, []);
 
@@ -231,6 +255,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const prev = c.status;
     c.status = status;
     setCompaniesTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "SUBSCRIPTION_CHANGE",
       company_id: c.id, companyName: c.fantasia,
@@ -249,6 +274,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     // Mantém o princípio de "recontagem": só ajusta MRR se a empresa já estava faturando.
     if (c.status === "active" && c.mrr > 0) c.mrr = PLAN_PRICE[plan];
     setCompaniesTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "PLAN_CHANGE",
       company_id: c.id, companyName: c.fantasia,
@@ -264,6 +290,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const prev = c.dueDate;
     c.dueDate = isoDate;
     setCompaniesTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "DUE_CHANGE",
       company_id: c.id, companyName: c.fantasia,
@@ -279,6 +306,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (c.status !== "active" || c.mrr > 0) return;
     c.mrr = PLAN_PRICE[c.plan];
     setCompaniesTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: c.id, companyName: c.fantasia,
@@ -360,6 +388,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     SAAS_USERS.push(newUser);
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: newCompany.id,
@@ -455,6 +484,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     }
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
@@ -517,6 +547,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     markLogReverted(logId);
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
+    persistCompanies();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
