@@ -7,7 +7,7 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
-  updateTicketStatus, updateSaaSSettings, resetCommercialData,
+  updateTicketStatus, deleteTicket, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -547,6 +547,7 @@ const LOG_KIND_LABEL: Record<SystemLogKind, string> = {
   IMPERSONATION_START:  "Suporte iniciado",
   IMPERSONATION_END:    "Suporte encerrado",
   SETTINGS_UPDATE:      "Configuração",
+  SUPPORT_TICKET_CLOSED: "Chamado concluído",
 };
 
 function kindBadge(kind: SystemLogKind) {
@@ -559,6 +560,7 @@ function kindBadge(kind: SystemLogKind) {
     case "DUE_CHANGE": return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
     case "IMPERSONATION_START":
     case "IMPERSONATION_END": return "bg-primary/15 text-primary";
+    case "SUPPORT_TICKET_CLOSED": return "bg-destructive/15 text-destructive";
     default: return "bg-muted text-muted-foreground";
   }
 }
