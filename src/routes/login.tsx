@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/Logo";
 import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,15 +74,7 @@ function LoginPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
       <header className="h-14 px-4 lg:px-6 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8B0000] to-[#5A0000] grid place-items-center shadow-[0_0_20px_-4px_rgba(139,0,0,0.6)]">
-            <span className="text-white font-extrabold leading-none">M</span>
-          </div>
-          <div>
-            <p className="font-bold leading-tight">Meu Saas</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ERP B2B Multiempresa</p>
-          </div>
-        </div>
+        <Logo height={28} priority />
         <ThemeToggle />
       </header>
 
@@ -100,10 +93,11 @@ function LoginPage() {
 
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
-            <div>
-              <h2 className="text-2xl font-bold">Entrar na ORVIX SISTEMAS</h2>
+            <div className="space-y-3">
+              <Logo height={36} priority />
+              <h2 className="sr-only">Entrar na ORVIX SISTEMAS</h2>
               <p className="text-sm text-muted-foreground">
-                Acesse o painel da sua empresa com o e-mail e senha enviados pela ORVIX SISTEMAS.
+                Acesse o painel da sua empresa com o e-mail e senha enviados pela equipe da ORVIX SISTEMAS.
               </p>
             </div>
 
