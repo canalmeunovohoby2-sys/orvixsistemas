@@ -309,6 +309,17 @@ type SaaSCtx = {
   canAddUser: (companyId: string) => { ok: boolean; reason?: string };
   /** Convida (mock) um novo usuário. Aplica trava do plano antes de criar. */
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
+  /** Conta operadores de caixa (role=cashier) cadastrados na empresa. */
+  countCashiers: (companyId: string) => number;
+  /** Verifica se a empresa pode receber mais um terminal/caixa conforme PLAN_LIMITS.caixas. */
+  canAddCashier: (companyId: string) => { ok: boolean; reason?: string; limit: number; current: number };
+  /** Cria um operador de caixa (terminal) com credenciais explícitas, respeitando o limite do plano. */
+  createCashier: (
+    companyId: string,
+    data: { name: string; email: string; password: string },
+  ) => { ok: boolean; reason?: string; user?: SaaSUser };
+  /** Remove um operador de caixa criado pelo dono da loja. */
+  deleteCashier: (userId: string) => { ok: boolean; reason?: string };
   /** Remove a empresa e TODOS os dados vinculados (usuários, produtos, vendas, financeiro, tickets, logs). */
   deleteCompany: (companyId: string) => { ok: boolean; reason?: string };
   /** Reverte o estado capturado no `undo` de um log de auditoria. */
