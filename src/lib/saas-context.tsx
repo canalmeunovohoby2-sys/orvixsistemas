@@ -282,8 +282,40 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   const loginWithCredentials = useCallback(
     (email: string, password: string) => {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Fluxo especial e blindado para o Super Admin: a senha é verificada
+      // exclusivamente via hash SHA-256, e qualquer credencial banida
+      // (ex.: "admin123") é rejeitada com mensagem dedicada.
+      if (normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+        const inputHash = sha256Hex(password ?? "");
+        if (BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(inputHash)) {
+          return {
+            ok: false,
+            reason:
+              "Esta senha foi desativada por segurança. Use a nova credencial do Super Admin entregue pela ORVIX SISTEMAS.",
+          };
+        }
+        const activeHash = getActiveSuperAdminHash();
+        if (!timingSafeEqualHex(inputHash, activeHash)) {
+          return { ok: false, reason: "E-mail ou senha incorretos." };
+        }
+        const sa = SAAS_USERS.find((u) => u.email.toLowerCase() === normalizedEmail && u.role === "super_admin");
+        if (!sa) return { ok: false, reason: "Conta de Super Admin não disponível." };
+        setUserId(sa.id);
+        try { localStorage.setItem(STORAGE_KEY, sa.id); } catch {}
+        logEvent({
+          kind: "LOGIN_OK",
+          company_id: null,
+          companyName: "Plataforma",
+          user: sa.name,
+          action: "Login efetuado (super_admin).",
+        });
+        return { ok: true, user: sa };
+      }
+
       const target = SAAS_USERS.find(
-        (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
+        (u) => u.email.toLowerCase() === normalizedEmail && u.role !== "super_admin" && u.password === password,
       );
       if (!target) return { ok: false, reason: "E-mail ou senha incorretos." };
       setUserId(target.id);
