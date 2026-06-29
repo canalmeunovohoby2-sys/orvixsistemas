@@ -181,7 +181,7 @@ function DashboardTab() {
               <tr><th className="text-left py-2">Plano</th><th className="text-right">Empresas</th><th className="text-right">Preço</th><th className="text-right">MRR</th></tr>
             </thead>
             <tbody>
-              {(["starter", "pro", "enterprise"] as Plan[]).map((p) => {
+              {(["bronze", "prata", "ouro"] as Plan[]).map((p) => {
                 const list = companies.filter((c) => c.plan === p && c.status === "active");
                 return (
                   <tr key={p} className="border-t border-border">
@@ -207,7 +207,7 @@ function CompaniesTab() {
   const navigate = useNavigate();
   const [emailPreview, setEmailPreview] = useState<{ email: string; password: string; company: string } | null>(null);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
-  const PLAN_OPTS: Plan[] = ["starter", "pro", "enterprise"];
+  const PLAN_OPTS: Plan[] = ["bronze", "prata", "ouro"];
 
   return (
     <>
@@ -573,7 +573,7 @@ function SettingsTab() {
             />
           </Field>
           <div className="grid grid-cols-3 gap-3">
-            {(["starter", "pro", "enterprise"] as Plan[]).map((p) => (
+            {(["bronze", "prata", "ouro"] as Plan[]).map((p) => (
               <Field key={p} label={`Limite ${PLAN_LABEL[p]} (usuários)`}>
                 <input
                   type="number" min={1}
