@@ -6,7 +6,7 @@ import {
   SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
-  BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS,
+  BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
   updateTicketStatus, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
@@ -16,7 +16,7 @@ import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
-  LogOut, Trash2,
+  LogOut, Trash2, Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -522,6 +522,7 @@ function kindBadge(kind: SystemLogKind) {
 }
 
 function AuditTab() {
+  const { revertLog } = useSaaS();
   const [filter, setFilter] = useState<"all" | SystemLogKind>("all");
   const logs = useMemo<SystemLog[]>(
     () => filter === "all" ? SYSTEM_LOGS : SYSTEM_LOGS.filter((l) => l.kind === filter),
@@ -561,11 +562,12 @@ function AuditTab() {
                 <th className="text-left px-4 py-3">Empresa</th>
                 <th className="text-left px-4 py-3">Usuário</th>
                 <th className="text-left px-4 py-3">Ação</th>
+                <th className="text-right px-4 py-3 w-[160px]">Ações</th>
               </tr>
             </thead>
             <tbody>
               {logs.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhum evento registrado para este filtro.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhum evento registrado para este filtro.</td></tr>
               )}
               {logs.map((l) => (
                 <tr key={l.id} className="border-t border-border">
@@ -578,6 +580,27 @@ function AuditTab() {
                   <td className="px-4 py-3">{l.companyName ?? "—"}</td>
                   <td className="px-4 py-3">{l.user ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{l.action}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {l.undo && !l.reverted ? (
+                      <button
+                        onClick={() => {
+                          const r = revertLog(l.id);
+                          if (r.ok) toast.success("Ação revertida com sucesso! O estado anterior foi restaurado.");
+                          else toast.error(r.reason ?? "Não foi possível reverter este evento.");
+                        }}
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/10 transition-colors"
+                        title="Restaurar o estado anterior deste evento"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" /> Reverter Ação
+                      </button>
+                    ) : l.reverted ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground italic">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Revertido
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/60">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -652,10 +675,25 @@ function SupportTab() {
 /* ─────────────────────── Configurações tab ─────────────────────── */
 
 function SettingsTab() {
+  const { user } = useSaaS();
   const [form, setForm] = useState({ ...SAAS_SETTINGS });
 
   const save = () => {
+    // Snapshot do estado anterior — habilita reversão pelo log de auditoria.
+    const previousSettings = JSON.parse(JSON.stringify(SAAS_SETTINGS));
+    // JSON.stringify perde Infinity → restaura o sentinela do plano Ouro.
+    if (!Number.isFinite(previousSettings.usersLimit?.ouro)) {
+      previousSettings.usersLimit.ouro = Infinity;
+    }
     updateSaaSSettings(form);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: null,
+      companyName: "Plataforma",
+      user: user?.name ?? "Super Admin",
+      action: `Configurações globais atualizadas (gateway: ${form.paymentGateway}, limites Bronze/Prata: ${form.usersLimit.bronze}/${form.usersLimit.prata}).`,
+      undo: { type: "SETTINGS_UPDATE", previousSettings },
+    });
     toast.success("Configurações globais atualizadas.");
   };
 

@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import {
-  logEvent,
+  logEvent, markLogReverted, updateSaaSSettings,
+  type SaaSSettings, type Product, type Sale, type Movement, type Person,
+  type FinancialRecord, type SupportTicket,
   PRODUCTS, SALES, MOVEMENTS, SUPPLIERS, CUSTOMERS,
   FINANCIAL_RECORDS, SUPPORT_TICKETS, SYSTEM_LOGS,
 } from "./mock-data";
@@ -86,6 +88,20 @@ const STORAGE_KEY = "saas_session_user_id";
 /** E-mail único autorizado a acessar o Painel Master da ORVIX SISTEMAS. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 
+/**
+ * Snapshots de reversão anexados a logs críticos.
+ * Cada variante carrega o estado anterior suficiente para restaurar a operação.
+ */
+export type UndoPayload =
+  | { type: "COMPANY_DELETE"; company: Company; users: SaaSUser[];
+      products: unknown[]; sales: unknown[]; movements: unknown[];
+      suppliers: unknown[]; customers: unknown[];
+      financialRecords: unknown[]; supportTickets: unknown[] }
+  | { type: "PLAN_CHANGE"; companyId: string; previousPlan: Plan; previousMrr: number }
+  | { type: "DUE_CHANGE"; companyId: string; previousDueDate: string }
+  | { type: "SUBSCRIPTION_CHANGE"; companyId: string; previousStatus: SubscriptionStatus }
+  | { type: "SETTINGS_UPDATE"; previousSettings: SaaSSettings };
+
 type SaaSCtx = {
   user: SaaSUser | null;
   company: Company | null;
@@ -113,6 +129,8 @@ type SaaSCtx = {
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
   /** Remove a empresa e TODOS os dados vinculados (usuários, produtos, vendas, financeiro, tickets, logs). */
   deleteCompany: (companyId: string) => { ok: boolean; reason?: string };
+  /** Reverte o estado capturado no `undo` de um log de auditoria. */
+  revertLog: (logId: string) => { ok: boolean; reason?: string };
   /** Suporte/impersonação — super_admin assume o papel de admin de uma empresa. */
   impersonating: boolean;
   impersonatedCompany: Company | null;
@@ -218,6 +236,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Status alterado: ${prev.toUpperCase()} → ${status.toUpperCase()}.`,
+      undo: { type: "SUBSCRIPTION_CHANGE", companyId: c.id, previousStatus: prev } satisfies UndoPayload,
     });
   }, [realUser]);
 
@@ -225,6 +244,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const c = COMPANIES.find((x) => x.id === companyId);
     if (!c) return;
     const prev = c.plan;
+    const prevMrr = c.mrr;
     c.plan = plan;
     // Mantém o princípio de "recontagem": só ajusta MRR se a empresa já estava faturando.
     if (c.status === "active" && c.mrr > 0) c.mrr = PLAN_PRICE[plan];
@@ -234,6 +254,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Plano alterado: ${PLAN_LABEL[prev]} → ${PLAN_LABEL[plan]}.`,
+      undo: { type: "PLAN_CHANGE", companyId: c.id, previousPlan: prev, previousMrr: prevMrr } satisfies UndoPayload,
     });
   }, [realUser]);
 
@@ -248,6 +269,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
       action: `Vencimento alterado: ${prev?.slice(0, 10)} → ${isoDate.slice(0, 10)}.`,
+      undo: { type: "DUE_CHANGE", companyId: c.id, previousDueDate: prev } satisfies UndoPayload,
     });
   }, [realUser]);
 
@@ -395,6 +417,19 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const idx = COMPANIES.findIndex((x) => x.id === companyId);
     if (idx < 0) return { ok: false, reason: "Empresa não encontrada." };
     const c = COMPANIES[idx];
+    // Captura snapshot ANTES de purgar — habilita reversão completa via Auditoria.
+    const snapshot = {
+      type: "COMPANY_DELETE" as const,
+      company: { ...c },
+      users: SAAS_USERS.filter((u) => u.companyId === companyId).map((u) => ({ ...u })),
+      products: PRODUCTS.filter((p) => p.company_id === companyId).map((p) => ({ ...p })),
+      sales: SALES.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      movements: MOVEMENTS.filter((m) => m.company_id === companyId).map((m) => ({ ...m })),
+      suppliers: SUPPLIERS.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      customers: CUSTOMERS.filter((s) => s.company_id === companyId).map((s) => ({ ...s })),
+      financialRecords: FINANCIAL_RECORDS.filter((f) => f.company_id === companyId).map((f) => ({ ...f })),
+      supportTickets: SUPPORT_TICKETS.filter((t) => t.company_id === companyId).map((t) => ({ ...t })),
+    } satisfies UndoPayload;
     // Remove dados vinculados (in-place para preservar referências exportadas).
     const purge = <T extends { company_id?: string | null }>(arr: T[]) => {
       for (let i = arr.length - 1; i >= 0; i--) {
@@ -408,7 +443,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     purge(CUSTOMERS as Array<{ company_id?: string | null }>);
     purge(FINANCIAL_RECORDS as Array<{ company_id?: string | null }>);
     purge(SUPPORT_TICKETS as Array<{ company_id?: string | null }>);
-    purge(SYSTEM_LOGS as Array<{ company_id?: string | null }>);
+    // NOTA: SYSTEM_LOGS são preservados intencionalmente para manter o histórico de auditoria.
     // Remove usuários vinculados.
     for (let i = SAAS_USERS.length - 1; i >= 0; i--) {
       if (SAAS_USERS[i].companyId === companyId) SAAS_USERS.splice(i, 1);
@@ -426,9 +461,71 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       companyName: "Plataforma",
       user: realUser?.name ?? "Sistema",
       action: `Empresa removida permanentemente: ${c.fantasia} (${c.cnpj}). Todos os dados vinculados foram apagados.`,
+      undo: snapshot,
     });
     return { ok: true };
   }, [impersonatedCompanyId, realUser]);
+
+  const revertLog = useCallback((logId: string) => {
+    const log = SYSTEM_LOGS.find((l) => l.id === logId);
+    if (!log) return { ok: false, reason: "Log não encontrado." };
+    if (log.reverted) return { ok: false, reason: "Este evento já foi revertido." };
+    const undo = log.undo as UndoPayload | undefined;
+    if (!undo) return { ok: false, reason: "Este evento não é elegível para reversão." };
+
+    switch (undo.type) {
+      case "SUBSCRIPTION_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.status = undo.previousStatus;
+        break;
+      }
+      case "PLAN_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.plan = undo.previousPlan;
+        c.mrr = undo.previousMrr;
+        break;
+      }
+      case "DUE_CHANGE": {
+        const c = COMPANIES.find((x) => x.id === undo.companyId);
+        if (!c) return { ok: false, reason: "Empresa não existe mais." };
+        c.dueDate = undo.previousDueDate;
+        break;
+      }
+      case "SETTINGS_UPDATE": {
+        updateSaaSSettings(undo.previousSettings);
+        break;
+      }
+      case "COMPANY_DELETE": {
+        if (COMPANIES.some((x) => x.id === undo.company.id)) {
+          return { ok: false, reason: "A empresa já foi restaurada." };
+        }
+        COMPANIES.push({ ...undo.company });
+        undo.users.forEach((u) => SAAS_USERS.push({ ...u }));
+        (PRODUCTS as Product[]).push(...(undo.products as Product[]));
+        (SALES as Sale[]).push(...(undo.sales as Sale[]));
+        (MOVEMENTS as Movement[]).push(...(undo.movements as Movement[]));
+        (SUPPLIERS as Person[]).push(...(undo.suppliers as Person[]));
+        (CUSTOMERS as Person[]).push(...(undo.customers as Person[]));
+        (FINANCIAL_RECORDS as FinancialRecord[]).push(...(undo.financialRecords as FinancialRecord[]));
+        (SUPPORT_TICKETS as SupportTicket[]).push(...(undo.supportTickets as SupportTicket[]));
+        break;
+      }
+    }
+
+    markLogReverted(logId);
+    setCompaniesTick((t) => t + 1);
+    setUsersTick((t) => t + 1);
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: null,
+      companyName: "Plataforma",
+      user: realUser?.name ?? "Sistema",
+      action: `Reversão aplicada (log ${logId}): estado anterior restaurado [${undo.type}].`,
+    });
+    return { ok: true };
+  }, [realUser]);
 
   // referência apenas para silenciar o linter sobre originalUserId
   void originalUserId;
@@ -441,7 +538,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
         updatePassword, createDemoAccess,
         countUsers, canAddUser, inviteUser,
-        deleteCompany,
+        deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
         startImpersonation, stopImpersonation,
       }}
