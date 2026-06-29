@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
@@ -14,7 +14,7 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles, Sun, DoorClosed } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,6 +31,38 @@ export const Route = createFileRoute("/")({
 });
 
 const CHART_COLORS = ["#8B0000", "#5A8FB8", "#5BA67C", "#C9A961", "#8B6F8E"];
+
+// Mesmas chaves usadas pelo PDV (src/routes/vendas.tsx) para persistir o
+// histórico de turnos fechados. Mantemos aqui apenas o leitor — a escrita
+// continua exclusiva do PDV.
+type ShiftPaymentKey = "Dinheiro" | "Pix" | "Crédito" | "Débito" | "Crediário";
+type ShiftHistoryEntry = {
+  id: string;
+  cid: string;
+  userId: string;
+  userName: string;
+  openedAt: number;
+  closedAt?: number;
+  openingFloat: number;
+  closingCash?: number;
+  sales: { ts: number; method: ShiftPaymentKey; amount: number }[];
+};
+const SHIFT_HISTORY_KEY = (cid: string) => `orvix_pdv_shifts_history_${cid}`;
+
+function loadShiftHistory(cid: string | null): ShiftHistoryEntry[] {
+  if (!cid || typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(SHIFT_HISTORY_KEY(cid));
+    return raw ? (JSON.parse(raw) as ShiftHistoryEntry[]) : [];
+  } catch { return []; }
+}
+
+function isSameLocalDay(iso: string, ref: Date): boolean {
+  const d = new Date(iso);
+  return d.getFullYear() === ref.getFullYear()
+    && d.getMonth() === ref.getMonth()
+    && d.getDate() === ref.getDate();
+}
 
 function DashboardPage() {
   useMockStore();
@@ -61,7 +93,21 @@ function DashboardPage() {
   const itensEstoque = tenantProducts.reduce((a, p) => a + p.stock, 0);
   const estoqueBaixo = tenantProducts.filter((p) => p.stock <= p.minStock).length;
 
+  // FATURAMENTO (HOJE): soma bruta das vendas concluídas no dia local atual.
+  // Recalcula a cada minuto para virar o dia automaticamente em telas abertas.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const faturamentoHoje = useMemo(() => {
+    return tenantSales
+      .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
+      .reduce((a, s) => a + s.total, 0);
+  }, [tenantSales, now]);
+
   const kpiCards = [
+    { label: "Faturamento (hoje)", value: BRL(faturamentoHoje), trend: 0, icon: Sun, positive: true, highlight: true },
     { label: "Vendas (mês)", value: BRL(vendasMes), trend: demo ? 12.4 : 0, icon: DollarSign, positive: true },
     { label: "Lucro (mês)", value: BRL(lucroMes), trend: demo ? 8.1 : 0, icon: TrendingUp, positive: true },
     { label: "Itens em Estoque", value: itensEstoque.toLocaleString("pt-BR"), trend: demo ? -2.3 : 0, icon: Boxes, positive: false },
@@ -79,6 +125,31 @@ function DashboardPage() {
   const categoryShare = demo ? CATEGORY_SHARE : [];
 
   const recent = tenantSales.slice(0, 6);
+
+  // Histórico de turnos fechados (PDV) — sincroniza em tempo real via
+  // 1) evento custom "orvix:shifts-updated" disparado pelo PDV na mesma aba;
+  // 2) "storage" para outras abas/dispositivos do mesmo navegador.
+  const [shiftsTick, setShiftsTick] = useState(0);
+  useEffect(() => {
+    const onLocal = (e: Event) => {
+      const ce = e as CustomEvent<{ cid?: string }>;
+      if (!ce.detail?.cid || ce.detail.cid === cid) setShiftsTick((t) => t + 1);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (cid && e.key === SHIFT_HISTORY_KEY(cid)) setShiftsTick((t) => t + 1);
+    };
+    window.addEventListener("orvix:shifts-updated", onLocal as EventListener);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("orvix:shifts-updated", onLocal as EventListener);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [cid]);
+  const closedShifts = useMemo(
+    () => loadShiftHistory(cid).filter((s) => s.closedAt).slice(0, 8),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cid, shiftsTick],
+  );
 
   const cols: Column<Sale>[] = [
     { key: "id", label: "Pedido", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
@@ -112,7 +183,7 @@ function DashboardPage() {
       )}
 
       {/* KPIs */}
-      <section aria-labelledby="kpis" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <section aria-labelledby="kpis" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
         <h2 id="kpis" className="sr-only">Indicadores</h2>
         {kpiCards.map((k, i) => (
           <motion.article
@@ -120,16 +191,20 @@ function DashboardPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="glass rounded-xl p-5"
+            className={`glass rounded-xl p-5 ${k.highlight ? "border border-primary/40 ring-1 ring-primary/20" : ""}`}
           >
             <div className="flex items-start justify-between">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{k.label}</p>
-              <div className={`w-9 h-9 rounded-lg grid place-items-center ${k.alert ? "bg-primary/15 text-primary" : "bg-secondary text-foreground"}`}>
+              <div className={`w-9 h-9 rounded-lg grid place-items-center ${k.alert || k.highlight ? "bg-primary/15 text-primary" : "bg-secondary text-foreground"}`}>
                 <k.icon className="w-4 h-4" />
               </div>
             </div>
             <p className="mt-3 text-2xl font-bold tracking-tight">{k.value}</p>
-            {demo ? (
+            {k.highlight ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short" })}
+              </p>
+            ) : demo ? (
               <p className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${k.positive ? "text-emerald-400" : "text-primary"}`}>
                 {k.positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                 {Math.abs(k.trend)}% vs mês anterior
@@ -232,7 +307,74 @@ function DashboardPage() {
       </div>
 
       <CriticalAlerts />
+      <ClosedShiftsList shifts={closedShifts} />
     </AppShell>
+  );
+}
+
+function ClosedShiftsList({ shifts }: { shifts: ShiftHistoryEntry[] }) {
+  if (shifts.length === 0) {
+    return (
+      <section aria-labelledby="ultimos-caixas" className="glass rounded-xl p-5 mb-6">
+        <header className="flex items-center gap-2 mb-3">
+          <span className="grid place-items-center w-9 h-9 rounded-lg bg-secondary text-foreground">
+            <DoorClosed className="w-4 h-4" />
+          </span>
+          <div>
+            <h2 id="ultimos-caixas" className="text-base font-semibold">Últimos Caixas Fechados</h2>
+            <p className="text-xs text-muted-foreground">Histórico recente de turnos encerrados no PDV</p>
+          </div>
+        </header>
+        <div className="rounded-lg border border-dashed border-border bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
+          Nenhum caixa fechado ainda. Quando um operador encerrar o turno, o resumo aparecerá aqui.
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby="ultimos-caixas" className="glass rounded-xl p-5 mb-6">
+      <header className="flex items-center gap-2 mb-3">
+        <span className="grid place-items-center w-9 h-9 rounded-lg bg-primary/15 text-primary">
+          <DoorClosed className="w-4 h-4" />
+        </span>
+        <div>
+          <h2 id="ultimos-caixas" className="text-base font-semibold">Últimos Caixas Fechados</h2>
+          <p className="text-xs text-muted-foreground">{shifts.length} turno(s) recente(s) · atualiza em tempo real</p>
+        </div>
+      </header>
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-2.5 text-left">Turno</th>
+              <th className="px-4 py-2.5 text-left">Operador</th>
+              <th className="px-4 py-2.5 text-left">Fechado às</th>
+              <th className="px-4 py-2.5 text-right">Vendas</th>
+              <th className="px-4 py-2.5 text-right">Total bruto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shifts.map((s, idx) => {
+              const total = s.sales.reduce((a, x) => a + x.amount, 0);
+              const closed = s.closedAt ? new Date(s.closedAt) : null;
+              return (
+                <tr key={s.id} className="border-t border-border hover:bg-secondary/40 transition-colors">
+                  <td className="px-4 py-2.5 font-mono text-xs">
+                    Caixa {String(shifts.length - idx).padStart(2, "0")}
+                  </td>
+                  <td className="px-4 py-2.5 font-medium">{s.userName}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground tabular-nums">
+                    {closed ? closed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{s.sales.length}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-bold text-foreground">{BRL(total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

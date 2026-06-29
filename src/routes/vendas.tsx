@@ -113,6 +113,9 @@ function archiveShift(s: Shift) {
     list.unshift(s);
     localStorage.setItem(SHIFT_HISTORY_KEY(s.cid), JSON.stringify(list.slice(0, 200)));
     localStorage.removeItem(SHIFT_KEY(s.cid, s.userId));
+    // Notifica o Dashboard do Lojista (mesma aba) para atualizar a lista de
+    // "Últimos Caixas Fechados" em tempo real, sem precisar de reload.
+    try { window.dispatchEvent(new CustomEvent("orvix:shifts-updated", { detail: { cid: s.cid } })); } catch {}
   } catch {}
 }
 
