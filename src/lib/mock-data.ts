@@ -11,6 +11,15 @@ export const UNITS: { value: Unit; label: string; fractional: boolean }[] = [
 
 export const isFractional = (u: Unit) => u !== "un";
 
+/**
+ * IDs de empresas "demo" — as únicas que carregam dados fictícios pré-povoados
+ * (vendas, produtos, gráficos, KPIs). Empresas criadas a partir de cadastros
+ * reais começam zeradas para que o lojista veja apenas os próprios dados.
+ */
+export const DEMO_COMPANY_IDS = new Set<string>(["EMP001"]);
+export const isDemoCompany = (id: string | null | undefined): boolean =>
+  !!id && DEMO_COMPANY_IDS.has(id);
+
 export const formatQty = (qty: number, unit: Unit) =>
   isFractional(unit)
     ? qty.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })
