@@ -652,7 +652,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         origin: "Simulação", companyId: newCompany.id, cnpj: newCompany.cnpj,
       });
     }
-    return { ok: true, user: newUser, company: newCompany };
+    return { ok: true, user: newUser, company: newCompany, password: tempPassword };
   }, [realUser, refresh]);
 
   /* ---------- Webhook Mercado Pago ---------- */
@@ -740,7 +740,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       action: `Convite criado: ${email} (${role}). Senha temporária: ${password}.`,
     });
     const newUser = SAAS_USERS.find((u) => u.id === res.userId);
-    return { ok: true, user: newUser };
+    return { ok: true, user: newUser, password };
   }, [canAddUser, realUser, refresh]);
 
   const countCashiers = useCallback(
@@ -786,7 +786,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         action: `Operador de caixa criado: ${name} (${email}) — plano ${PLAN_LABEL[c.plan]}.`,
       });
       const newUser = SAAS_USERS.find((u) => u.id === res.userId);
-      return { ok: true, user: newUser };
+      return { ok: true, user: newUser, password: data.password };
     },
     [canAddCashier, realUser, refresh],
   );
