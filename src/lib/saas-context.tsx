@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import { logEvent } from "./mock-data";
+import {
+  logEvent,
+  PRODUCTS, SALES, MOVEMENTS, SUPPLIERS, CUSTOMERS,
+  FINANCIAL_RECORDS, SUPPORT_TICKETS, SYSTEM_LOGS,
+} from "./mock-data";
 
 export type Role = "super_admin" | "admin" | "cashier";
 
@@ -107,6 +111,8 @@ type SaaSCtx = {
   canAddUser: (companyId: string) => { ok: boolean; reason?: string };
   /** Convida (mock) um novo usuário. Aplica trava do plano antes de criar. */
   inviteUser: (companyId: string, role: Exclude<Role, "super_admin">) => { ok: boolean; user?: SaaSUser; reason?: string };
+  /** Remove a empresa e TODOS os dados vinculados (usuários, produtos, vendas, financeiro, tickets, logs). */
+  deleteCompany: (companyId: string) => { ok: boolean; reason?: string };
   /** Suporte/impersonação — super_admin assume o papel de admin de uma empresa. */
   impersonating: boolean;
   impersonatedCompany: Company | null;
