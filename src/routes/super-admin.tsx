@@ -739,6 +739,7 @@ function SupportTab() {
                       companyName: removed.companyName,
                       user: "Super Admin",
                       action: `Chamado ${removed.id} ("${removed.subject}") da empresa ${removed.companyName} concluído/removido pelo Administrador.`,
+                      undo: { ticketId: removed.id },
                     });
                     toast.success(`Chamado ${removed.id} concluído e removido da fila.`);
                   }}
