@@ -125,7 +125,7 @@ export function logEvent(input: Omit<SystemLog, "id" | "date"> & { date?: string
     { offset: 1000 * 60 * 60 * 4,  kind: "SALE_OK",             company_id: "EMP001", companyName: "Mercadinho Orvix", user: "Bruno Caixa",  action: "Venda V20012 concluída (R$ 184,90)." },
     { offset: 1000 * 60 * 60 * 3,  kind: "LOGIN_FAIL",          company_id: "EMP002", companyName: "Trigo Dourado",    user: "carla@trigo.com.br", action: "Tentativa de login com senha incorreta." },
     { offset: 1000 * 60 * 60 * 2,  kind: "SUBSCRIPTION_CHANGE", company_id: "EMP003", companyName: "Boi Bom",          user: "Sistema",      action: "Assinatura alterada para BLOQUEADA por inadimplência." },
-    { offset: 1000 * 60 * 30,      kind: "LOGIN_OK",            company_id: null,     companyName: "Plataforma",       user: "Ricardo Cunha (Plataforma)", action: "Super Admin acessou o painel master." },
+    { offset: 1000 * 60 * 30,      kind: "LOGIN_OK",            company_id: null,     companyName: "Plataforma",       user: "Tiago (Orvix Sistemas)",     action: "Super Admin acessou o painel master." },
   ];
   seed.forEach((s) => {
     SYSTEM_LOGS.unshift({
