@@ -9,8 +9,8 @@ import {
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
-import { useSaaS } from "@/lib/saas-context";
-import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck } from "lucide-react";
+import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
+import { Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X, UserCheck, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -78,6 +78,61 @@ function VendasPage() {
   const [customerId, setCustomerId] = useState<string>("");
 
   const cid = company?.id ?? user?.companyId ?? "EMP001";
+
+  // ── Trava de Caixas Simultâneos por plano ──
+  // Cada aba registra um id único em `localStorage` com heartbeat. Se o número
+  // de PDVs ativos para a empresa excede o limite do plano, bloqueia o caixa.
+  const sessionIdRef = useRef<string>(`pdv_${Math.random().toString(36).slice(2)}_${Date.now()}`);
+  const [pdvBlocked, setPdvBlocked] = useState<{ active: number; limit: number } | null>(null);
+
+  useEffect(() => {
+    if (!company) return;
+    const STORAGE_KEY = `orvix_pdv_open_${cid}`;
+    const MY_ID = sessionIdRef.current;
+    const limit = PLAN_LIMITS[company.plan].caixas;
+
+    const read = (): Record<string, number> => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; }
+    };
+    const write = (m: Record<string, number>) => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(m)); } catch {}
+    };
+    const prune = (m: Record<string, number>) => {
+      const now = Date.now();
+      Object.keys(m).forEach((k) => { if (now - m[k] > 30_000) delete m[k]; });
+      return m;
+    };
+
+    const sessions = prune(read());
+    const others = Object.keys(sessions).filter((k) => k !== MY_ID).length;
+    if (others >= limit) {
+      setPdvBlocked({ active: others, limit });
+      write(sessions);
+      return;
+    }
+    sessions[MY_ID] = Date.now();
+    write(sessions);
+    setPdvBlocked(null);
+
+    const heartbeat = window.setInterval(() => {
+      const cur = prune(read());
+      cur[MY_ID] = Date.now();
+      write(cur);
+    }, 10_000);
+
+    const release = () => {
+      const cur = read();
+      delete cur[MY_ID];
+      write(cur);
+    };
+    window.addEventListener("beforeunload", release);
+    return () => {
+      window.clearInterval(heartbeat);
+      window.removeEventListener("beforeunload", release);
+      release();
+    };
+  }, [cid, company]);
+
   const companyCustomers = useMemo(
     () => CUSTOMERS.filter((c) => c.company_id === cid),
     [cid],
