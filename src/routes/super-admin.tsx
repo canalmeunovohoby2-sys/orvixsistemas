@@ -7,7 +7,7 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS,
-  updateTicketStatus, updateSaaSSettings,
+  updateTicketStatus, updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -15,9 +15,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/super-admin")({
   head: () => ({
