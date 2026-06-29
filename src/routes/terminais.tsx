@@ -9,6 +9,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { useSaaS, PLAN_LABEL } from "@/lib/saas-context";
 import { PasswordRules } from "@/components/PasswordRules";
 import { isStrongPassword } from "@/lib/password-policy";
+import { CredentialsModal } from "@/components/CredentialsModal";
 
 export const Route = createFileRoute("/terminais")({
   head: () => ({
@@ -43,6 +44,7 @@ function TerminaisPage() {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [credModal, setCredModal] = useState<{ email: string; password: string; name: string } | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +53,8 @@ function TerminaisPage() {
     const res = await createCashier(cid, { name, email, password });
     setBusy(false);
     if (!res.ok) { toast.error(res.reason ?? "Não foi possível criar o operador."); return; }
-    toast.success(`✅ Terminal criado — ${res.user!.name} (${res.user!.email})`);
+    toast.success(`✅ Terminal criado — ${res.user!.name}`);
+    setCredModal({ email: res.user!.email, password: res.password ?? password, name: res.user!.name });
     setName(""); setEmail(""); setPassword("");
   };
 
@@ -234,6 +237,15 @@ function TerminaisPage() {
           </p>
         </form>
       </section>
+      {credModal && (
+        <CredentialsModal
+          title="Terminal criado com sucesso!"
+          subtitle={`Use estas credenciais no login do PDV (${credModal.name})`}
+          email={credModal.email}
+          password={credModal.password}
+          onClose={() => setCredModal(null)}
+        />
+      )}
     </AppShell>
   );
 }
