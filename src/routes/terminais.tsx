@@ -7,6 +7,8 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useSaaS, PLAN_LABEL } from "@/lib/saas-context";
+import { PasswordRules } from "@/components/PasswordRules";
+import { isStrongPassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/terminais")({
   head: () => ({
