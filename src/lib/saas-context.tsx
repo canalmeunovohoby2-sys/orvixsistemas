@@ -122,6 +122,30 @@ function hydrateCompaniesFromStorage() {
   } catch {}
 }
 
+/**
+ * Chave de persistência dos usuários (admin/cashier criados em runtime).
+ * Sem isso, qualquer credencial gerada via createDemoAccess/processWebhookPayment
+ * sumia no F5 — o login então rejeitava com "E-mail ou senha incorretos."
+ */
+const USERS_STORAGE_KEY = "orvix_users_v1";
+
+function persistUsers() {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(SAAS_USERS));
+  } catch {}
+}
+
+function hydrateUsersFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as SaaSUser[];
+    if (!Array.isArray(parsed)) return;
+    SAAS_USERS.splice(0, SAAS_USERS.length, ...parsed);
+  } catch {}
+}
+
 export const SAAS_USERS: SaaSUser[] = [
   // Super Admin: a senha NÃO é mais comparada via campo `password`.
   // O login do super_admin é validado contra um SHA-256 (default em código + override em localStorage).
@@ -312,6 +336,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (stored) setUserId(stored);
     } catch {}
     hydrateCompaniesFromStorage();
+    hydrateUsersFromStorage();
     applyUserPasswordOverrides();
     setCompaniesTick((t) => t + 1);
     setHydrated(true);
@@ -551,6 +576,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       u.password = newPassword;
       u.isTemporaryPassword = false;
       persistUserPasswordOverride(u.id, newPassword);
+      persistUsers();
       setUsersTick((t) => t + 1);
       const comp = u.companyId ? COMPANIES.find((c) => c.id === u.companyId) : null;
       logEvent({
@@ -583,19 +609,34 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     COMPANIES.push(newCompany);
     // Pagamento simulado ativamente → reconhece MRR da nova empresa.
     newCompany.mrr = PLAN_PRICE[newCompany.plan];
+    const tempPassword = "temp123";
+    const demoEmail = `cliente${seq}@orvix.com.br`.trim().toLowerCase();
     const newUser: SaaSUser = {
       id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
       name: `Admin ${newCompany.fantasia}`,
-      email: `cliente${seq}@orvix.com.br`,
+      email: demoEmail,
       role: "admin",
       companyId: newCompany.id,
-      password: "temp123",
+      password: tempPassword,
       isTemporaryPassword: true,
     };
     SAAS_USERS.push(newUser);
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
+    // Log explícito (console + Auditoria) com as credenciais exatas salvas.
+    // eslint-disable-next-line no-console
+    console.log(
+      `[ORVIX] Cliente Fictício criado com sucesso — Usuário: ${demoEmail} | Senha: ${tempPassword}`,
+    );
+    logEvent({
+      kind: "SETTINGS_UPDATE",
+      company_id: newCompany.id,
+      companyName: newCompany.fantasia,
+      user: realUser?.name ?? "Sistema",
+      action: `🔐 Credenciais de teste geradas — Usuário: ${demoEmail} | Senha: ${tempPassword} (role=admin, empresa=${newCompany.id}).`,
+    });
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: newCompany.id,
@@ -721,11 +762,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       COMPANIES.push(newCompany);
 
       const email = ev.payerEmail?.trim() || `cliente${seq}@orvix.com.br`;
+      const normalizedEmail = email.toLowerCase();
       const tempPassword = `orvix-${Math.random().toString(36).slice(2, 8)}`;
       const newUser: SaaSUser = {
         id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
         name: ev.payerName ? `Admin ${ev.payerName}` : `Admin ${newCompany.fantasia}`,
-        email,
+        email: normalizedEmail,
         role: "admin",
         companyId: newCompany.id,
         password: tempPassword,
@@ -736,6 +778,18 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setCompaniesTick((t) => t + 1);
       setUsersTick((t) => t + 1);
       persistCompanies();
+      persistUsers();
+      // eslint-disable-next-line no-console
+      console.log(
+        `[ORVIX] Cliente (webhook MP) criado — Usuário: ${normalizedEmail} | Senha: ${tempPassword}`,
+      );
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: newCompany.id,
+        companyName: newCompany.fantasia,
+        user: "Webhook Mercado Pago",
+        action: `🔐 Credenciais de acesso — Usuário: ${normalizedEmail} | Senha: ${tempPassword} (role=admin, empresa=${newCompany.id}).`,
+      });
 
       logEvent({
         kind: "SETTINGS_UPDATE",
@@ -783,6 +837,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     };
     SAAS_USERS.push(newUser);
     setUsersTick((t) => t + 1);
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: c.id, companyName: c.fantasia,
@@ -835,6 +890,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
@@ -898,6 +954,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setCompaniesTick((t) => t + 1);
     setUsersTick((t) => t + 1);
     persistCompanies();
+    persistUsers();
     logEvent({
       kind: "SETTINGS_UPDATE",
       company_id: null,
