@@ -847,6 +847,8 @@ function VendasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>
+      )}
     </AppShell>
   );
 }
