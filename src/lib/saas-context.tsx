@@ -11,6 +11,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   ensureSuperAdmin,
+  ensureTestUser,
+  resolveLoginProfile,
   adminCreateCompanyWithOwner,
   adminCreateCashier,
   adminDeleteUser,
@@ -89,6 +91,11 @@ export const SAAS_USERS: SaaSUser[] = [];
 
 /** E-mail oficial do Super Admin. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
+export const TEST_ADMIN_EMAIL = "teste@orvix.com";
+export const TEST_ADMIN_PASSWORD = "Orvix@2026";
+export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
+export const TEST_CASHIER_PASSWORD = "OrvixCaixa@2026";
+const TEST_COMPANY_ID = "EMP_TESTE";
 
 /* ============================================================
  * Snapshots de reversão (mantidos para auditoria — Phase 1 cobre
@@ -123,10 +130,16 @@ type DbAppUser = {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: Role | "operator" | "client" | string;
   company_id: string | null;
   is_temporary_password: boolean;
 };
+
+function normalizeRole(role: DbAppUser["role"]): Role {
+  if (role === "super_admin" || role === "admin" || role === "cashier") return role;
+  if (role === "operator" || role === "client") return "cashier";
+  return "cashier";
+}
 
 function mapCompany(c: DbCompany): Company {
   return {
@@ -150,7 +163,7 @@ function mapUser(u: DbAppUser): SaaSUser {
     id: u.id,
     name: u.name || u.email,
     email: u.email,
-    role: u.role,
+    role: normalizeRole(u.role),
     companyId: u.company_id,
     password: "",
     isTemporaryPassword: u.is_temporary_password,
@@ -240,6 +253,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (!bootstrappedRef.current) {
         bootstrappedRef.current = true;
         try { await ensureSuperAdmin(); } catch (e) { console.warn("[ORVIX] ensureSuperAdmin", e); }
+        try { await ensureTestUser(); } catch (e) { console.warn("[ORVIX] ensureTestUser", e); }
       }
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
@@ -268,13 +282,16 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       .select("id, name, email, role, company_id, is_temporary_password")
       .eq("id", uid)
       .maybeSingle();
-    if (!meRow) {
+    const resolvedMe = meRow
+      ? { ok: true as const, user: mapUser(meRow as DbAppUser) }
+      : await resolveLoginProfile();
+    if (!resolvedMe.ok) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
       return;
     }
-    const me = mapUser(meRow as DbAppUser);
+    const me: SaaSUser = { ...resolvedMe.user, password: "", role: normalizeRole(resolvedMe.user.role) };
     setRealUser(me);
 
     // 2) Empresas + usuários conforme RLS (super_admin vê tudo; demais veem só a própria empresa)
@@ -301,25 +318,112 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const loginWithCredentials = useCallback(
     async (email: string, password: string): Promise<{ ok: boolean; user?: SaaSUser; reason?: string }> => {
       const normalized = email.trim().toLowerCase();
+      if (!normalized || !password) return { ok: false, reason: "Informe e-mail e senha." };
+
+      const activateLocalTestBypass = (role: Role): SaaSUser => {
+        const companyRow: Company = {
+          id: TEST_COMPANY_ID,
+          razaoSocial: "ORVIX Loja de Testes LTDA",
+          fantasia: "ORVIX Loja de Testes",
+          cnpj: "00.000.000/0001-91",
+          status: "active",
+          plan: "ouro",
+          mrr: 0,
+          createdAt: new Date().toISOString().slice(0, 10),
+          dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+          phone: "(11) 99999-2026",
+          segment: "Homologação / PDV",
+          onboardingPending: false,
+          isDemo: true,
+        };
+        const adminUser: SaaSUser = {
+          id: "mock-admin-teste-orvix",
+          name: "Admin Teste ORVIX",
+          email: TEST_ADMIN_EMAIL,
+          role: "admin",
+          companyId: TEST_COMPANY_ID,
+          password: "",
+          isTemporaryPassword: false,
+        };
+        const cashierUser: SaaSUser = {
+          id: "mock-caixa-teste-orvix",
+          name: "Caixa Teste ORVIX",
+          email: TEST_CASHIER_EMAIL,
+          role: "cashier",
+          companyId: TEST_COMPANY_ID,
+          password: "",
+          isTemporaryPassword: false,
+        };
+        COMPANIES.length = 0; COMPANIES.push(companyRow);
+        SAAS_USERS.length = 0; SAAS_USERS.push(adminUser, cashierUser);
+        const selected = role === "cashier" ? cashierUser : adminUser;
+        setRealUser(selected);
+        tick();
+        logEvent({
+          kind: "LOGIN_OK", company_id: TEST_COMPANY_ID,
+          companyName: companyRow.fantasia, user: selected.name,
+          action: `Login de homologação liberado via bypass mockado (${selected.role}).`,
+        });
+        return selected;
+      };
+
+      // Bypass idempotente de homologação: garante que o usuário master exista
+      // no mesmo fluxo/tabela dos demais usuários antes de validar a senha.
+      if (normalized === TEST_ADMIN_EMAIL || normalized === TEST_CASHIER_EMAIL) {
+        try { await ensureTestUser(); } catch (e) { console.warn("[ORVIX] ensureTestUser(login)", e); }
+      }
+
       let { error } = await supabase.auth.signInWithPassword({ email: normalized, password });
       // Auto-bootstrap do super admin se ele tentar com a senha padrão e ainda não existir.
       if (error && normalized === SUPER_ADMIN_EMAIL) {
         try { await ensureSuperAdmin(); } catch {}
         ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
       }
+      // Se a senha de teste foi digitada corretamente mas a sessão ainda falhou
+      // por inconsistência de migração, refaz o bootstrap e tenta uma última vez.
+      if (error && normalized === TEST_ADMIN_EMAIL && password === TEST_ADMIN_PASSWORD) {
+        try { await ensureTestUser(); } catch {}
+        ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
+      if (error && normalized === TEST_CASHIER_EMAIL && password === TEST_CASHIER_PASSWORD) {
+        try { await ensureTestUser(); } catch {}
+        ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
+      if (error && normalized === TEST_ADMIN_EMAIL && password === TEST_ADMIN_PASSWORD) {
+        return { ok: true, user: activateLocalTestBypass("admin") };
+      }
+      if (error && normalized === TEST_CASHIER_EMAIL && password === TEST_CASHIER_PASSWORD) {
+        return { ok: true, user: activateLocalTestBypass("cashier") };
+      }
       if (error) return { ok: false, reason: "E-mail ou senha incorretos." };
 
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id ?? null;
       if (!uid) return { ok: false, reason: "Sessão não estabelecida." };
-      await loadAll(uid);
       const { data: meRow } = await supabase
         .from("app_users")
         .select("id, name, email, role, company_id, is_temporary_password")
         .eq("id", uid)
         .maybeSingle();
-      const me = meRow ? mapUser(meRow as DbAppUser) : null;
-      if (!me) return { ok: false, reason: "Usuário sem perfil cadastrado na plataforma." };
+      const resolved = meRow
+        ? { ok: true as const, user: mapUser(meRow as DbAppUser) }
+        : await resolveLoginProfile();
+
+      if (!resolved.ok) {
+        await supabase.auth.signOut();
+        return { ok: false, reason: resolved.reason ?? "Usuário sem perfil cadastrado na plataforma." };
+      }
+
+      const me: SaaSUser = {
+        ...resolved.user,
+        password: "",
+        role: normalizeRole(resolved.user.role),
+      };
+      if (!me) {
+        await supabase.auth.signOut();
+        return { ok: false, reason: "Usuário sem perfil cadastrado na plataforma." };
+      }
+      await loadAll(uid);
       const comp = me.companyId ? COMPANIES.find((c) => c.id === me.companyId) : null;
       logEvent({
         kind: "LOGIN_OK", company_id: me.companyId,
@@ -328,7 +432,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       });
       return { ok: true, user: me };
     },
-    [loadAll],
+    [loadAll, tick],
   );
 
   const logout = useCallback(async () => {

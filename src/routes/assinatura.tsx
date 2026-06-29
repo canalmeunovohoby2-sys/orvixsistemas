@@ -27,7 +27,7 @@ function AssinaturaPage() {
     if (!user) { navigate({ to: "/login" }); return; }
     if (user.role === "super_admin") { navigate({ to: "/super-admin" }); return; }
     if (company && company.status !== "blocked" && company.status !== "pending") {
-      navigate({ to: user.role === "cashier" ? "/vendas" : "/" });
+      navigate({ to: user.role === "cashier" ? "/caixa" : "/dashboard" });
     }
   }, [mounted, user, company, navigate]);
 
@@ -37,7 +37,7 @@ function AssinaturaPage() {
     if (!company) return;
     setCompanyStatus(company.id, "active");
     toast.success("Pagamento confirmado. Acesso liberado!");
-    setTimeout(() => navigate({ to: user.role === "cashier" ? "/vendas" : "/" }), 600);
+    setTimeout(() => navigate({ to: user.role === "cashier" ? "/caixa" : "/dashboard" }), 600);
   };
 
   return (

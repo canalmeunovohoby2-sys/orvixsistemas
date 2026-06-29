@@ -28,9 +28,9 @@ function LoginPage() {
   const [pendingUser, setPendingUser] = useState<SaaSUser | null>(null);
 
   const routeForRole = (role: SaaSUser["role"]) => {
-    if (role === "cashier") navigate({ to: "/vendas" });
+    if (role === "cashier") navigate({ to: "/caixa" });
     else if (role === "super_admin") navigate({ to: "/super-admin" });
-    else navigate({ to: "/" });
+    else navigate({ to: "/dashboard" });
   };
 
   // Já logado → manda pra rota apropriada (a menos que precise trocar a senha).

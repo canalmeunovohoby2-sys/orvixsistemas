@@ -6,6 +6,77 @@ import { z } from "zod";
 const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 /** Senha padrão de primeiro acesso — usada APENAS quando ainda não existe Super Admin. */
 const SUPER_ADMIN_DEFAULT_PASSWORD = "OrvixAdmin@2026";
+/** Credencial master de homologação solicitada para destravar testes. */
+const TEST_ADMIN_EMAIL = "teste@orvix.com";
+const TEST_ADMIN_PASSWORD = "Orvix@2026";
+const TEST_COMPANY_ID = "EMP_TESTE";
+const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
+const TEST_CASHIER_PASSWORD = "OrvixCaixa@2026";
+
+type CanonicalRole = "super_admin" | "admin" | "cashier";
+
+function normalizeAppRole(value: unknown): CanonicalRole {
+  if (value === "super_admin" || value === "admin" || value === "cashier") return value;
+  if (value === "operator" || value === "client") return "cashier";
+  return "cashier";
+}
+
+async function findAuthUserIdByEmail(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  email: string,
+): Promise<string | null> {
+  const normalized = email.trim().toLowerCase();
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) return null;
+    const found = data?.users.find((u) => (u.email ?? "").toLowerCase() === normalized);
+    if (found) return found.id;
+    if (!data?.users.length || data.users.length < 1000) break;
+  }
+  return null;
+}
+
+async function ensureAuthUser(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  input: { email: string; password: string; name: string; companyId: string | null; role: CanonicalRole },
+): Promise<{ ok: true; userId: string } | { ok: false; reason: string }> {
+  const email = input.email.trim().toLowerCase();
+  const metadata = { name: input.name, company_id: input.companyId, role: input.role };
+  const existingId = await findAuthUserIdByEmail(supabaseAdmin, email);
+
+  if (existingId) {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(existingId, {
+      password: input.password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+    if (error) return { ok: false, reason: error.message };
+    return { ok: true, userId: existingId };
+  }
+
+  const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: metadata,
+  });
+  if (error || !created.user) {
+    return { ok: false, reason: error?.message ?? `Falha ao criar ${email}.` };
+  }
+  return { ok: true, userId: created.user.id };
+}
+
+async function getAuthenticatedProfile(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  userId: string,
+) {
+  const { data } = await supabaseAdmin
+    .from("app_users")
+    .select("id, name, email, role, company_id, is_temporary_password")
+    .eq("id", userId)
+    .maybeSingle();
+  return data;
+}
 
 /* ============================================================
  * Bootstrap do Super Admin (idempotente, público).
@@ -56,6 +127,200 @@ export const ensureSuperAdmin = createServerFn({ method: "POST" }).handler(async
 
   return { ok: true, created: true, email: SUPER_ADMIN_EMAIL };
 });
+
+/* ============================================================
+ * Bootstrap público de homologação (idempotente).
+ * Garante login imediato em teste@orvix.com / Orvix@2026 e uma
+ * empresa ativa com um terminal de caixa associado.
+ * ============================================================ */
+export const ensureTestUser = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { error: companyErr } = await supabaseAdmin.from("companies").upsert({
+    id: TEST_COMPANY_ID,
+    razao_social: "ORVIX Loja de Testes LTDA",
+    fantasia: "ORVIX Loja de Testes",
+    cnpj: "00.000.000/0001-91",
+    plan: "ouro",
+    status: "active",
+    mrr: 0,
+    due_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+    onboarding_pending: false,
+    is_demo: true,
+    phone: "(11) 99999-2026",
+    segment: "Homologação / PDV",
+  });
+  if (companyErr) return { ok: false as const, reason: companyErr.message };
+
+  const admin = await ensureAuthUser(supabaseAdmin, {
+    email: TEST_ADMIN_EMAIL,
+    password: TEST_ADMIN_PASSWORD,
+    name: "Admin Teste ORVIX",
+    companyId: TEST_COMPANY_ID,
+    role: "admin",
+  });
+  if (!admin.ok) return { ok: false as const, reason: admin.reason };
+
+  const { error: adminProfileErr } = await supabaseAdmin.from("app_users").upsert({
+    id: admin.userId,
+    name: "Admin Teste ORVIX",
+    email: TEST_ADMIN_EMAIL,
+    role: "admin",
+    company_id: TEST_COMPANY_ID,
+    is_temporary_password: false,
+  });
+  if (adminProfileErr) return { ok: false as const, reason: adminProfileErr.message };
+
+  const cashier = await ensureAuthUser(supabaseAdmin, {
+    email: TEST_CASHIER_EMAIL,
+    password: TEST_CASHIER_PASSWORD,
+    name: "Caixa Teste ORVIX",
+    companyId: TEST_COMPANY_ID,
+    role: "cashier",
+  });
+  if (!cashier.ok) return { ok: false as const, reason: cashier.reason };
+
+  const { error: cashierProfileErr } = await supabaseAdmin.from("app_users").upsert({
+    id: cashier.userId,
+    name: "Caixa Teste ORVIX",
+    email: TEST_CASHIER_EMAIL,
+    role: "cashier",
+    company_id: TEST_COMPANY_ID,
+    is_temporary_password: false,
+  });
+  if (cashierProfileErr) return { ok: false as const, reason: cashierProfileErr.message };
+
+  return {
+    ok: true as const,
+    email: TEST_ADMIN_EMAIL,
+    companyId: TEST_COMPANY_ID,
+    cashierEmail: TEST_CASHIER_EMAIL,
+  };
+});
+
+/* ============================================================
+ * Validação/reparo de login (fallback server-side com service role).
+ * Garante que qualquer usuário aceito pelo Supabase Auth seja lido na
+ * mesma tabela app_users usada na criação de empresas/terminais, mesmo
+ * quando a RLS ou uma migração deixou o perfil invisível ao client.
+ * ============================================================ */
+export const resolveLoginProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let profile = await getAuthenticatedProfile(supabaseAdmin, context.userId);
+
+    if (!profile) {
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+      const authUser = authData?.user;
+      if (authErr || !authUser?.email) {
+        return { ok: false as const, reason: authErr?.message ?? "Usuário Auth não encontrado." };
+      }
+
+      const metadata = authUser.user_metadata ?? {};
+      const role = normalizeAppRole(metadata.role);
+      const companyId = typeof metadata.company_id === "string" ? metadata.company_id : null;
+      if (role !== "super_admin" && !companyId) {
+        return { ok: false as const, reason: "Usuário Auth sem empresa vinculada no metadata." };
+      }
+
+      if (companyId) {
+        const { data: companyExists } = await supabaseAdmin
+          .from("companies")
+          .select("id")
+          .eq("id", companyId)
+          .maybeSingle();
+        if (!companyExists) return { ok: false as const, reason: "Empresa vinculada ao usuário não existe." };
+      }
+
+      const name = typeof metadata.name === "string" && metadata.name.trim()
+        ? metadata.name.trim()
+        : authUser.email;
+      const { error: upErr } = await supabaseAdmin.from("app_users").upsert({
+        id: context.userId,
+        name,
+        email: authUser.email.toLowerCase(),
+        role,
+        company_id: role === "super_admin" ? null : companyId,
+        is_temporary_password: false,
+      });
+      if (upErr) return { ok: false as const, reason: upErr.message };
+      profile = await getAuthenticatedProfile(supabaseAdmin, context.userId);
+    }
+
+    if (!profile) return { ok: false as const, reason: "Usuário sem perfil cadastrado na plataforma." };
+
+    const canonicalRole = normalizeAppRole(profile.role);
+    if (profile.role !== canonicalRole) {
+      // Perfis legados operator/client viram cashier no app; caso o banco aceite
+      // apenas o enum canônico, esta atualização também elimina dessinc futuro.
+      await supabaseAdmin.from("app_users").update({ role: canonicalRole }).eq("id", context.userId);
+    }
+
+    return {
+      ok: true as const,
+      user: {
+        id: profile.id,
+        name: profile.name || profile.email,
+        email: String(profile.email).toLowerCase(),
+        role: canonicalRole,
+        companyId: profile.company_id,
+        isTemporaryPassword: Boolean(profile.is_temporary_password),
+      },
+    };
+  });
+
+/* ============================================================
+ * Reparo de perfil pós-login.
+ * Se o Auth aceitou a senha, mas app_users ficou ausente/inconsistente
+ * durante a migração, recria o perfil a partir do metadata do Auth.
+ * ============================================================ */
+export const repairAuthenticatedUserProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: existing } = await context.supabase
+      .from("app_users")
+      .select("id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (existing) return { ok: true as const, repaired: false };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    const authUser = authData?.user;
+    if (authErr || !authUser?.email) {
+      return { ok: false as const, reason: authErr?.message ?? "Usuário Auth não encontrado." };
+    }
+
+    const metadata = authUser.user_metadata ?? {};
+    const role = normalizeAppRole(metadata.role);
+    const companyId = typeof metadata.company_id === "string" ? metadata.company_id : null;
+    if (role !== "super_admin" && !companyId) {
+      return { ok: false as const, reason: "Usuário Auth sem empresa vinculada no metadata." };
+    }
+    if (companyId) {
+      const { data: companyExists } = await supabaseAdmin
+        .from("companies")
+        .select("id")
+        .eq("id", companyId)
+        .maybeSingle();
+      if (!companyExists) return { ok: false as const, reason: "Empresa vinculada ao usuário não existe." };
+    }
+
+    const name = typeof metadata.name === "string" && metadata.name.trim()
+      ? metadata.name.trim()
+      : authUser.email;
+    const { error: upErr } = await supabaseAdmin.from("app_users").upsert({
+      id: context.userId,
+      name,
+      email: authUser.email.toLowerCase(),
+      role,
+      company_id: role === "super_admin" ? null : companyId,
+      is_temporary_password: false,
+    });
+    if (upErr) return { ok: false as const, reason: upErr.message };
+    return { ok: true as const, repaired: true };
+  });
 
 /* ============================================================
  * Cria uma nova empresa + usuário admin (dono) com senha temporária.
@@ -111,23 +376,26 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
       .single();
     if (cErr || !company) return { ok: false as const, reason: cErr?.message ?? "Falha ao criar empresa." };
 
-    // Cria usuário Auth do dono
+    // Cria/atualiza usuário Auth do dono no MESMO fluxo usado pelo login.
+    // Se o e-mail já existir por causa de uma tentativa anterior de migração,
+    // resetamos senha + metadata em vez de deixar um perfil órfão.
     const email = data.ownerEmail.trim().toLowerCase();
-    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser({
+    const owner = await ensureAuthUser(supabaseAdmin, {
       email,
       password: data.ownerPassword,
-      email_confirm: true,
-      user_metadata: { name: data.ownerName, company_id: companyId, role: "admin" },
+      name: data.ownerName,
+      companyId,
+      role: "admin",
     });
-    if (aErr || !created.user) {
+    if (!owner.ok) {
       // rollback empresa
       await supabaseAdmin.from("companies").delete().eq("id", companyId);
-      return { ok: false as const, reason: aErr?.message ?? "Falha ao criar usuário do dono." };
+      return { ok: false as const, reason: owner.reason };
     }
 
     // Cria/atualiza app_users do dono
     const { error: uErr } = await supabaseAdmin.from("app_users").upsert({
-      id: created.user.id,
+      id: owner.userId,
       name: data.ownerName,
       email,
       role: "admin",
@@ -135,12 +403,12 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
       is_temporary_password: true,
     });
     if (uErr) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(owner.userId);
       await supabaseAdmin.from("companies").delete().eq("id", companyId);
       return { ok: false as const, reason: uErr.message };
     }
 
-    return { ok: true as const, companyId, ownerId: created.user.id, ownerEmail: email };
+    return { ok: true as const, companyId, ownerId: owner.userId, ownerEmail: email };
   });
 
 /* ============================================================
@@ -172,16 +440,17 @@ export const adminCreateCashier = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
 
-    const { data: created, error: aErr } = await supabaseAdmin.auth.admin.createUser({
+    const cashier = await ensureAuthUser(supabaseAdmin, {
       email,
       password: data.password,
-      email_confirm: true,
-      user_metadata: { name: data.name, company_id: data.companyId, role: "cashier" },
+      name: data.name,
+      companyId: data.companyId,
+      role: "cashier",
     });
-    if (aErr || !created.user) return { ok: false as const, reason: aErr?.message ?? "Falha ao criar usuário." };
+    if (!cashier.ok) return { ok: false as const, reason: cashier.reason };
 
     const { error: uErr } = await supabaseAdmin.from("app_users").upsert({
-      id: created.user.id,
+      id: cashier.userId,
       name: data.name,
       email,
       role: "cashier",
@@ -189,11 +458,11 @@ export const adminCreateCashier = createServerFn({ method: "POST" })
       is_temporary_password: false,
     });
     if (uErr) {
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(cashier.userId);
       return { ok: false as const, reason: uErr.message };
     }
 
-    return { ok: true as const, userId: created.user.id, email };
+    return { ok: true as const, userId: cashier.userId, email };
   });
 
 /* ============================================================

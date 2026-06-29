@@ -100,7 +100,7 @@ export function OnboardingGate() {
     }
     toast.success(`Bem-vindo(a) à ORVIX SISTEMAS, ${fantasia}! Painel de gestão liberado.`);
     // Lojista (dono) vai para o Dashboard principal; o PDV fica para o operador criado.
-    setTimeout(() => navigate({ to: "/" }), 250);
+    setTimeout(() => navigate({ to: "/dashboard" }), 250);
   };
 
   return (

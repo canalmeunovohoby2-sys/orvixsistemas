@@ -245,7 +245,7 @@ function escapeHTML(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }
 
-function VendasPage() {
+export function VendasPage() {
   useMockStore();
   const { user, company, activateRevenue, logout } = useSaaS();
   const [q, setQ] = useState("");

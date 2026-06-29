@@ -23,7 +23,7 @@ type NavItem = {
 };
 
 const NAV_FULL: NavItem[] = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard },
+  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { label: "Produtos", to: "/produtos", icon: Package },
   { label: "Estoque", to: "/estoque", icon: Warehouse },
   { label: "Clientes", to: "/clientes", icon: Users },
@@ -35,7 +35,7 @@ const NAV_FULL: NavItem[] = [
 ];
 
 const NAV_CASHIER: NavItem[] = [
-  { label: "Caixa", to: "/vendas", icon: ShoppingCart },
+  { label: "Caixa", to: "/caixa", icon: ShoppingCart },
 ];
 
 function useStored<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
@@ -82,7 +82,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-sidebar-border shrink-0">
-          <Link to="/" className="flex items-center gap-3 min-w-0" aria-label="ORVIX SISTEMAS — Início">
+          <Link to={isCashier ? "/caixa" : "/dashboard"} className="flex items-center gap-3 min-w-0" aria-label="ORVIX SISTEMAS — Início">
             {isCollapsed ? (
               <Logo height={26} priority />
             ) : (
