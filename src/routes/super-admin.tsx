@@ -7,7 +7,8 @@ import {
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
-  updateTicketStatus, deleteTicket, updateSaaSSettings, resetCommercialData,
+  updateTicketStatus, deleteTicket, restoreTicket, markLogReverted,
+  updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
