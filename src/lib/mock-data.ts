@@ -99,6 +99,10 @@ export type SystemLog = {
   companyName?: string;
   user?: string;
   action: string;
+  /** Snapshot opaco para reversão de estado. Tipado no consumidor (saas-context). */
+  undo?: unknown;
+  /** Marca o log como já revertido — desabilita o botão "Reverter". */
+  reverted?: boolean;
 };
 
 export const SYSTEM_LOGS: SystemLog[] = [];
@@ -112,10 +116,20 @@ export function logEvent(input: Omit<SystemLog, "id" | "date"> & { date?: string
     companyName: input.companyName,
     user: input.user,
     action: input.action,
+    undo: input.undo,
+    reverted: input.reverted,
   };
   SYSTEM_LOGS.unshift(log);
   __emit();
   return log;
+}
+
+/** Marca um log como revertido (consumido pelo Painel Master após rollback bem-sucedido). */
+export function markLogReverted(logId: string) {
+  const l = SYSTEM_LOGS.find((x) => x.id === logId);
+  if (!l) return;
+  l.reverted = true;
+  __emit();
 }
 // Seed alguns logs para demonstração
 (function seedLogs() {
