@@ -28,6 +28,11 @@ export const Route = createFileRoute("/api/public/notify-admin")({
 
           const apiKey = process.env.RESEND_API_KEY;
           const from = process.env.RESEND_FROM_EMAIL || "ORVIX SISTEMAS <onboarding@resend.dev>";
+          // Destino oficial — sempre prevalece sobre o "to" enviado pelo cliente.
+          // Em modo de teste do Resend (onboarding@resend.dev), o provedor SÓ entrega
+          // para o e-mail do dono da conta; se o cliente mandar outro endereço,
+          // o envio retorna 200/202 mas a mensagem nunca chega à caixa de entrada.
+          const adminTo = process.env.ADMIN_NOTIFICATION_EMAIL || payload.to;
           if (!apiKey) {
             return new Response(JSON.stringify({ ok: true, simulated: true }), {
               status: 200, headers: JSON_HEADERS,
@@ -42,7 +47,7 @@ export const Route = createFileRoute("/api/public/notify-admin")({
             },
             body: JSON.stringify({
               from,
-              to: [payload.to],
+              to: [adminTo],
               subject: payload.subject,
               text: payload.text,
               html: payload.html,
@@ -55,7 +60,7 @@ export const Route = createFileRoute("/api/public/notify-admin")({
             });
           }
           const data = await resp.json().catch(() => ({}));
-          return new Response(JSON.stringify({ ok: true, sent: true, id: (data as { id?: string }).id }), {
+          return new Response(JSON.stringify({ ok: true, sent: true, id: (data as { id?: string }).id, deliveredTo: adminTo }), {
             status: 200, headers: JSON_HEADERS,
           });
         } catch (err) {
