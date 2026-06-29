@@ -66,6 +66,18 @@ async function ensureAuthUser(
   return { ok: true, userId: created.user.id };
 }
 
+async function getAuthenticatedProfile(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  userId: string,
+) {
+  const { data } = await supabaseAdmin
+    .from("app_users")
+    .select("id, name, email, role, company_id, is_temporary_password")
+    .eq("id", userId)
+    .maybeSingle();
+  return data;
+}
+
 /* ============================================================
  * Bootstrap do Super Admin (idempotente, público).
  * Garante que o e-mail principal sempre consiga acessar o painel
@@ -185,6 +197,78 @@ export const ensureTestUser = createServerFn({ method: "POST" }).handler(async (
     cashierEmail: TEST_CASHIER_EMAIL,
   };
 });
+
+/* ============================================================
+ * Validação/reparo de login (fallback server-side com service role).
+ * Garante que qualquer usuário aceito pelo Supabase Auth seja lido na
+ * mesma tabela app_users usada na criação de empresas/terminais, mesmo
+ * quando a RLS ou uma migração deixou o perfil invisível ao client.
+ * ============================================================ */
+export const resolveLoginProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let profile = await getAuthenticatedProfile(supabaseAdmin, context.userId);
+
+    if (!profile) {
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+      const authUser = authData?.user;
+      if (authErr || !authUser?.email) {
+        return { ok: false as const, reason: authErr?.message ?? "Usuário Auth não encontrado." };
+      }
+
+      const metadata = authUser.user_metadata ?? {};
+      const role = normalizeAppRole(metadata.role);
+      const companyId = typeof metadata.company_id === "string" ? metadata.company_id : null;
+      if (role !== "super_admin" && !companyId) {
+        return { ok: false as const, reason: "Usuário Auth sem empresa vinculada no metadata." };
+      }
+
+      if (companyId) {
+        const { data: companyExists } = await supabaseAdmin
+          .from("companies")
+          .select("id")
+          .eq("id", companyId)
+          .maybeSingle();
+        if (!companyExists) return { ok: false as const, reason: "Empresa vinculada ao usuário não existe." };
+      }
+
+      const name = typeof metadata.name === "string" && metadata.name.trim()
+        ? metadata.name.trim()
+        : authUser.email;
+      const { error: upErr } = await supabaseAdmin.from("app_users").upsert({
+        id: context.userId,
+        name,
+        email: authUser.email.toLowerCase(),
+        role,
+        company_id: role === "super_admin" ? null : companyId,
+        is_temporary_password: false,
+      });
+      if (upErr) return { ok: false as const, reason: upErr.message };
+      profile = await getAuthenticatedProfile(supabaseAdmin, context.userId);
+    }
+
+    if (!profile) return { ok: false as const, reason: "Usuário sem perfil cadastrado na plataforma." };
+
+    const canonicalRole = normalizeAppRole(profile.role);
+    if (profile.role !== canonicalRole) {
+      // Perfis legados operator/client viram cashier no app; caso o banco aceite
+      // apenas o enum canônico, esta atualização também elimina dessinc futuro.
+      await supabaseAdmin.from("app_users").update({ role: canonicalRole }).eq("id", context.userId);
+    }
+
+    return {
+      ok: true as const,
+      user: {
+        id: profile.id,
+        name: profile.name || profile.email,
+        email: String(profile.email).toLowerCase(),
+        role: canonicalRole,
+        companyId: profile.company_id,
+        isTemporaryPassword: Boolean(profile.is_temporary_password),
+      },
+    };
+  });
 
 /* ============================================================
  * Reparo de perfil pós-login.
