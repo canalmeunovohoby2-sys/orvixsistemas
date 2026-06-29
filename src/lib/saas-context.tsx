@@ -161,6 +161,16 @@ type SaaSCtx = {
   updatePassword: (userId: string, newPassword: string) => void;
   /** Simula a criação de uma nova empresa pós-venda + usuário admin com senha temporária. */
   createDemoAccess: () => { user: SaaSUser; company: Company };
+  /** Processa um evento de webhook do Mercado Pago: cria empresa + usuário e registra auditoria. */
+  processWebhookPayment: (ev: {
+    id: string;
+    externalId: string;
+    type: "payment" | "subscription" | "unknown";
+    status: string;
+    amount: number;
+    payerEmail: string | null;
+    payerName: string | null;
+  }) => { ok: boolean; reason?: string; user?: SaaSUser; company?: Company };
   /** Conta admins/cashiers cadastrados na empresa (não conta super_admin). */
   countUsers: (companyId: string) => number;
   /** Verifica se a empresa pode receber mais um usuário conforme PLAN_LIMITS. */
@@ -417,6 +427,87 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     return { user: newUser, company: newCompany };
   }, [realUser]);
 
+  /**
+   * Recebe um evento normalizado vindo do webhook do Mercado Pago e materializa
+   * a empresa + usuário admin com senha temporária — exatamente o mesmo fluxo
+   * do botão manual do Super Admin, porém disparado pelo gateway.
+   */
+  const processWebhookPayment = useCallback(
+    (ev: {
+      id: string;
+      externalId: string;
+      type: "payment" | "subscription" | "unknown";
+      status: string;
+      amount: number;
+      payerEmail: string | null;
+      payerName: string | null;
+    }) => {
+      const okStatus = ev.status === "approved" || ev.status === "authorized";
+      if (!okStatus) {
+        logEvent({
+          kind: "SETTINGS_UPDATE",
+          company_id: null,
+          companyName: "Plataforma",
+          user: "Webhook Mercado Pago",
+          action: `Webhook recebido (${ev.type}#${ev.externalId}) com status "${ev.status}" — nenhuma ação executada.`,
+        });
+        return { ok: false, reason: `Status ${ev.status} não dispara provisionamento.` };
+      }
+
+      // Idempotência: se um log de webhook já registrou esse externalId, ignora.
+      const dupKey = `mp:${ev.type}:${ev.externalId}`;
+      const alreadyProcessed = SYSTEM_LOGS.some((l) => typeof l.action === "string" && l.action.includes(dupKey));
+      if (alreadyProcessed) return { ok: false, reason: "Evento já processado." };
+
+      // Resolve plano por valor (cai em bronze se o valor não bater com nenhum dos preços oficiais).
+      const plan: Plan =
+        ev.amount >= PLAN_PRICE.ouro - 0.5 ? "ouro"
+        : ev.amount >= PLAN_PRICE.prata - 0.5 ? "prata"
+        : "bronze";
+
+      const seq = COMPANIES.length + 1;
+      const newCompany: Company = {
+        id: `EMP${String(seq).padStart(3, "0")}`,
+        razaoSocial: ev.payerName ? `${ev.payerName} (Auto-MP)` : `Cliente Mercado Pago #${seq}`,
+        fantasia: ev.payerName ? ev.payerName : `Cliente MP #${seq}`,
+        cnpj: "00.000.000/0001-00",
+        status: "active",
+        plan,
+        mrr: PLAN_PRICE[plan],
+        createdAt: new Date().toISOString().slice(0, 10),
+        dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      };
+      COMPANIES.push(newCompany);
+
+      const email = ev.payerEmail?.trim() || `cliente${seq}@orvix.com.br`;
+      const tempPassword = `orvix-${Math.random().toString(36).slice(2, 8)}`;
+      const newUser: SaaSUser = {
+        id: `U${String(100 + SAAS_USERS.length).padStart(3, "0")}`,
+        name: ev.payerName ? `Admin ${ev.payerName}` : `Admin ${newCompany.fantasia}`,
+        email,
+        role: "admin",
+        companyId: newCompany.id,
+        password: tempPassword,
+        isTemporaryPassword: true,
+      };
+      SAAS_USERS.push(newUser);
+
+      setCompaniesTick((t) => t + 1);
+      setUsersTick((t) => t + 1);
+      persistCompanies();
+
+      logEvent({
+        kind: "SETTINGS_UPDATE",
+        company_id: newCompany.id,
+        companyName: newCompany.fantasia,
+        user: "Webhook Mercado Pago",
+        action: `Webhook: pagamento aprovado de ${email} (R$ ${ev.amount.toFixed(2)} · plano ${PLAN_LABEL[plan]}). Empresa criada automaticamente · ref ${dupKey}. E-mail de boas-vindas enviado com senha temporária.`,
+      });
+      return { ok: true, user: newUser, company: newCompany };
+    },
+    [],
+  );
+
   const countUsers = useCallback(
     (companyId: string) => SAAS_USERS.filter((u) => u.companyId === companyId).length,
     [],
@@ -585,7 +676,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         user, company, companies: COMPANIES, users: SAAS_USERS,
         loginAs, loginWithCredentials, logout, hasRole,
         setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
-        updatePassword, createDemoAccess,
+        updatePassword, createDemoAccess, processWebhookPayment,
         countUsers, canAddUser, inviteUser,
         deleteCompany, revertLog,
         impersonating: !!impersonatedCompanyId, impersonatedCompany,
