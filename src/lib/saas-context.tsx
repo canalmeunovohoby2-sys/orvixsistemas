@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { sha256Hex, timingSafeEqualHex } from "./sha256";
 import {
   logEvent, markLogReverted, updateSaaSSettings, SAAS_SETTINGS,
   type SaaSSettings, type Product, type Sale, type Movement, type Person,
@@ -115,7 +116,10 @@ function hydrateCompaniesFromStorage() {
 }
 
 export const SAAS_USERS: SaaSUser[] = [
-  { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "admin123", isTemporaryPassword: false },
+  // Super Admin: a senha NÃO é mais comparada via campo `password`.
+  // O login do super_admin é validado contra um SHA-256 (default em código + override em localStorage).
+  // O placeholder abaixo nunca é usado para autenticar — qualquer tentativa cai na verificação por hash.
+  { id: "U000", name: "Tiago (Orvix Sistemas)", email: "orvixsistemas@gmail.com", role: "super_admin", companyId: null, password: "__hash_only__", isTemporaryPassword: false },
   { id: "U001", name: "Ana Mendes",    email: "ana@orvix.com.br",   role: "admin",       companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U002", name: "Bruno Caixa",   email: "bruno@orvix.com.br", role: "cashier",     companyId: "EMP001",password: "123",     isTemporaryPassword: false },
   { id: "U003", name: "Carla Souza",   email: "carla@trigo.com.br", role: "admin",       companyId: "EMP002",password: "123",     isTemporaryPassword: false },
@@ -127,6 +131,58 @@ const STORAGE_KEY = "saas_session_user_id";
 
 /** E-mail único autorizado a acessar o Painel Master da ORVIX SISTEMAS. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
+
+/**
+ * Hash SHA-256 da senha-padrão do Super Admin (lançamento ORVIX SISTEMAS).
+ * A senha em texto puro NÃO existe no código — foi gerada uma única vez e
+ * comunicada ao titular da conta. Pode ser substituída em runtime via
+ * `updateSuperAdminPassword`, que grava o novo hash em localStorage.
+ */
+const DEFAULT_SUPER_ADMIN_PASSWORD_HASH =
+  "f2b5c43ac0b039c582e0ba674b525863c4ddb534ebb9047812e891a9d27313b1";
+
+/** Hashes explicitamente banidos (senhas legadas de teste). */
+const BANNED_SUPER_ADMIN_PASSWORD_HASHES = new Set<string>([
+  // sha256("admin123")
+  "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+  // sha256("admin")
+  "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+  // sha256("123456")
+  "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+  // sha256("password")
+  "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+]);
+
+const SUPER_ADMIN_HASH_STORAGE_KEY = "orvix_sa_pwd_hash_v1";
+
+function getActiveSuperAdminHash(): string {
+  try {
+    const v = localStorage.getItem(SUPER_ADMIN_HASH_STORAGE_KEY);
+    if (v && /^[a-f0-9]{64}$/.test(v) && !BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(v)) {
+      return v;
+    }
+  } catch {}
+  return DEFAULT_SUPER_ADMIN_PASSWORD_HASH;
+}
+
+/**
+ * Atualiza a senha do Super Admin (apenas o HASH é persistido).
+ * Retorna `{ ok: false, reason }` se a senha for fraca ou estiver na lista de banidas.
+ */
+export function updateSuperAdminPassword(newPassword: string): { ok: boolean; reason?: string } {
+  const pwd = newPassword ?? "";
+  if (pwd.length < 8) return { ok: false, reason: "A senha precisa ter pelo menos 8 caracteres." };
+  const hash = sha256Hex(pwd);
+  if (BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(hash)) {
+    return { ok: false, reason: "Esta senha está bloqueada por ser amplamente conhecida." };
+  }
+  try {
+    localStorage.setItem(SUPER_ADMIN_HASH_STORAGE_KEY, hash);
+  } catch {
+    return { ok: false, reason: "Não foi possível salvar a nova senha neste navegador." };
+  }
+  return { ok: true };
+}
 
 /**
  * Snapshots de reversão anexados a logs críticos.
@@ -226,8 +282,40 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   const loginWithCredentials = useCallback(
     (email: string, password: string) => {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Fluxo especial e blindado para o Super Admin: a senha é verificada
+      // exclusivamente via hash SHA-256, e qualquer credencial banida
+      // (ex.: "admin123") é rejeitada com mensagem dedicada.
+      if (normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+        const inputHash = sha256Hex(password ?? "");
+        if (BANNED_SUPER_ADMIN_PASSWORD_HASHES.has(inputHash)) {
+          return {
+            ok: false,
+            reason:
+              "Esta senha foi desativada por segurança. Use a nova credencial do Super Admin entregue pela ORVIX SISTEMAS.",
+          };
+        }
+        const activeHash = getActiveSuperAdminHash();
+        if (!timingSafeEqualHex(inputHash, activeHash)) {
+          return { ok: false, reason: "E-mail ou senha incorretos." };
+        }
+        const sa = SAAS_USERS.find((u) => u.email.toLowerCase() === normalizedEmail && u.role === "super_admin");
+        if (!sa) return { ok: false, reason: "Conta de Super Admin não disponível." };
+        setUserId(sa.id);
+        try { localStorage.setItem(STORAGE_KEY, sa.id); } catch {}
+        logEvent({
+          kind: "LOGIN_OK",
+          company_id: null,
+          companyName: "Plataforma",
+          user: sa.name,
+          action: "Login efetuado (super_admin).",
+        });
+        return { ok: true, user: sa };
+      }
+
       const target = SAAS_USERS.find(
-        (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
+        (u) => u.email.toLowerCase() === normalizedEmail && u.role !== "super_admin" && u.password === password,
       );
       if (!target) return { ok: false, reason: "E-mail ou senha incorretos." };
       setUserId(target.id);
