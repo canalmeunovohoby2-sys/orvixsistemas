@@ -74,6 +74,174 @@ type Split = { method: PaymentMethod; amount: number; installments?: number };
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
+// ──────────────────────────────────────────────────────────────────────
+// Abertura / Fechamento de Caixa (Shift)
+// ──────────────────────────────────────────────────────────────────────
+type ShiftPaymentKey = PaymentMethod | "Crediário";
+type ShiftSaleEntry = { ts: number; method: ShiftPaymentKey; amount: number };
+type Shift = {
+  id: string;
+  cid: string;
+  userId: string;
+  userName: string;
+  openedAt: number;
+  openingFloat: number;
+  sales: ShiftSaleEntry[];
+  closedAt?: number;
+  closingCash?: number;
+};
+
+const SHIFT_KEY = (cid: string, uid: string) => `orvix_pdv_shift_${cid}_${uid}`;
+const SHIFT_HISTORY_KEY = (cid: string) => `orvix_pdv_shifts_history_${cid}`;
+
+function loadShift(cid: string, uid: string): Shift | null {
+  try {
+    const raw = localStorage.getItem(SHIFT_KEY(cid, uid));
+    if (!raw) return null;
+    const s = JSON.parse(raw) as Shift;
+    if (s.closedAt) return null;
+    return s;
+  } catch { return null; }
+}
+function saveShift(s: Shift) {
+  try { localStorage.setItem(SHIFT_KEY(s.cid, s.userId), JSON.stringify(s)); } catch {}
+}
+function archiveShift(s: Shift) {
+  try {
+    const raw = localStorage.getItem(SHIFT_HISTORY_KEY(s.cid));
+    const list: Shift[] = raw ? JSON.parse(raw) : [];
+    list.unshift(s);
+    localStorage.setItem(SHIFT_HISTORY_KEY(s.cid), JSON.stringify(list.slice(0, 200)));
+    localStorage.removeItem(SHIFT_KEY(s.cid, s.userId));
+  } catch {}
+}
+
+/** Impressão silenciosa via iframe oculto (evita popup blocker). */
+function printHTML(html: string) {
+  const iframe = document.createElement("iframe");
+  Object.assign(iframe.style, {
+    position: "fixed", right: "0", bottom: "0",
+    width: "0", height: "0", border: "0",
+  });
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  if (!doc) { document.body.removeChild(iframe); return; }
+  doc.open(); doc.write(html); doc.close();
+  window.setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    window.setTimeout(() => { document.body.removeChild(iframe); }, 1500);
+  }, 250);
+}
+
+const RECEIPT_CSS = `
+  @page { size: 80mm auto; margin: 4mm 4mm 6mm 4mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; line-height: 1.35; color: #000; background: #fff; margin: 0; padding: 0; width: 72mm; }
+  h1 { font-size: 14px; margin: 0 0 2px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+  .muted { color: #000; opacity: 0.8; }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  .row { display: flex; justify-content: space-between; gap: 8px; }
+  .sep { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 2px 0; vertical-align: top; }
+  th { text-align: left; border-bottom: 1px solid #000; }
+  td.qty, td.unit, td.total, th.qty, th.unit, th.total { text-align: right; white-space: nowrap; }
+  .name { word-break: break-word; }
+  .totals { font-size: 13px; }
+  .totals .row.big { font-size: 15px; font-weight: bold; }
+  .footer { margin-top: 10px; text-align: center; font-size: 11px; }
+  @media print {
+    html, body { width: 80mm; }
+  }
+`;
+
+function buildReceiptHTML(opts: {
+  storeName: string; operator: string; saleId: string;
+  items: { name: string; qty: number; unit: string; price: number }[];
+  subtotal: number; discount: number; total: number;
+  splits: { method: string; amount: number; installments?: number }[];
+  crediario?: { customer?: string };
+}): string {
+  const now = new Date();
+  const dt = now.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" });
+  const itemsRows = opts.items.map((it) => `
+    <tr>
+      <td class="name">${escapeHTML(it.name)}</td>
+      <td class="qty">${it.qty.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</td>
+      <td class="unit">${escapeHTML(it.unit)}</td>
+      <td class="total">${BRL(it.price * it.qty)}</td>
+    </tr>`).join("");
+  const paymentLines = opts.crediario
+    ? `<div class="row"><span>Crediário</span><span>${BRL(opts.total)}</span></div>
+       <div class="row muted"><span>Cliente</span><span>${escapeHTML(opts.crediario.customer ?? "—")}</span></div>`
+    : opts.splits.map((s) => `
+        <div class="row"><span>${escapeHTML(s.method)}${s.method === "Crédito" && s.installments && s.installments > 1 ? ` ${s.installments}x` : ""}</span><span>${BRL(s.amount)}</span></div>
+      `).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Cupom</title><style>${RECEIPT_CSS}</style></head>
+  <body>
+    <h1>${escapeHTML(opts.storeName)}</h1>
+    <div class="center muted">CUPOM NÃO FISCAL</div>
+    <div class="row muted"><span>${dt}</span><span>#${escapeHTML(opts.saleId)}</span></div>
+    <div class="muted">Operador: ${escapeHTML(opts.operator)}</div>
+    <hr class="sep" />
+    <table>
+      <thead><tr><th>Item</th><th class="qty">Qtd</th><th class="unit">Un</th><th class="total">Total</th></tr></thead>
+      <tbody>${itemsRows}</tbody>
+    </table>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Subtotal</span><span>${BRL(opts.subtotal)}</span></div>
+      ${opts.discount > 0 ? `<div class="row"><span>Desconto</span><span>- ${BRL(opts.discount)}</span></div>` : ""}
+      <div class="row big"><span>TOTAL</span><span>${BRL(opts.total)}</span></div>
+    </div>
+    <hr class="sep" />
+    <div>${paymentLines}</div>
+    <div class="footer">
+      Obrigado pela preferência<br/>Cupom Não Fiscal
+    </div>
+  </body></html>`;
+}
+
+function buildClosingHTML(opts: {
+  storeName: string; operator: string; shift: Shift; totals: Record<ShiftPaymentKey, number>;
+  expectedCash: number; informedCash: number;
+}): string {
+  const opened = new Date(opts.shift.openedAt).toLocaleString("pt-BR");
+  const closed = new Date().toLocaleString("pt-BR");
+  const diff = opts.informedCash - opts.expectedCash;
+  const diffLabel = diff === 0 ? "Sem diferença" : diff > 0 ? `Sobra ${BRL(diff)}` : `Falta ${BRL(Math.abs(diff))}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Fechamento</title><style>${RECEIPT_CSS}</style></head>
+  <body>
+    <h1>${escapeHTML(opts.storeName)}</h1>
+    <div class="center muted">FECHAMENTO DE CAIXA</div>
+    <div class="muted">Operador: ${escapeHTML(opts.operator)}</div>
+    <div class="row muted"><span>Abertura</span><span>${opened}</span></div>
+    <div class="row muted"><span>Fechamento</span><span>${closed}</span></div>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Troco inicial</span><span>${BRL(opts.shift.openingFloat)}</span></div>
+      <div class="row"><span>Dinheiro</span><span>${BRL(opts.totals["Dinheiro"])}</span></div>
+      <div class="row"><span>PIX</span><span>${BRL(opts.totals["Pix"])}</span></div>
+      <div class="row"><span>Crédito</span><span>${BRL(opts.totals["Crédito"])}</span></div>
+      <div class="row"><span>Débito</span><span>${BRL(opts.totals["Débito"])}</span></div>
+      <div class="row muted"><span>Crediário</span><span>${BRL(opts.totals["Crediário"])}</span></div>
+    </div>
+    <hr class="sep" />
+    <div class="totals">
+      <div class="row"><span>Esperado em dinheiro</span><span>${BRL(opts.expectedCash)}</span></div>
+      <div class="row"><span>Conferido</span><span>${BRL(opts.informedCash)}</span></div>
+      <div class="row big"><span>${diff >= 0 ? "Diferença" : "Diferença"}</span><span>${diffLabel}</span></div>
+    </div>
+    <div class="footer">Relatório interno · ORVIX SISTEMAS</div>
+  </body></html>`;
+}
+
+function escapeHTML(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
 function VendasPage() {
   useMockStore();
   const { user, company, activateRevenue } = useSaaS();
