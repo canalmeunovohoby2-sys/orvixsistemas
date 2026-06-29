@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ensureSuperAdmin,
   ensureTestUser,
-  repairAuthenticatedUserProfile,
+  resolveLoginProfile,
   adminCreateCompanyWithOwner,
   adminCreateCashier,
   adminDeleteUser,
@@ -337,25 +337,25 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id ?? null;
       if (!uid) return { ok: false, reason: "Sessão não estabelecida." };
-      let { data: meRow } = await supabase
+      const { data: meRow } = await supabase
         .from("app_users")
         .select("id, name, email, role, company_id, is_temporary_password")
         .eq("id", uid)
         .maybeSingle();
-      if (!meRow) {
-        const repaired = await repairAuthenticatedUserProfile();
-        if (!repaired.ok) {
-          await supabase.auth.signOut();
-          return { ok: false, reason: repaired.reason ?? "Usuário sem perfil cadastrado na plataforma." };
-        }
-        const retry = await supabase
-          .from("app_users")
-          .select("id, name, email, role, company_id, is_temporary_password")
-          .eq("id", uid)
-          .maybeSingle();
-        meRow = retry.data;
+      const resolved = meRow
+        ? { ok: true as const, user: mapUser(meRow as DbAppUser) }
+        : await resolveLoginProfile();
+
+      if (!resolved.ok) {
+        await supabase.auth.signOut();
+        return { ok: false, reason: resolved.reason ?? "Usuário sem perfil cadastrado na plataforma." };
       }
-      const me = meRow ? mapUser(meRow as DbAppUser) : null;
+
+      const me: SaaSUser = {
+        ...resolved.user,
+        password: "",
+        role: normalizeRole(resolved.user.role),
+      };
       if (!me) {
         await supabase.auth.signOut();
         return { ok: false, reason: "Usuário sem perfil cadastrado na plataforma." };
