@@ -122,6 +122,30 @@ function hydrateCompaniesFromStorage() {
   } catch {}
 }
 
+/**
+ * Chave de persistência dos usuários (admin/cashier criados em runtime).
+ * Sem isso, qualquer credencial gerada via createDemoAccess/processWebhookPayment
+ * sumia no F5 — o login então rejeitava com "E-mail ou senha incorretos."
+ */
+const USERS_STORAGE_KEY = "orvix_users_v1";
+
+function persistUsers() {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(SAAS_USERS));
+  } catch {}
+}
+
+function hydrateUsersFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as SaaSUser[];
+    if (!Array.isArray(parsed)) return;
+    SAAS_USERS.splice(0, SAAS_USERS.length, ...parsed);
+  } catch {}
+}
+
 export const SAAS_USERS: SaaSUser[] = [
   // Super Admin: a senha NÃO é mais comparada via campo `password`.
   // O login do super_admin é validado contra um SHA-256 (default em código + override em localStorage).
