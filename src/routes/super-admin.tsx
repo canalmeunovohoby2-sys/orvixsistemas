@@ -298,7 +298,7 @@ function DashboardTab() {
 function CompaniesTab() {
   const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany } = useSaaS();
   const navigate = useNavigate();
-  const [emailPreview, setEmailPreview] = useState<{ email: string; password: string; company: string } | null>(null);
+  const [credModal, setCredModal] = useState<{ email: string; password: string; subtitle: string } | null>(null);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
   const PLAN_OPTS: Plan[] = ["bronze", "prata", "ouro"];
 
@@ -316,16 +316,17 @@ function CompaniesTab() {
               toast.error(res.reason ?? "Não foi possível gerar o acesso.");
               return;
             }
-            setEmailPreview({ email: res.user.email, password: "(enviada por e-mail)", company: res.company.fantasia });
-            toast.success(
-              `📧 Disparo concluído! E-mail enviado ao cliente (${res.user.email}) com a senha temporária. Cópia de segurança de suporte enviada para ${SUPER_ADMIN_EMAIL}.`,
-              { duration: 8000 },
-            );
+            setCredModal({
+              email: res.user.email,
+              password: res.password ?? "",
+              subtitle: `Cliente fictício para ${res.company.fantasia}`,
+            });
+            toast.success(`✅ Cliente fictício criado para ${res.company.fantasia}.`);
           }}
           className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
-          title={`Cria a empresa, envia o e-mail ao cliente e dispara cópia administrativa para ${SUPER_ADMIN_EMAIL}`}
+          title="Cria a empresa de testes e exibe as credenciais imediatamente na tela"
         >
-          <Sparkles className="w-4 h-4" /> Simular Venda Automatizada (Disparar Acessos)
+          <Sparkles className="w-4 h-4" /> Gerar Cliente Fictício
         </button>
       </div>
 
@@ -408,7 +409,13 @@ function CompaniesTab() {
                             onClick={async () => {
                               const res = await inviteUser(c.id, "cashier");
                               if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
-                              else toast.success(`Convite enviado: ${res.user?.email}`);
+                              else if (res.user) {
+                                setCredModal({
+                                  email: res.user.email,
+                                  password: res.password ?? "",
+                                  subtitle: `Novo usuário em ${c.fantasia}`,
+                                });
+                              }
                             }}
                             className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-semibold hover:bg-accent transition-colors"
                             title="Convidar novo usuário (respeita o limite do plano)"
@@ -478,12 +485,12 @@ function CompaniesTab() {
         </div>
       </div>
 
-      {emailPreview && (
-        <EmailPreviewModal
-          email={emailPreview.email}
-          password={emailPreview.password}
-          company={emailPreview.company}
-          onClose={() => setEmailPreview(null)}
+      {credModal && (
+        <CredentialsModal
+          email={credModal.email}
+          password={credModal.password}
+          subtitle={credModal.subtitle}
+          onClose={() => setCredModal(null)}
         />
       )}
     </>
