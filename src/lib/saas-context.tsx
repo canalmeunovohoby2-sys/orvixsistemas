@@ -141,6 +141,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       email: realUser.email,
       role: "admin",
       companyId: impersonatedCompany.id,
+      password: realUser.password,
+      isTemporaryPassword: false,
     };
     company = impersonatedCompany;
   }
