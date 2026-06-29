@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ROLE_LABEL, useSaaS, type SaaSUser } from "@/lib/saas-context";
+import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { LogIn, ShieldCheck, Store, ShoppingCart, Crown, KeyRound, Eye, EyeOff } from "lucide-react";
+import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock, Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -15,16 +15,15 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-const ROLE_ICON = {
-  super_admin: Crown,
-  admin: Store,
-  cashier: ShoppingCart,
-} as const;
-
 function LoginPage() {
-  const { user, loginAs, users, updatePassword } = useSaaS();
+  const { user, loginWithCredentials, signUp, updatePassword } = useSaaS();
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<string>(users[1]?.id ?? users[0].id);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [fantasia, setFantasia] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [pendingUser, setPendingUser] = useState<SaaSUser | null>(null);
 
   const routeForRole = (role: SaaSUser["role"]) => {
@@ -46,14 +45,32 @@ function LoginPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const u = users.find((x) => x.id === selected);
-    if (!u) return;
-    loginAs(u.id);
-    if (u.isTemporaryPassword) {
-      setPendingUser(u);
-      return;
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      if (mode === "signup") {
+        const res = signUp({ email, password, fantasia });
+        if (!res.ok || !res.user) {
+          toast.error(res.reason ?? "Não foi possível concluir o cadastro.");
+          return;
+        }
+        toast.success("Conta criada! Bem-vindo à ORVIX SISTEMAS.");
+        routeForRole(res.user.role);
+        return;
+      }
+      const res = loginWithCredentials(email, password);
+      if (!res.ok || !res.user) {
+        toast.error(res.reason ?? "Credenciais inválidas.");
+        return;
+      }
+      if (res.user.isTemporaryPassword) {
+        setPendingUser(res.user);
+        return;
+      }
+      routeForRole(res.user.role);
+    } finally {
+      setSubmitting(false);
     }
-    routeForRole(u.role);
   };
 
   const handlePasswordUpdated = (newPwd: string) => {
@@ -96,55 +113,98 @@ function LoginPage() {
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
             <div>
-              <h2 className="text-2xl font-bold">Entrar</h2>
-              <p className="text-sm text-muted-foreground">Selecione um perfil de demonstração para acessar a plataforma.</p>
+              <h2 className="text-2xl font-bold">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
+              <p className="text-sm text-muted-foreground">
+                {mode === "login"
+                  ? "Acesse o painel da sua empresa com e-mail e senha."
+                  : "Cadastre sua empresa e comece com 14 dias de Trial no plano Bronze."}
+              </p>
             </div>
 
-            <div className="space-y-2">
-              {users.map((u) => {
-                const Icon = ROLE_ICON[u.role];
-                const checked = selected === u.id;
-                return (
-                  <label
-                    key={u.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-primary bg-primary/5" : "border-border hover:bg-accent"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="profile"
-                      value={u.id}
-                      checked={checked}
-                      onChange={() => setSelected(u.id)}
-                      className="mt-1 accent-primary"
-                    />
-                    <Icon className="w-5 h-5 mt-0.5 text-primary shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm truncate">{u.name}</p>
-                        {u.isTemporaryPassword && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/15 text-primary">
-                            <KeyRound className="w-3 h-3" /> 1º acesso
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                      <p className="text-[11px] uppercase tracking-wide text-primary/80 mt-0.5">{ROLE_LABEL[u.role]}</p>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
+            {mode === "signup" && (
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nome da empresa</span>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={fantasia}
+                    onChange={(e) => setFantasia(e.target.value)}
+                    autoComplete="organization"
+                    required
+                    placeholder="Ex.: Mercadinho Boa Vista"
+                    className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              </label>
+            )}
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">E-mail</span>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                  placeholder="voce@suaempresa.com.br"
+                  className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Senha</span>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type={showPwd ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  minLength={mode === "signup" ? 6 : undefined}
+                  required
+                  placeholder={mode === "signup" ? "mínimo de 6 caracteres" : "Sua senha"}
+                  className="w-full h-11 pl-9 pr-10 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground"
+                >
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </label>
 
             <button
               type="submit"
-              className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors"
+              disabled={submitting}
+              className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-60"
             >
-              <LogIn className="w-4 h-4" /> Entrar na plataforma
+              {mode === "login" ? (<><LogIn className="w-4 h-4" /> Entrar na plataforma</>) : (<><UserPlus className="w-4 h-4" /> Criar conta e entrar</>)}
             </button>
 
-            <p className="text-[11px] text-muted-foreground text-center">
-              Ambiente de demonstração. Em produção, este fluxo usa e-mail + senha e/ou SSO.
-            </p>
+            <div className="text-center text-xs text-muted-foreground">
+              {mode === "login" ? (
+                <>
+                  Ainda não tem conta?{" "}
+                  <button type="button" onClick={() => setMode("signup")} className="font-semibold text-primary hover:underline">
+                    Criar conta gratuita
+                  </button>
+                </>
+              ) : (
+                <>
+                  Já possui uma conta?{" "}
+                  <button type="button" onClick={() => setMode("login")} className="font-semibold text-primary hover:underline">
+                    Voltar para o login
+                  </button>
+                </>
+              )}
+            </div>
           </form>
         </section>
       </main>
