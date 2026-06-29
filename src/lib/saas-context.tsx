@@ -577,6 +577,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       mrr: 0,
       createdAt: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      onboardingPending: true,
     };
     COMPANIES.push(newCompany);
     // Pagamento simulado ativamente → reconhece MRR da nova empresa.
