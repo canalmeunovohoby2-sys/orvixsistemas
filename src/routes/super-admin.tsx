@@ -62,6 +62,7 @@ function SuperAdminPage() {
   const { user, logout, processWebhookPayment } = useSaaS();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
+  const [pwdModal, setPwdModal] = useState(false);
 
   // Poller do webhook do Mercado Pago — drena eventos pendentes da fila server-side
   // e materializa empresas + auditoria. Só roda enquanto o Super Admin está logado.
@@ -127,6 +128,14 @@ function SuperAdminPage() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
+            <button
+              onClick={() => setPwdModal(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              title="Alterar a senha do Super Admin (somente o hash é armazenado)"
+              aria-label="Alterar senha do Super Admin"
+            >
+              <KeyRound className="w-4 h-4" /> Alterar senha
+            </button>
             <button
               onClick={() => {
                 logout();
