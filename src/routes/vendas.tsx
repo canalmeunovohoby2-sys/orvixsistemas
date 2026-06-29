@@ -747,6 +747,70 @@ function VendasPage() {
       )}
       {!pdvBlocked && (
       <>
+      {/* Cabeçalho do turno (status do caixa + ações de abrir/fechar). */}
+      <section
+        aria-label="Status do caixa"
+        className="mb-4 rounded-xl border border-border bg-card/70 p-3 md:p-4 flex flex-wrap items-center gap-3 md:gap-4"
+      >
+        <div className={`shrink-0 w-10 h-10 grid place-items-center rounded-lg ${shift ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-primary/15 text-primary border border-primary/30"}`}>
+          {shift ? <DoorOpen className="w-5 h-5" /> : <DoorClosed className="w-5 h-5" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight">
+            {shift ? `Caixa aberto · Operador: ${user?.name ?? "—"}` : "Caixa fechado"}
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {shift
+              ? `Abertura ${new Date(shift.openedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · Troco inicial ${BRL(shift.openingFloat)} · ${shift.sales.length} venda(s) registrada(s)`
+              : "Abra o caixa para começar a registrar vendas no PDV."}
+          </p>
+        </div>
+        {shift && (
+          <div className="hidden md:flex items-center gap-2 text-[11px] text-muted-foreground border-l border-border pl-3">
+            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-mono tabular-nums">Esperado em dinheiro: <strong className="text-foreground">{BRL(expectedCash)}</strong></span>
+          </div>
+        )}
+        {shift ? (
+          <button
+            type="button"
+            onClick={() => setCloseModal(true)}
+            className="h-10 px-4 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors"
+          >
+            <DoorClosed className="w-4 h-4" /> Fechar Caixa
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpenModal(true)}
+            className="h-10 px-4 inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+          >
+            <DoorOpen className="w-4 h-4" /> Abrir Caixa
+          </button>
+        )}
+      </section>
+
+      {!shift && (
+        <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 flex items-start gap-4">
+          <div className="w-12 h-12 shrink-0 grid place-items-center rounded-xl bg-primary/15 text-primary border border-primary/30">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-primary">Caixa fechado — vendas bloqueadas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              O operador precisa <strong className="text-foreground">abrir o caixa</strong> e informar o valor de troco inicial antes de registrar qualquer venda.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpenModal(true)}
+              className="mt-3 h-10 px-4 inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" /> Abrir Caixa agora
+            </button>
+          </div>
+        </div>
+      )}
+
       <section aria-labelledby="pdv" className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         <h2 id="pdv" className="sr-only">Ponto de venda</h2>
 
