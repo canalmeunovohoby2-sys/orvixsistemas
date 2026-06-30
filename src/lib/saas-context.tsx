@@ -241,6 +241,7 @@ const Ctx = createContext<SaaSCtx | null>(null);
  * ============================================================ */
 export function SaaSProvider({ children }: { children: ReactNode }) {
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [realUser, setRealUser] = useState<SaaSUser | null>(null);
   const [ready, setReady] = useState(false);
   const [, force] = useState(0);
@@ -264,14 +265,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       const sessionUserId = data.session?.user.id ?? null;
       setAuthUserId(sessionUserId);
-      // Se já existe sessão, mantenha o provider em carregamento até o perfil
-      // (app_users/companies) ser resolvido por loadAll. Isso evita que o
-      // RoleGuard redirecione rotas protegidas para /login antes da hidratação.
-      setReady(!sessionUserId);
+      setAuthInitialized(true);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
         setAuthUserId(session?.user.id ?? null);
+        setAuthInitialized(true);
       }
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
@@ -324,7 +323,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, [tick, updateLastSync]);
 
-  useEffect(() => { void loadAll(authUserId); }, [authUserId, loadAll]);
+  useEffect(() => {
+    if (!authInitialized) return;
+    void loadAll(authUserId);
+  }, [authInitialized, authUserId, loadAll]);
 
   const refresh = useCallback(async () => { await loadAll(authUserId); }, [authUserId, loadAll]);
 
