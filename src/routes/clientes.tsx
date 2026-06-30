@@ -142,7 +142,6 @@ function ClientesPage() {
             setOpen(false);
             toast.success("Cliente cadastrado com sucesso!");
           }}
-          companyId={cid}
         />
       )}
     </AppShell>
@@ -152,11 +151,9 @@ function ClientesPage() {
 function CustomerFormModal({
   onClose,
   onSaved,
-  companyId,
 }: {
   onClose: () => void;
   onSaved: (c: CustomerRow) => void;
-  companyId: string;
 }) {
   const [name, setName] = useState("");
   const [doc, setDoc] = useState("");
