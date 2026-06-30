@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/lib/mock-data";
 import {
@@ -9,6 +9,7 @@ import {
 import { Banknote, CreditCard, Download, QrCode, Sparkles, TrendingUp, Trophy, Wallet, Lock } from "lucide-react";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS, PLAN_LIMITS, PLAN_LABEL } from "@/lib/saas-context";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/relatorios")({
   head: () => ({
@@ -35,22 +36,81 @@ type PaymentRow = {
 function RelatoriosPage() {
   useMockStore();
   const { company } = useSaaS();
+  const navigate = useNavigate();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [period, setPeriod] = useState<"Diário" | "Semanal" | "Mensal" | "Anual">("Mensal");
+  const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
   const { closing, totals, abc, forecast } = useMemo(() => computeReport(), [SALES.length]);
+
+  const filteredSalesByDay = useMemo(() => {
+    const slice =
+      period === "Diário" ? 1 :
+      period === "Semanal" ? 7 :
+      period === "Mensal" ? 14 :
+      SALES_BY_DAY.length;
+    return SALES_BY_DAY.slice(-slice);
+  }, [period]);
+
+  async function handleExportPdf() {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      const fileName = `relatorio-${period.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      await html2pdf()
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: fileName,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        } as any)
+        .from(reportRef.current)
+        .save();
+      toast.success("PDF gerado com sucesso");
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao gerar PDF");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <AppShell title="Relatórios" breadcrumb={["Meu Saas", "Relatórios"]}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex flex-wrap gap-2">
-          {["Diário", "Semanal", "Mensal", "Anual"].map((t, i) => (
-            <button key={t} className={`h-9 px-3 rounded-md text-xs font-medium border transition ${i === 2 ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border hover:bg-accent"}`}>{t}</button>
-          ))}
+          {(["Diário", "Semanal", "Mensal", "Anual"] as const).map((t) => {
+            const active = period === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setPeriod(t)}
+                aria-pressed={active}
+                className={`h-9 px-3 rounded-md text-xs font-medium border transition ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-secondary border-border hover:bg-accent"
+                }`}
+              >
+                {t}
+              </button>
+            );
+          })}
         </div>
-        <button className="h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold">
-          <Download className="w-4 h-4" /> Exportar PDF
+        <button
+          type="button"
+          onClick={handleExportPdf}
+          disabled={exporting}
+          className="h-9 px-3 inline-flex items-center gap-2 rounded-md bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground text-sm font-semibold"
+        >
+          <Download className="w-4 h-4" /> {exporting ? "Gerando..." : "Exportar PDF"}
         </button>
       </div>
 
+      <div ref={reportRef}>
       {/* ─── Fechamento de caixa ─── */}
       <CashClosing closing={closing} totals={totals} />
 
@@ -77,12 +137,13 @@ function RelatoriosPage() {
                 Lucro Real e Desempenho Financeiro estão disponíveis apenas no plano Ouro.
                 Seu plano atual: <strong className="text-foreground">{company ? PLAN_LABEL[company.plan] : "—"}</strong>.
               </p>
-              <a
-                href="/assinatura"
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/assinatura" })}
                 className="inline-flex items-center gap-2 h-10 px-5 rounded-md bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
               >
                 Evolua seu plano agora
-              </a>
+              </button>
             </div>
           </div>
         </section>
@@ -97,10 +158,12 @@ function RelatoriosPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
         <section className="glass rounded-xl p-5">
           <h2 className="text-base font-semibold mb-1">Evolução de vendas</h2>
-          <p className="text-xs text-muted-foreground mb-3">Últimos 14 dias</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Período: {period} ({filteredSalesByDay.length} {filteredSalesByDay.length === 1 ? "dia" : "dias"})
+          </p>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={SALES_BY_DAY}>
+              <LineChart data={filteredSalesByDay}>
                 <CartesianGrid stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
@@ -136,6 +199,7 @@ function RelatoriosPage() {
             ))}
           </div>
         </section>
+      </div>
       </div>
     </AppShell>
   );
