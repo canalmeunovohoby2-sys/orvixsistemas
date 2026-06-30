@@ -15,10 +15,28 @@ export const isFractional = (u: Unit) => u !== "un";
  * IDs de empresas "demo" — as únicas que carregam dados fictícios pré-povoados
  * (vendas, produtos, gráficos, KPIs). Empresas criadas a partir de cadastros
  * reais começam zeradas para que o lojista veja apenas os próprios dados.
+ *
+ * Esta lista é sincronizada em tempo de execução pelo `SaaSProvider`
+ * (src/lib/saas-context.tsx) a partir da coluna `companies.is_demo` no
+ * Supabase via `setDemoCompanyIds(...)`. O valor inicial garante que o
+ * tenant histórico (EMP001) continue exibindo o conteúdo de demonstração
+ * mesmo antes da primeira sincronização.
  */
-export const DEMO_COMPANY_IDS = new Set<string>(["EMP001"]);
+export const DEMO_COMPANY_IDS: Set<string> = new Set<string>(["EMP001"]);
 export const isDemoCompany = (id: string | null | undefined): boolean =>
   !!id && DEMO_COMPANY_IDS.has(id);
+
+/**
+ * Substitui o conjunto de empresas demo. Chamado pelo `SaaSProvider` após
+ * ler `companies` no Supabase para refletir a flag `is_demo`. Empresas
+ * reais (`is_demo=false`) deixam de ser elegíveis a qualquer carga futura
+ * de dados de demonstração.
+ */
+export function setDemoCompanyIds(ids: Iterable<string>): void {
+  DEMO_COMPANY_IDS.clear();
+  for (const id of ids) DEMO_COMPANY_IDS.add(id);
+  __emit();
+}
 
 export const formatQty = (qty: number, unit: Unit) =>
   isFractional(unit)
