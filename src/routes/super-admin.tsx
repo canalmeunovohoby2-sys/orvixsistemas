@@ -121,17 +121,17 @@ function SuperAdminPage() {
         <div className="h-16 flex items-center gap-3 px-4 lg:px-6">
           <Logo height={32} priority />
           <div className="h-8 w-px bg-border mx-1 hidden sm:block" />
-          <div className="min-w-0 hidden sm:flex items-center gap-3">
-            <Crown className="w-4 h-4 text-amber-500 shrink-0" />
-            <div className="min-w-0">
+          <div className="min-w-0 flex items-center gap-3">
+            <Crown className="w-4 h-4 text-amber-500 shrink-0 hidden sm:block" />
+            <div className="min-w-0 hidden md:block">
               <p className="font-semibold text-sm leading-tight truncate">Painel Master</p>
               <p className="text-[11px] text-muted-foreground truncate">Plataforma · {user?.name}</p>
             </div>
-            <div className="h-8 w-px bg-border mx-1" />
+            <div className="h-8 w-px bg-border mx-1 hidden md:block" />
             <div className="flex items-center gap-2.5">
-              <span className="relative inline-flex h-3 w-3 shrink-0" aria-hidden="true">
+              <span className="relative inline-flex h-3.5 w-3.5 shrink-0" aria-hidden="true">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75 animate-ping" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.85)]" />
+                <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-red-600 shadow-[0_0_12px_rgba(220,38,38,0.9)]" />
               </span>
               <span className="text-xl md:text-2xl font-bold tracking-tight">Tiago Admin</span>
               <span className="sr-only">Sistema ativo · monitoramento em tempo real</span>
