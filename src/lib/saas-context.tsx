@@ -897,7 +897,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     });
     if (impersonatedCompanyId === companyId) setImpersonatedCompanyId(null);
     return { ok: true };
-  }, [realUser, refresh, impersonatedCompanyId]);
+  }, [realUser, refresh, impersonatedCompanyId, tick]);
 
   /* ---------- Reversão simples (status, plan, due, settings) ---------- */
   const revertLog = useCallback((logId: string) => {
