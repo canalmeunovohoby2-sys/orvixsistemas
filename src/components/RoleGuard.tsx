@@ -9,7 +9,7 @@ import { ShieldAlert } from "lucide-react";
  * - Sessão sem permissão: caixa vai para /caixa; super_admin para /super-admin; admin vai para /dashboard.
  */
 export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactNode }) {
-  const { user, company } = useSaaS();
+  const { user, company, ready } = useSaaS();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mounted, setMounted] = useState(false);
@@ -17,7 +17,7 @@ export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactN
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !ready) return;
     if (!user) {
       navigate({ to: "/login" });
       return;
@@ -37,9 +37,9 @@ export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactN
       else if (user.role === "super_admin") navigate({ to: "/super-admin" });
       else navigate({ to: "/dashboard" });
     }
-  }, [mounted, user, company, pathname, allow, navigate]);
+  }, [mounted, ready, user, company, pathname, allow, navigate]);
 
-  if (!mounted) {
+  if (!mounted || !ready) {
     return <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">Carregando…</div>;
   }
   if (!user || !allow.includes(user.role)) {
