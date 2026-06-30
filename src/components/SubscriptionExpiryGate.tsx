@@ -122,6 +122,16 @@ export function SubscriptionExpiryGate() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // 🚧 BYPASS TEMPORÁRIO — libera acesso total para o e-mail abaixo
+  // independente do status da assinatura. Remover após os ajustes.
+  const BYPASS_EMAILS = ["clientemr01wix1@orvix.com.br"];
+  const isBypassed = !!user?.email && BYPASS_EMAILS.includes(user.email.toLowerCase());
+  useEffect(() => {
+    if (isBypassed) {
+      console.warn("[SubscriptionExpiryGate] BYPASS ativo para", user?.email);
+    }
+  }, [isBypassed, user?.email]);
+
   // Log permanente de montagem — confirma que o Gate está vivo no DOM.
   useEffect(() => {
     console.log("[SubscriptionExpiryGate] MONTADO", {
@@ -131,8 +141,9 @@ export function SubscriptionExpiryGate() {
       user_role: user?.role ?? null,
       company_id: company?.id ?? null,
       company_dueDate_contexto: company?.dueDate ?? null,
+      bypass_ativo: isBypassed,
     });
-  }, [ready, pathname, user?.id, user?.role, company?.id, company?.dueDate]);
+  }, [ready, pathname, user?.id, user?.role, company?.id, company?.dueDate, isBypassed]);
 
   // Busca autoritativa direto do banco — evita decisões com base em estado
   // potencialmente desatualizado (cache de contexto / localStorage).
@@ -180,7 +191,7 @@ export function SubscriptionExpiryGate() {
 
   const effectiveDue = liveDueDate ?? company?.dueDate ?? null;
   const days = useMemo(() => daysUntil(effectiveDue), [effectiveDue]);
-  const isPrivileged = !user || user.role === "super_admin";
+  const isPrivileged = !user || user.role === "super_admin" || isBypassed;
   const onAuthPage = pathname === "/login" || pathname === "/assinatura";
 
   const expired = days !== null && days <= 0;
