@@ -11,7 +11,7 @@ import {
   updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
-import { SALES } from "@/lib/mock-data";
+import { getConsolidatedSalesMetrics } from "@/lib/sales.functions";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
@@ -214,35 +214,36 @@ function DashboardTab() {
   // Supabase (tabela `sales`) — feito isso, basta trocar este reduce
   // por uma query agregando por company_id sem filtro de usuário.
   // ─────────────────────────────────────────────────────────────────
-  const validSales = SALES.filter((s) => s.status === "concluida");
-  const gmvTotal = validSales.reduce((a, s) => a + s.total, 0);
-  const lucroTotal = validSales.reduce((a, s) => a + (s.total - (s.cost ?? 0)), 0);
-  const empresasComVenda = new Set(validSales.map((s) => s.company_id)).size;
-
+  // Agregação consolidada vinda do Supabase (tabela `sales`, sem filtro por company_id).
+  const [salesAgg, setSalesAgg] = useState<{ gmv: number; profit: number; salesCount: number; companiesWithSales: number } | null>(null);
   useEffect(() => {
-    const diag =
-      validSales.length === 0
-        ? "ausência de dados no banco (SALES vazio nesta sessão)"
-        : empresasComVenda <= 1
-        ? "possível filtro de usuário / tenant único com dados (SALES seed cobre apenas EMP001)"
-        : "ok";
-    // eslint-disable-next-line no-console
-    console.log("[SuperAdmin/Dashboard] Consolidação cross-tenant", {
-      escopoQuery: "TODAS as empresas (sem filtro por company_id)",
-      fonteDados: "in-memory SALES + localStorage por tenant",
-      empresasCadastradas: companies.length,
-      empresasComVenda,
-      vendasConcluidas: validSales.length,
-      gmvTotal,
-      lucroTotal,
-      diagnostico: diag,
-    });
-  }, [companies.length, empresasComVenda, validSales.length, gmvTotal, lucroTotal]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await getConsolidatedSalesMetrics();
+        if (!cancelled) setSalesAgg(r);
+        // eslint-disable-next-line no-console
+        console.log("[SuperAdmin/Dashboard] Consolidação cross-tenant (Supabase)", {
+          fonteDados: "public.sales (SUM via RLS de super_admin)",
+          empresasCadastradas: companies.length,
+          ...r,
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[SuperAdmin/Dashboard] Falha ao consolidar vendas:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [companies.length]);
+  const gmvTotal = salesAgg?.gmv ?? 0;
+  const lucroTotal = salesAgg?.profit ?? 0;
+  const empresasComVenda = salesAgg?.companiesWithSales ?? 0;
+  const vendasConcluidas = salesAgg?.salesCount ?? 0;
 
   const KPI = [
     { label: "MRR (Receita Recorrente Mensal)", value: BRL(mrr), hint: `${ativas} empresa(s) ativa(s)`, icon: TrendingUp, tone: "primary" as const },
     { label: "ARR (Receita Anual Projetada)",  value: BRL(arr), hint: "MRR × 12 meses",                icon: TrendingUp, tone: "primary" as const },
-    { label: "GMV consolidado (todas)",        value: BRL(gmvTotal), hint: `${empresasComVenda} empresa(s) c/ venda · ${validSales.length} venda(s)`, icon: TrendingUp, tone: "primary" as const },
+    { label: "GMV consolidado (todas)",        value: BRL(gmvTotal), hint: `${empresasComVenda} empresa(s) c/ venda · ${vendasConcluidas} venda(s)`, icon: TrendingUp, tone: "primary" as const },
     { label: "Lucro consolidado (todas)",      value: BRL(lucroTotal), hint: "Soma de (total − custo) das vendas concluídas", icon: TrendingUp, tone: "primary" as const },
     { label: "Empresas na plataforma",         value: `${ativas}/${total}`, hint: `Ativas de ${total} cadastradas`, icon: Building2, tone: "neutral" as const },
     { label: "Taxa de inadimplência",          value: `${inadimplencia.toFixed(1)}%`, hint: `${pendentes + bloqueadas} em atraso`, icon: AlertTriangle, tone: inadimplencia > 25 ? "danger" : "warn" as const },

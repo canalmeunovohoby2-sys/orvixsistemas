@@ -1,9 +1,11 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { SaaSProvider } from "@/lib/saas-context";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { SubscriptionExpiryGate } from "@/components/SubscriptionExpiryGate";
+import { initSalesSync } from "@/lib/sales-sync";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -67,6 +69,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => { initSalesSync(); }, []);
   return (
     <SaaSProvider>
       <SubscriptionBanner />
