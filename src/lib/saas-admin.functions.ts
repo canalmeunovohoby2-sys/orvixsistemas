@@ -503,6 +503,47 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
   });
 
 /* ============================================================
+ * Renomeia um usuário (apenas o campo `name` em app_users).
+ * Usado pelo botão "Editar" da página de Terminais para trocar
+ * o nome do operador sem precisar deletar/recriar o caixa.
+ * ============================================================ */
+export const adminRenameUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      userId: z.string().uuid(),
+      name: z.string().trim().min(2).max(120),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: target } = await context.supabase
+      .from("app_users")
+      .select("id, role, company_id")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (!target) return { ok: false as const, reason: "Usuário não encontrado." };
+
+    const { data: meRow } = await context.supabase
+      .from("app_users")
+      .select("role, company_id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (!meRow) return { ok: false as const, reason: "Sessão inválida." };
+    const canManage =
+      meRow.role === "super_admin" ||
+      (meRow.role === "admin" && meRow.company_id === target.company_id);
+    if (!canManage) return { ok: false as const, reason: "Acesso negado." };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_users")
+      .update({ name: data.name })
+      .eq("id", data.userId);
+    if (error) return { ok: false as const, reason: error.message };
+    return { ok: true as const };
+  });
+
+/* ============================================================
  * Remove uma empresa inteira (cascata via FK ON DELETE CASCADE)
  * + apaga todos os usuários Auth vinculados.
  * ============================================================ */

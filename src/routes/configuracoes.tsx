@@ -4,7 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { useSaaS } from "@/lib/saas-context";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff } from "lucide-react";
+import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff, ImageIcon, Trash2, Info } from "lucide-react";
+import { setCompanyLogo, useCompanyLogo } from "@/lib/company-logo";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -95,6 +96,8 @@ function ConfiguracoesPage() {
           </p>
         </div>
       </header>
+
+      <LogoUploadSection cid={cid} />
 
       <form onSubmit={save} className="grid gap-6 max-w-4xl">
         <section className="rounded-xl border border-border bg-card p-6">
@@ -362,6 +365,116 @@ function PwdInput({
 
 const inputCls =
   "w-full h-10 px-3 rounded-md bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60";
+
+function LogoUploadSection({ cid }: { cid: string }) {
+  const logo = useCompanyLogo(cid);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = (file: File | null | undefined) => {
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp|svg\+xml)$/i.test(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPG, WEBP ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo acima de 2 MB. Reduza o tamanho e tente novamente.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = String(reader.result || "");
+      setCompanyLogo(cid, data);
+      toast.success("Logo atualizada — já está visível no cabeçalho.");
+    };
+    reader.onerror = () => toast.error("Falha ao ler o arquivo.");
+    reader.readAsDataURL(file);
+  };
+
+  const remove = () => {
+    setCompanyLogo(cid, null);
+    toast.success("Logo removida.");
+  };
+
+  return (
+    <section className="mb-6 grid lg:grid-cols-[1fr_320px] gap-4 max-w-4xl">
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <ImageIcon className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Logo da empresa</h2>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <div className="w-24 h-24 rounded-xl border border-border bg-background grid place-items-center overflow-hidden shrink-0">
+            {logo ? (
+              <img src={logo} alt="Logo atual" className="w-full h-full object-contain p-2" />
+            ) : (
+              <ImageIcon className="w-8 h-8 text-muted-foreground/60" />
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                handleFile(e.dataTransfer.files?.[0]);
+              }}
+              onClick={() => inputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
+              className={`cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+                dragging ? "border-primary bg-primary/5" : "border-border bg-secondary/40 hover:border-primary/60 hover:bg-secondary"
+              }`}
+            >
+              <Upload className="w-5 h-5 mx-auto mb-1.5 text-primary" />
+              <p className="text-sm font-semibold text-foreground">
+                {logo ? "Substituir logo" : "Selecionar arquivo"}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Clique ou arraste a imagem aqui</p>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={(e) => { handleFile(e.target.files?.[0]); e.currentTarget.value = ""; }}
+              />
+            </div>
+            {logo && (
+              <button
+                type="button"
+                onClick={remove}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs text-destructive hover:underline"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remover logo atual
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <aside className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Recomendações de imagem</h3>
+        </div>
+        <ul className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
+          <li>• Formato: <strong className="text-foreground">PNG ou JPG</strong></li>
+          <li>• Fundo <strong className="text-foreground">transparente</strong> (preferencial)</li>
+          <li>• Tamanho máximo: <strong className="text-foreground">2 MB</strong></li>
+          <li>• Dimensões recomendadas: <strong className="text-foreground">200×200 px</strong></li>
+        </ul>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          A logo aparece no cabeçalho do Dashboard e do Caixa para todos os usuários da sua loja.
+        </p>
+      </aside>
+    </section>
+  );
+}
+
 
 function Field({
   label,

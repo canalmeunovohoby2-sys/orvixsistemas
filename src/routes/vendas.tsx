@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { XCircle } from "lucide-react";
+import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
@@ -774,6 +775,7 @@ export function VendasPage() {
             <span className="font-mono tabular-nums">Esperado em dinheiro: <strong className="text-foreground">{BRL(expectedCash)}</strong></span>
           </div>
         )}
+        <PlanDaysLeftBadge compact />
         {shift ? (
           <button
             type="button"

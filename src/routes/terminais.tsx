@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  MonitorSmartphone, Plus, Trash2, Lock, Mail, User as UserIcon, ShieldCheck, Eye, EyeOff, Crown,
+  MonitorSmartphone, Plus, Trash2, Lock, Mail, User as UserIcon, ShieldCheck, Eye, EyeOff, Crown, Pencil, X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/terminais")({
 });
 
 function TerminaisPage() {
-  const { company, users, canAddCashier, createCashier, deleteCashier } = useSaaS();
+  const { company, users, canAddCashier, createCashier, deleteCashier, renameCashier } = useSaaS();
   const cid = company?.id ?? null;
 
   const cashiers = useMemo(
@@ -45,6 +45,9 @@ function TerminaisPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
   const [credModal, setCredModal] = useState<{ email: string; password: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +66,22 @@ function TerminaisPage() {
     const res = await deleteCashier(userId);
     if (!res.ok) { toast.error(res.reason ?? "Não foi possível remover."); return; }
     toast.success("Terminal removido.");
+  };
+
+  const openEdit = (id: string, name: string, email: string) => {
+    setEditTarget({ id, name, email });
+    setEditName(name);
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget || editBusy) return;
+    setEditBusy(true);
+    const res = await renameCashier(editTarget.id, editName);
+    setEditBusy(false);
+    if (!res.ok) { toast.error(res.reason ?? "Não foi possível salvar."); return; }
+    toast.success("Terminal atualizado.");
+    setEditTarget(null);
   };
 
   return (
@@ -141,12 +160,21 @@ function TerminaisPage() {
                     </td>
                     <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{c.email}</td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => remove(c.id, c.name)}
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-secondary/40 text-xs text-destructive hover:bg-destructive/10 hover:border-destructive/40 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Remover
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => openEdit(c.id, c.name, c.email)}
+                          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-secondary/40 text-xs text-foreground hover:bg-accent transition-colors"
+                          aria-label={`Editar ${c.name}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => remove(c.id, c.name)}
+                          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-secondary/40 text-xs text-destructive hover:bg-destructive/10 hover:border-destructive/40 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Remover
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -245,6 +273,74 @@ function TerminaisPage() {
           password={credModal.password}
           onClose={() => setCredModal(null)}
         />
+      )}
+      {editTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-term-title"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+          onClick={() => !editBusy && setEditTarget(null)}
+        >
+          <form
+            onSubmit={saveEdit}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
+          >
+            <header className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 id="edit-term-title" className="text-lg font-bold tracking-tight">Editar terminal</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Atualize o nome do operador. O e-mail e a senha não mudam.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !editBusy && setEditTarget(null)}
+                className="p-1 rounded-md text-muted-foreground hover:bg-accent"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </header>
+
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Nome do operador</span>
+              <div className="relative mt-1">
+                <UserIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  autoFocus
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+            </label>
+
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              E-mail vinculado: <span className="font-mono text-foreground">{editTarget.email}</span>
+            </p>
+
+            <footer className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                disabled={editBusy}
+                className="h-10 px-4 rounded-md border border-border bg-secondary/40 text-sm font-medium hover:bg-accent disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={editBusy || editName.trim().length < 2 || editName.trim() === editTarget.name}
+                className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+              >
+                {editBusy ? "Salvando…" : "Salvar alterações"}
+              </button>
+            </footer>
+          </form>
+        </div>
       )}
     </AppShell>
   );

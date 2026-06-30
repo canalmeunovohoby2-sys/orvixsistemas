@@ -10,6 +10,7 @@ import { Logo } from "@/components/Logo";
 import { HelpCenter } from "@/components/HelpCenter";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { useSaaS, ROLE_LABEL } from "@/lib/saas-context";
+import { useCompanyLogo } from "@/lib/company-logo";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem,
@@ -57,6 +58,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, company } = useSaaS();
+  const companyLogo = useCompanyLogo(company?.id ?? null);
   const isCashier = user?.role === "cashier";
   const NAV = isCashier ? NAV_CASHIER : NAV_FULL;
 
@@ -160,7 +162,16 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
                 ))}
               </nav>
             )}
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h1>
+            <div className="flex items-center gap-3">
+              {companyLogo && (
+                <img
+                  src={companyLogo}
+                  alt={company?.fantasia ? `Logo ${company.fantasia}` : "Logo da empresa"}
+                  className="h-10 w-10 md:h-12 md:w-12 rounded-lg object-contain bg-card border border-border p-1 shrink-0"
+                />
+              )}
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h1>
+            </div>
           </div>
           {children}
         </main>
