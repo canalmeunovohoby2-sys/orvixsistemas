@@ -122,6 +122,18 @@ export function SubscriptionExpiryGate() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // Log permanente de montagem — confirma que o Gate está vivo no DOM.
+  useEffect(() => {
+    console.log("[SubscriptionExpiryGate] MONTADO", {
+      ready,
+      pathname,
+      user_id: user?.id ?? null,
+      user_role: user?.role ?? null,
+      company_id: company?.id ?? null,
+      company_dueDate_contexto: company?.dueDate ?? null,
+    });
+  }, [ready, pathname, user?.id, user?.role, company?.id, company?.dueDate]);
+
   // Busca autoritativa direto do banco — evita decisões com base em estado
   // potencialmente desatualizado (cache de contexto / localStorage).
   const [liveDueDate, setLiveDueDate] = useState<string | null>(null);
@@ -129,21 +141,36 @@ export function SubscriptionExpiryGate() {
   useEffect(() => {
     let alive = true;
     if (!company?.id || user?.role === "super_admin") {
+      console.log("[SubscriptionExpiryGate] Query PULADA", {
+        motivo: !company?.id ? "sem company.id" : "user.role === super_admin",
+        company_id: company?.id ?? null,
+        user_role: user?.role ?? null,
+      });
       setLiveDueDate(null);
       setDueDateFetchComplete(false);
       return;
     }
     setDueDateFetchComplete(false);
     (async () => {
-      const { data } = await supabase
+      console.log(
+        `[SubscriptionExpiryGate] Iniciando query → tabela='${SUBSCRIPTION_TABLE_NAME}', coluna='${SUBSCRIPTION_DUE_DATE_COLUMN}', company_id='${company.id}'`,
+      );
+      const { data, error, status } = await supabase
         .from(SUBSCRIPTION_TABLE_NAME)
         .select(SUBSCRIPTION_DUE_DATE_COLUMN)
         .eq("id", company.id)
         .maybeSingle();
       if (!alive) return;
+      if (error) {
+        console.error(
+          `[SubscriptionExpiryGate] ERRO na query Supabase (tabela='${SUBSCRIPTION_TABLE_NAME}', coluna='${SUBSCRIPTION_DUE_DATE_COLUMN}', company_id='${company.id}', status=${status})`,
+          error,
+        );
+      }
       const foundDueDate = (data?.due_date as string | null) ?? null;
       console.log(
         `[SubscriptionExpiryGate] Consultando a tabela ${SUBSCRIPTION_TABLE_NAME} na coluna ${SUBSCRIPTION_DUE_DATE_COLUMN} para o company_id ${company.id} e encontrei o valor ${foundDueDate}`,
+        { raw_data: data, error },
       );
       setLiveDueDate(foundDueDate);
       setDueDateFetchComplete(true);
