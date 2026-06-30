@@ -139,8 +139,39 @@ export function DashboardPage() {
     return { stale: false, label: `Sincronizado há ${Math.max(diffMin, 0)} min` };
   }, [lastSync, now]);
 
+  // Tick para forçar releitura dos turnos no localStorage (declarado aqui
+  // para que `faturamentoHoje` possa depender dele antes de `kpiCards`).
+  const [shiftsTick, setShiftsTick] = useState(0);
+
+  /**
+   * FATURAMENTO (HOJE) — fonte autoritativa: TURNOS persistidos no
+   * localStorage (ativos + fechados). O array `SALES` em memória é
+   * limpo a cada reload da aba, o que zerava o card mesmo com vendas
+   * reais registradas. Somando direto dos shifts garantimos persistência
+   * entre sessões e reflete em tempo real (via `orvix:shifts-updated`).
+   */
+  const faturamentoHoje = useMemo(() => {
+    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+    const startTs = startOfDay.getTime();
+    const endTs = startTs + 86_400_000;
+    const shifts = [...loadActiveShifts(cid), ...loadShiftHistory(cid)];
+    let total = 0;
+    for (const sh of shifts) {
+      for (const s of sh.sales ?? []) {
+        if (s.ts >= startTs && s.ts < endTs) total += s.amount;
+      }
+    }
+    if (total === 0) {
+      total = tenantSales
+        .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
+        .reduce((a, s) => a + s.total, 0);
+    }
+    return total;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cid, now, shiftsTick, tenantSales]);
+
   const kpiCards = [
-    { label: "Faturamento (hoje)", value: BRL(faturamentoHojeValue), trend: 0, icon: Sun, positive: true, highlight: true },
+    { label: "Faturamento (hoje)", value: BRL(faturamentoHoje), trend: 0, icon: Sun, positive: true, highlight: true },
     { label: "Vendas (mês)", value: BRL(vendasMes), trend: demo ? 12.4 : 0, icon: DollarSign, positive: true },
     { label: "Lucro (mês)", value: BRL(lucroMes), trend: demo ? 8.1 : 0, icon: TrendingUp, positive: true },
     { label: "Itens em Estoque", value: itensEstoque.toLocaleString("pt-BR"), trend: demo ? -2.3 : 0, icon: Boxes, positive: false },
@@ -162,7 +193,6 @@ export function DashboardPage() {
   // Histórico de turnos fechados (PDV) — sincroniza em tempo real via
   // 1) evento custom "orvix:shifts-updated" disparado pelo PDV na mesma aba;
   // 2) "storage" para outras abas/dispositivos do mesmo navegador.
-  const [shiftsTick, setShiftsTick] = useState(0);
   useEffect(() => {
     const onLocal = (e: Event) => {
       const ce = e as CustomEvent<{ cid?: string }>;
@@ -185,35 +215,6 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cid, shiftsTick],
   );
-
-  /**
-   * FATURAMENTO (HOJE) — fonte autoritativa: TURNOS persistidos no
-   * localStorage (ativos + fechados). O array `SALES` em memória é
-   * limpo a cada reload da aba, o que zerava o card mesmo com vendas
-   * reais registradas. Somando direto dos shifts garantimos persistência
-   * entre sessões e reflete em tempo real (via `orvix:shifts-updated`).
-   */
-  const faturamentoHoje = useMemo(() => {
-    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-    const startTs = startOfDay.getTime();
-    const endTs = startTs + 86_400_000;
-    const shifts = [...loadActiveShifts(cid), ...loadShiftHistory(cid)];
-    let total = 0;
-    for (const sh of shifts) {
-      for (const s of sh.sales ?? []) {
-        if (s.ts >= startTs && s.ts < endTs) total += s.amount;
-      }
-    }
-    // Fallback adicional: vendas em memória da sessão atual (cobre
-    // empresas demo, que não passam pelo fluxo de abrir turno).
-    if (total === 0) {
-      total = tenantSales
-        .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
-        .reduce((a, s) => a + s.total, 0);
-    }
-    return total;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cid, now, shiftsTick, tenantSales]);
 
   const cols: Column<Sale>[] = [
     { key: "id", label: "Pedido", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
