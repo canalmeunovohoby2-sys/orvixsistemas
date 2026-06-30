@@ -6,7 +6,7 @@ import { notifyAdminNewClient } from "./admin-notifications";
 import { isStrongPassword } from "./password-policy";
 import {
   logEvent, markLogReverted, updateSaaSSettings, SAAS_SETTINGS,
-  type SaaSSettings, SYSTEM_LOGS,
+  type SaaSSettings, SYSTEM_LOGS, setDemoCompanyIds,
 } from "./mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -314,6 +314,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (companiesRes.data) {
       for (const c of companiesRes.data as DbCompany[]) COMPANIES.push(mapCompany(c));
     }
+    // Sincroniza o registro de empresas demo a partir da flag `is_demo`
+    // do Supabase. Empresas reais (is_demo=false) ficam fora do conjunto
+    // e nunca recebem carga de dados fictícios.
+    setDemoCompanyIds(COMPANIES.filter((c) => c.isDemo).map((c) => c.id));
     SAAS_USERS.length = 0;
     if (usersRes.data) {
       for (const u of usersRes.data as DbAppUser[]) SAAS_USERS.push(mapUser(u));
