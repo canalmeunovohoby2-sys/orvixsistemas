@@ -140,7 +140,7 @@ export function DashboardPage() {
   }, [lastSync, now]);
 
   const kpiCards = [
-    { label: "Faturamento (hoje)", value: BRL(faturamentoHoje), trend: 0, icon: Sun, positive: true, highlight: true },
+    { label: "Faturamento (hoje)", value: BRL(faturamentoHojeValue), trend: 0, icon: Sun, positive: true, highlight: true },
     { label: "Vendas (mês)", value: BRL(vendasMes), trend: demo ? 12.4 : 0, icon: DollarSign, positive: true },
     { label: "Lucro (mês)", value: BRL(lucroMes), trend: demo ? 8.1 : 0, icon: TrendingUp, positive: true },
     { label: "Itens em Estoque", value: itensEstoque.toLocaleString("pt-BR"), trend: demo ? -2.3 : 0, icon: Boxes, positive: false },
