@@ -42,6 +42,9 @@ const PLAN_ICON: Record<Plan, typeof Shield> = {
   ouro: Crown,
 };
 
+const SUBSCRIPTION_TABLE_NAME = "companies";
+const SUBSCRIPTION_DUE_DATE_COLUMN = "due_date";
+
 function daysUntil(iso: string | null | undefined): number | null {
   if (!iso) return null;
   const due = new Date(iso);
@@ -133,12 +136,16 @@ export function SubscriptionExpiryGate() {
     setDueDateFetchComplete(false);
     (async () => {
       const { data } = await supabase
-        .from("companies")
-        .select("due_date")
+        .from(SUBSCRIPTION_TABLE_NAME)
+        .select(SUBSCRIPTION_DUE_DATE_COLUMN)
         .eq("id", company.id)
         .maybeSingle();
       if (!alive) return;
-      setLiveDueDate((data?.due_date as string | null) ?? null);
+      const foundDueDate = (data?.due_date as string | null) ?? null;
+      console.log(
+        `[SubscriptionExpiryGate] Consultando a tabela ${SUBSCRIPTION_TABLE_NAME} na coluna ${SUBSCRIPTION_DUE_DATE_COLUMN} para o company_id ${company.id} e encontrei o valor ${foundDueDate}`,
+      );
+      setLiveDueDate(foundDueDate);
       setDueDateFetchComplete(true);
     })();
     return () => { alive = false; };
