@@ -10,6 +10,7 @@ import {
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { useSaaS, PLAN_LABEL, getPlanCaixasLimit } from "@/lib/saas-context";
+import { pushSaleToCloud } from "@/lib/sales-sync";
 import {
   Banknote, CreditCard, CheckCircle2, QrCode, Receipt, Search, Trash2, X,
   UserCheck, Lock, Printer, DoorOpen, DoorClosed, LogOut, Wallet,
@@ -491,7 +492,7 @@ export function VendasPage() {
     const primary = splits[0]?.method ?? "Dinheiro";
     const mappedPayment: Sale["payment"] =
       crediario ? "Pix" : (primary === "Crédito" || primary === "Débito" ? "Cartão" : primary);
-    commitPdvSale({
+    const savedSale = commitPdvSale({
       company_id: cid,
       user: user?.name ?? "operador",
       items: cart.map((c) => ({ id: c.id, name: c.name, qty: c.qty })),
@@ -501,6 +502,22 @@ export function VendasPage() {
       crediario,
       customerId: crediario ? customerId : undefined,
       customer: crediario ? companyCustomers.find((c) => c.id === customerId)?.name : undefined,
+    });
+    // Persistência cross-tenant (Supabase). Fire-and-forget; em caso de falha
+    // (offline / RLS / rede), a venda fica em fila local e é drenada depois.
+    void pushSaleToCloud({
+      company_id: cid,
+      local_id: savedSale.id,
+      total_amount: +total.toFixed(2),
+      cost_amount: +(savedSale.cost ?? 0).toFixed(2),
+      items_count: cart.length,
+      payment_method: mappedPayment,
+      installments: credSplit?.installments ?? 1,
+      customer_name: crediario ? companyCustomers.find((c) => c.id === customerId)?.name : undefined,
+      customer_id: crediario ? customerId : undefined,
+      crediario,
+      items: cart.map((c) => ({ id: c.id, name: c.name, qty: c.qty, price: c.price, unit: c.unit })),
+      occurred_at: new Date().toISOString(),
     });
     // Recontagem de MRR — ativa o faturamento real da empresa a partir da 1ª venda.
     activateRevenue(cid);
