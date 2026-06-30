@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { BRL, PRODUCTS, SALES, SALES_BY_DAY, formatQty, type Product } from "@/lib/mock-data";
+import { BRL, PRODUCTS, SALES, formatQty, getCompanySales, type Product, type Sale } from "@/lib/mock-data";
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
@@ -34,22 +34,70 @@ const PERIOD_LABEL: Record<Period, string> = {
   "Anual": "do Ano",
 };
 
-function filterSalesByPeriod(period: Period) {
-  const now = new Date();
-  const start = new Date(now);
+const PERIOD_RANGE_LABEL: Record<Period, string> = {
+  "Diário": "hoje",
+  "Semanal": "últimos 7 dias",
+  "Mensal": "últimos 30 dias",
+  "Anual": "últimos 365 dias",
+};
+
+function getPeriodRange(period: Period, reference = new Date()) {
+  const now = new Date(reference);
+  const start = new Date(reference);
   if (period === "Diário") {
     start.setHours(0, 0, 0, 0);
   } else if (period === "Semanal") {
-    start.setDate(now.getDate() - 7);
+    start.setDate(start.getDate() - 7);
   } else if (period === "Mensal") {
-    start.setMonth(now.getMonth() - 1);
+    start.setDate(start.getDate() - 30);
   } else {
-    start.setFullYear(now.getFullYear() - 1);
+    start.setDate(start.getDate() - 365);
   }
-  return SALES.filter((s) => {
+  return { start, end: now };
+}
+
+function filterSalesByPeriod(sales: Sale[], period: Period) {
+  const { start, end } = getPeriodRange(period);
+  return sales.filter((s) => {
     const d = new Date(s.date);
-    return d >= start && d <= now;
+    return !Number.isNaN(d.getTime()) && d >= start && d <= end;
   });
+}
+
+function buildSalesChartData(sales: Sale[], period: Period) {
+  const { start, end } = getPeriodRange(period);
+  const buckets = new Map<string, { day: string; vendas: number; lucro: number; sort: number }>();
+
+  for (const sale of sales.filter((s) => s.status === "concluida")) {
+    const d = new Date(sale.date);
+    if (Number.isNaN(d.getTime()) || d < start || d > end) continue;
+    const dayStart = new Date(d);
+    dayStart.setHours(0, 0, 0, 0);
+    const key = dayStart.toISOString().slice(0, 10);
+    const bucket = buckets.get(key) ?? {
+      day: dayStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      vendas: 0,
+      lucro: 0,
+      sort: dayStart.getTime(),
+    };
+    bucket.vendas = +(bucket.vendas + sale.total).toFixed(2);
+    bucket.lucro = +(bucket.lucro + (sale.total - (sale.cost ?? sale.total * 0.65))).toFixed(2);
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.values()]
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ sort: _sort, ...row }) => row);
+}
+
+function formatRange(period: Period) {
+  const { start, end } = getPeriodRange(period);
+  return `${start.toLocaleDateString("pt-BR")} até ${end.toLocaleDateString("pt-BR")}`;
+}
+
+function getReportSales(companyId: string | null | undefined) {
+  const scoped = companyId ? getCompanySales(companyId) : SALES;
+  return scoped.length > 0 ? scoped : SALES;
 }
 
 type PaymentRow = {
@@ -68,21 +116,21 @@ function RelatoriosPage() {
   const [period, setPeriod] = useState<Period>("Mensal");
   const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
-  const filteredSales = useMemo(() => filterSalesByPeriod(period), [period, SALES.length]);
+  const reportSales = getReportSales(company?.id);
+  const filteredSales = useMemo(
+    () => filterSalesByPeriod(reportSales, period),
+    [period, company?.id, reportSales.length],
+  );
   const hasData = filteredSales.length > 0;
   const { closing, totals, abc, forecast } = useMemo(
     () => computeReport(filteredSales),
     [filteredSales],
   );
 
-  const filteredSalesByDay = useMemo(() => {
-    const slice =
-      period === "Diário" ? 1 :
-      period === "Semanal" ? 7 :
-      period === "Mensal" ? 14 :
-      SALES_BY_DAY.length;
-    return SALES_BY_DAY.slice(-slice);
-  }, [period]);
+  const filteredSalesByDay = useMemo(
+    () => buildSalesChartData(filteredSales, period),
+    [filteredSales, period],
+  );
 
   async function handleExportPdf() {
     if (!reportRef.current) return;
