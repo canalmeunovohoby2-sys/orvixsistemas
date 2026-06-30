@@ -262,8 +262,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       }
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
-      setAuthUserId(data.session?.user.id ?? null);
-      setReady(true);
+      const sessionUserId = data.session?.user.id ?? null;
+      setAuthUserId(sessionUserId);
+      // Se já existe sessão, mantenha o provider em carregamento até o perfil
+      // (app_users/companies) ser resolvido por loadAll. Isso evita que o
+      // RoleGuard redirecione rotas protegidas para /login antes da hidratação.
+      setReady(!sessionUserId);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
@@ -275,10 +279,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Carrega perfil + empresas/usuários conforme o papel ---------- */
   const loadAll = useCallback(async (uid: string | null) => {
+    setReady(false);
     if (!uid) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
+      setReady(true);
       return;
     }
     // 1) Perfil do usuário logado
@@ -294,6 +300,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
+      setReady(true);
       return;
     }
     const me: SaaSUser = { ...resolvedMe.user, password: "", role: normalizeRole(resolvedMe.user.role) };
@@ -314,6 +321,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     }
     if (!companiesRes.error && !usersRes.error) updateLastSync();
     tick();
+    setReady(true);
   }, [tick, updateLastSync]);
 
   useEffect(() => { void loadAll(authUserId); }, [authUserId, loadAll]);
