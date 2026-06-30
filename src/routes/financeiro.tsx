@@ -5,13 +5,19 @@ import { AppShell } from "@/components/AppShell";
 import { useSaaS } from "@/lib/saas-context";
 import { useMockStore } from "@/hooks/use-mock-store";
 import {
-  BRL, getCompanyFinancialRecords, markFinancialPaid, markFinancialPending,
+  BRL, getCompanyFinancialRecords, markFinancialPaid, markFinancialPending, addFinancialRecord,
   type FinancialRecord, type FinancialType, type FinancialStatus,
 } from "@/lib/mock-data";
 import {
-  ArrowDownCircle, ArrowUpCircle, CheckCircle2, RotateCcw, Wallet, AlertTriangle, CalendarClock,
+  ArrowDownCircle, ArrowUpCircle, CheckCircle2, RotateCcw, Wallet, AlertTriangle, CalendarClock, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/financeiro")({
   head: () => ({
@@ -61,8 +67,44 @@ function FinanceiroPage() {
   const saldo = totalReceber - totalPagar;
   const overdueCount = all.filter((r) => r.status === "ATRASADO").length;
 
+  const [openAdd, setOpenAdd] = useState(false);
+  const [form, setForm] = useState<{ type: FinancialType; description: string; amount: string; dueDate: string }>({
+    type: "PAGAR",
+    description: "",
+    amount: "",
+    dueDate: new Date().toISOString().slice(0, 10),
+  });
+
+  function resetForm() {
+    setForm({ type: "PAGAR", description: "", amount: "", dueDate: new Date().toISOString().slice(0, 10) });
+  }
+
+  function handleSave() {
+    const desc = form.description.trim();
+    const amt = parseFloat(form.amount.replace(",", "."));
+    if (!desc) { toast.error("Informe a descrição."); return; }
+    if (!isFinite(amt) || amt <= 0) { toast.error("Informe um valor válido."); return; }
+    if (!form.dueDate) { toast.error("Informe o vencimento."); return; }
+    addFinancialRecord({
+      company_id: cid,
+      type: form.type,
+      description: desc,
+      amount: +amt.toFixed(2),
+      dueDate: new Date(form.dueDate + "T12:00:00").toISOString(),
+    });
+    toast.success("Lançamento adicionado.");
+    setOpenAdd(false);
+    resetForm();
+  }
+
   return (
     <AppShell title="Financeiro" breadcrumb={["Meu Saas", "Financeiro"]}>
+      <div className="flex items-center justify-end mb-4">
+        <Button onClick={() => setOpenAdd(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> Adicionar Lançamento
+        </Button>
+      </div>
+
       {/* KPIs */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KPI label="A Receber (mês)" value={BRL(totalReceber)} icon={ArrowDownCircle} tone="success" />
@@ -128,6 +170,50 @@ function FinanceiroPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={openAdd} onOpenChange={(o) => { setOpenAdd(o); if (!o) resetForm(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Lançamento</DialogTitle>
+            <DialogDescription>Inclua uma nova conta a pagar ou a receber.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>Tipo</Label>
+              <div className="inline-flex rounded-md border border-border bg-card overflow-hidden text-xs w-fit">
+                {([["PAGAR", "A Pagar"], ["RECEBER", "A Receber"]] as const).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, type: k }))}
+                    className={`px-3 h-8 font-semibold ${form.type === k ? "bg-primary text-primary-foreground" : "hover:bg-accent text-muted-foreground"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="fin-desc">Descrição</Label>
+              <Input id="fin-desc" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Ex.: Aluguel, fornecedor X..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="fin-amount">Valor (R$)</Label>
+                <Input id="fin-amount" type="number" inputMode="decimal" step="0.01" min="0" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="fin-due">Vencimento</Label>
+                <Input id="fin-due" type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setOpenAdd(false); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
