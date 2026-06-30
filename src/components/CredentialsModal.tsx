@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, KeyRound, X } from "lucide-react";
+import { Copy, Check, KeyRound } from "lucide-react";
 
 export function CredentialsModal({
   title = "Credenciais criadas com sucesso!",
