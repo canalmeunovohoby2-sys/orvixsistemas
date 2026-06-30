@@ -305,14 +305,37 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const me: SaaSUser = { ...resolvedMe.user, password: "", role: normalizeRole(resolvedMe.user.role) };
     setRealUser(me);
 
+    // LOG CRÍTICO — alerta quando o perfil carrega sem company_id vinculado
+    // (super_admin é o único caso legítimo de company_id nulo).
+    if (!me.companyId && me.role !== "super_admin") {
+      console.error(
+        "[ORVIX][CRÍTICO] Falha ao recuperar company_id na inicialização.",
+        { user_id: me.id, email: me.email, role: me.role },
+      );
+    }
+
     // 2) Empresas + usuários conforme RLS (super_admin vê tudo; demais veem só a própria empresa)
     const [companiesRes, usersRes] = await Promise.all([
       supabase.from("companies").select("*").order("created_at", { ascending: true }),
       supabase.from("app_users").select("id, name, email, role, company_id, is_temporary_password"),
     ]);
+    if (companiesRes.error) {
+      console.error("[ORVIX][CRÍTICO] Erro ao buscar empresas na inicialização.", companiesRes.error);
+    }
+    if (usersRes.error) {
+      console.error("[ORVIX][CRÍTICO] Erro ao buscar usuários na inicialização.", usersRes.error);
+    }
     COMPANIES.length = 0;
     if (companiesRes.data) {
       for (const c of companiesRes.data as DbCompany[]) COMPANIES.push(mapCompany(c));
+    }
+    // Verificação final: se o perfil aponta para uma empresa que não veio
+    // na consulta (ex.: bloqueada por RLS), registra erro crítico explícito.
+    if (me.companyId && me.role !== "super_admin" && !COMPANIES.find((c) => c.id === me.companyId)) {
+      console.error(
+        "[ORVIX][CRÍTICO] Empresa do usuário não foi retornada pela consulta — possível bloqueio de RLS.",
+        { company_id_esperado: me.companyId, empresas_recebidas: COMPANIES.map((c) => c.id) },
+      );
     }
     // Sincroniza o registro de empresas demo a partir da flag `is_demo`
     // do Supabase. Empresas reais (is_demo=false) ficam fora do conjunto
