@@ -200,6 +200,9 @@ function RelatoriosPage() {
           <p className="text-sm text-muted-foreground">
             Nenhum registro encontrado para este período.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Janela consultada: {formatRange(period)}.
+          </p>
         </section>
       ) : (
         <>
@@ -251,23 +254,29 @@ function RelatoriosPage() {
         <section className="glass rounded-xl p-5">
           <h2 className="text-base font-semibold mb-1">Evolução de vendas</h2>
           <p className="text-xs text-muted-foreground mb-3">
-            Período: {period} ({filteredSalesByDay.length} {filteredSalesByDay.length === 1 ? "dia" : "dias"})
+            Período: {period} · {PERIOD_RANGE_LABEL[period]} · {filteredSalesByDay.length} {filteredSalesByDay.length === 1 ? "dia com venda" : "dias com vendas"}
           </p>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredSalesByDay}>
-                <CartesianGrid stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--foreground)" }}
-                  formatter={(v: number) => BRL(v)}
-                />
-                <Line type="monotone" dataKey="vendas" stroke="var(--primary)" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="lucro" stroke="#10b981" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {filteredSalesByDay.length === 0 ? (
+            <div className="h-72 grid place-items-center rounded-lg border border-dashed border-border bg-secondary/30 text-sm text-muted-foreground">
+              Nenhum registro encontrado para este período.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={filteredSalesByDay}>
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--foreground)" }}
+                    formatter={(v: number) => BRL(v)}
+                  />
+                  <Line type="monotone" dataKey="vendas" stroke="var(--primary)" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="lucro" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </section>
 
         <section className="glass rounded-xl p-5">
