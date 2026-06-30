@@ -229,6 +229,9 @@ type SaaSCtx = {
 
   /** Recarrega empresas + usuários do banco (após mutações fora do contexto). */
   refresh: () => Promise<void>;
+
+  /** Última sincronização bem-sucedida com o Supabase (null antes do primeiro fetch). */
+  lastSync: Date | null;
 };
 
 const Ctx = createContext<SaaSCtx | null>(null);
@@ -244,6 +247,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const tick = useCallback(() => force((t) => t + 1), []);
   const [impersonatedCompanyId, setImpersonatedCompanyId] = useState<string | null>(null);
   const bootstrappedRef = useRef(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
 
   /* ---------- Hidratação inicial: garante super admin + sessão ---------- */
   useEffect(() => {
@@ -307,8 +312,9 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     if (usersRes.data) {
       for (const u of usersRes.data as DbAppUser[]) SAAS_USERS.push(mapUser(u));
     }
+    if (!companiesRes.error && !usersRes.error) updateLastSync();
     tick();
-  }, [tick]);
+  }, [tick, updateLastSync]);
 
   useEffect(() => { void loadAll(authUserId); }, [authUserId, loadAll]);
 
@@ -467,8 +473,9 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const local = COMPANIES.find((c) => c.id === companyId);
     if (local) Object.assign(local, patch);
     tick();
-    await supabase.from("companies").update(patch).eq("id", companyId);
-  }, [tick]);
+    const { error } = await supabase.from("companies").update(patch).eq("id", companyId);
+    if (!error) updateLastSync();
+  }, [tick, updateLastSync]);
 
   const setCompanyStatus = useCallback(async (companyId: string, status: SubscriptionStatus) => {
     const c = COMPANIES.find((x) => x.id === companyId); if (!c) return;
@@ -549,6 +556,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) return { ok: false, reason: error.message };
     await adminClearTemporaryPasswordFlag();
+    updateLastSync();
     if (realUser) {
       const u = SAAS_USERS.find((x) => x.id === realUser.id);
       if (u) u.isTemporaryPassword = false;
@@ -561,7 +569,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       action: "Senha atualizada com sucesso (Supabase Auth).",
     });
     return { ok: true };
-  }, [realUser, company]);
+  }, [realUser, company, updateLastSync]);
 
   const changeOwnPassword = useCallback(
     async (currentPassword: string, newPassword: string, confirmPassword: string): Promise<{ ok: boolean; reason?: string }> => {
@@ -597,6 +605,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         fantasia, razao_social: fantasia, cnpj, phone, segment, onboarding_pending: false,
       }).eq("id", companyId);
       if (error) return { ok: false, reason: error.message };
+      updateLastSync();
 
       c.fantasia = fantasia; c.razaoSocial = fantasia; c.cnpj = cnpj;
       c.phone = phone; c.segment = segment; c.onboardingPending = false;
@@ -616,7 +625,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       });
       return { ok: true };
     },
-    [realUser, tick],
+    [realUser, tick, updateLastSync],
   );
 
   /* ---------- Criação de empresa demo (Super Admin) ---------- */
@@ -865,6 +874,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       impersonating: !!impersonatedCompanyId, impersonatedCompany,
       startImpersonation, stopImpersonation,
       refresh,
+      lastSync,
     }}>
       {children}
     </Ctx.Provider>
