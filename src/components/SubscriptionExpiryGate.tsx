@@ -55,6 +55,13 @@ function daysUntil(iso: string | null | undefined): number | null {
   return Math.round((a - b) / 86_400_000);
 }
 
+function todayUtcComparisonDate(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+}
+
 function PlanShowcase({ currentPlan, onPick }: { currentPlan: Plan; onPick: () => void }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -115,9 +122,15 @@ export function SubscriptionExpiryGate() {
   // Busca autoritativa direto do banco — evita decisões com base em estado
   // potencialmente desatualizado (cache de contexto / localStorage).
   const [liveDueDate, setLiveDueDate] = useState<string | null>(null);
+  const [dueDateFetchComplete, setDueDateFetchComplete] = useState(false);
   useEffect(() => {
     let alive = true;
-    if (!company?.id || user?.role === "super_admin") { setLiveDueDate(null); return; }
+    if (!company?.id || user?.role === "super_admin") {
+      setLiveDueDate(null);
+      setDueDateFetchComplete(false);
+      return;
+    }
+    setDueDateFetchComplete(false);
     (async () => {
       const { data } = await supabase
         .from("companies")
@@ -126,6 +139,7 @@ export function SubscriptionExpiryGate() {
         .maybeSingle();
       if (!alive) return;
       setLiveDueDate((data?.due_date as string | null) ?? null);
+      setDueDateFetchComplete(true);
     })();
     return () => { alive = false; };
   }, [company?.id, user?.role]);
@@ -137,6 +151,15 @@ export function SubscriptionExpiryGate() {
 
   const expired = days !== null && days <= 0;
   const warning = days !== null && days >= 1 && days <= 3;
+
+  useEffect(() => {
+    if (!ready || isPrivileged || !company || !dueDateFetchComplete) return;
+    console.log("[SubscriptionExpiryGate] Verificação de vencimento", {
+      due_date_banco: liveDueDate,
+      hoje_comparacao_utc: todayUtcComparisonDate(),
+      deve_bloquear: expired,
+    });
+  }, [ready, isPrivileged, company, dueDateFetchComplete, liveDueDate, expired]);
 
   // Bloqueio total: data vencida → empurra para /assinatura.
   useEffect(() => {
