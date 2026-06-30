@@ -9,6 +9,8 @@ import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { createCustomer } from "@/lib/customers.functions";
 
 type CustomerRow = {
   id: string;
@@ -140,7 +142,6 @@ function ClientesPage() {
             setOpen(false);
             toast.success("Cliente cadastrado com sucesso!");
           }}
-          companyId={cid}
         />
       )}
     </AppShell>
@@ -150,11 +151,9 @@ function ClientesPage() {
 function CustomerFormModal({
   onClose,
   onSaved,
-  companyId,
 }: {
   onClose: () => void;
   onSaved: (c: CustomerRow) => void;
-  companyId: string;
 }) {
   const [name, setName] = useState("");
   const [doc, setDoc] = useState("");
@@ -163,40 +162,30 @@ function CustomerFormModal({
   const [city, setCity] = useState("");
   const [creditLimit, setCreditLimit] = useState("0");
   const [saving, setSaving] = useState(false);
+  const createCustomerFn = useServerFn(createCustomer);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return toast.error("Informe o nome do cliente.");
     setSaving(true);
-    const { data, error } = await supabase
-      .from("customers")
-      .insert({
-        company_id: companyId,
-        name: name.trim(),
-        doc: doc.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        city: city.trim(),
-        credit_limit: Number(creditLimit) || 0,
-      })
-      .select("id, company_id, name, doc, email, phone, city, credit_limit, current_debt")
-      .single();
-    setSaving(false);
-    if (error || !data) {
-      toast.error("Não foi possível cadastrar o cliente.", { description: error?.message });
-      return;
+    try {
+      const row = await createCustomerFn({
+        data: {
+          name: name.trim(),
+          doc: doc.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          city: city.trim(),
+          creditLimit: Number(creditLimit) || 0,
+        },
+      });
+      onSaved(row);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido.";
+      toast.error("Não foi possível cadastrar o cliente.", { description: message });
+    } finally {
+      setSaving(false);
     }
-    onSaved({
-      id: data.id,
-      company_id: data.company_id,
-      name: data.name,
-      doc: data.doc,
-      email: data.email,
-      phone: data.phone,
-      city: data.city,
-      creditLimit: Number(data.credit_limit ?? 0),
-      currentDebt: Number(data.current_debt ?? 0),
-    });
   };
 
   return (
