@@ -78,6 +78,14 @@ async function getAuthenticatedProfile(
   return data;
 }
 
+async function isSuperAdminUser(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  userId: string,
+) {
+  const profile = await getAuthenticatedProfile(supabaseAdmin, userId);
+  return profile?.role === "super_admin";
+}
+
 /* ============================================================
  * Bootstrap do Super Admin (idempotente, público).
  * Garante que o e-mail principal sempre consiga acessar o painel
@@ -343,14 +351,11 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CreateCompanySchema.parse(d))
   .handler(async ({ data, context }) => {
-    // Autoriza: somente super_admin
-    const { data: isSA } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (!isSA) return { ok: false as const, reason: "Acesso negado." };
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Autoriza: somente super_admin
+    const isSA = await isSuperAdminUser(supabaseAdmin, context.userId);
+    if (!isSA) return { ok: false as const, reason: "Acesso negado." };
 
     // Gera próximo ID via função SQL
     const { data: nextIdRow, error: nidErr } = await supabaseAdmin.rpc("next_company_id");
@@ -505,13 +510,11 @@ export const adminDeleteCompany = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ companyId: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isSA } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const isSA = await isSuperAdminUser(supabaseAdmin, context.userId);
     if (!isSA) return { ok: false as const, reason: "Acesso negado." };
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: users } = await supabaseAdmin
       .from("app_users")
       .select("id")
