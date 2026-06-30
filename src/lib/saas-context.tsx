@@ -877,8 +877,17 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const deleteCompany = useCallback(async (companyId: string) => {
     const c = COMPANIES.find((x) => x.id === companyId);
     if (!c) return { ok: false, reason: "Empresa não encontrada." };
+    console.log("Tentando excluir company_id:", companyId);
     const res = await adminDeleteCompanyFn({ data: { companyId } });
-    if (!res.ok) return { ok: false, reason: res.reason };
+    if (!res.ok) {
+      console.error("[deleteCompany] Falha:", res.reason);
+      return { ok: false, reason: res.reason };
+    }
+    console.log("Exclusão confirmada", { companyId, fantasia: c.fantasia });
+    // Remoção otimista local + reload autoritativo do Supabase
+    const idx = COMPANIES.findIndex((x) => x.id === companyId);
+    if (idx >= 0) COMPANIES.splice(idx, 1);
+    tick();
     await refresh();
     logEvent({
       kind: "SETTINGS_UPDATE", company_id: null, companyName: "Plataforma",
