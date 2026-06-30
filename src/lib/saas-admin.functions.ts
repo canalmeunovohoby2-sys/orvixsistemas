@@ -560,7 +560,14 @@ export const adminDeleteCompany = createServerFn({ method: "POST" })
       .from("app_users")
       .select("id")
       .eq("company_id", data.companyId);
-    await supabaseAdmin.from("companies").delete().eq("id", data.companyId);
+    const { error: delErr } = await supabaseAdmin
+      .from("companies")
+      .delete()
+      .eq("id", data.companyId);
+    if (delErr) {
+      console.error("[adminDeleteCompany] Falha ao excluir companies:", delErr);
+      return { ok: false as const, reason: delErr.message };
+    }
     if (users) {
       for (const u of users) {
         await supabaseAdmin.auth.admin.deleteUser(u.id);
