@@ -25,6 +25,33 @@ export const Route = createFileRoute("/relatorios")({
   component: () => (<RoleGuard allow={["admin"]}><RelatoriosPage /></RoleGuard>),
 });
 
+type Period = "Diário" | "Semanal" | "Mensal" | "Anual";
+
+const PERIOD_LABEL: Record<Period, string> = {
+  "Diário": "do Dia",
+  "Semanal": "da Semana",
+  "Mensal": "do Mês",
+  "Anual": "do Ano",
+};
+
+function filterSalesByPeriod(period: Period) {
+  const now = new Date();
+  const start = new Date(now);
+  if (period === "Diário") {
+    start.setHours(0, 0, 0, 0);
+  } else if (period === "Semanal") {
+    start.setDate(now.getDate() - 7);
+  } else if (period === "Mensal") {
+    start.setMonth(now.getMonth() - 1);
+  } else {
+    start.setFullYear(now.getFullYear() - 1);
+  }
+  return SALES.filter((s) => {
+    const d = new Date(s.date);
+    return d >= start && d <= now;
+  });
+}
+
 type PaymentRow = {
   method: "Dinheiro" | "Pix" | "Crédito" | "Débito";
   icon: typeof Banknote;
@@ -38,10 +65,15 @@ function RelatoriosPage() {
   const { company } = useSaaS();
   const navigate = useNavigate();
   const reportRef = useRef<HTMLDivElement>(null);
-  const [period, setPeriod] = useState<"Diário" | "Semanal" | "Mensal" | "Anual">("Mensal");
+  const [period, setPeriod] = useState<Period>("Mensal");
   const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
-  const { closing, totals, abc, forecast } = useMemo(() => computeReport(), [SALES.length]);
+  const filteredSales = useMemo(() => filterSalesByPeriod(period), [period, SALES.length]);
+  const hasData = filteredSales.length > 0;
+  const { closing, totals, abc, forecast } = useMemo(
+    () => computeReport(filteredSales),
+    [filteredSales],
+  );
 
   const filteredSalesByDay = useMemo(() => {
     const slice =
@@ -111,8 +143,20 @@ function RelatoriosPage() {
       </div>
 
       <div ref={reportRef}>
+      {!hasData ? (
+        <section className="glass rounded-xl p-10 mb-6 border border-border text-center">
+          <Wallet className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+          <h2 className="text-base font-semibold mb-1">
+            Fechamento de Caixa {PERIOD_LABEL[period]}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Nenhum registro encontrado para este período.
+          </p>
+        </section>
+      ) : (
+        <>
       {/* ─── Fechamento de caixa ─── */}
-      <CashClosing closing={closing} totals={totals} />
+      <CashClosing closing={closing} totals={totals} period={period} />
 
       {/* ─── Faturamento e Lucro Real ─── */}
       {advancedUnlocked ? (
@@ -200,6 +244,8 @@ function RelatoriosPage() {
           </div>
         </section>
       </div>
+        </>
+      )}
       </div>
     </AppShell>
   );
@@ -302,14 +348,14 @@ function ProfitPanel({ totals }: { totals: ReturnType<typeof computeReport>["tot
   );
 }
 
-function CashClosing({ closing, totals }: { closing: PaymentRow[]; totals: ReturnType<typeof computeReport>["totals"] }) {
+function CashClosing({ closing, totals, period }: { closing: PaymentRow[]; totals: ReturnType<typeof computeReport>["totals"]; period: Period }) {
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   return (
     <section aria-labelledby="cash" className="glass rounded-xl p-5 mb-6 border border-border">
       <header className="flex flex-wrap items-end justify-between gap-3 mb-5">
         <div>
           <h2 id="cash" className="text-base font-semibold inline-flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-primary" /> Fechamento de Caixa do Dia
+            <Wallet className="w-4 h-4 text-primary" /> Fechamento de Caixa {PERIOD_LABEL[period]}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">{today} · {totals.qtdVendas} venda(s) concluída(s)</p>
         </div>
@@ -454,8 +500,8 @@ function RankingCard({
 
 /* ─────────────── Derivations ─────────────── */
 
-function computeReport() {
-  const concluded = SALES.filter((s) => s.status === "concluida");
+function computeReport(sales: typeof SALES = SALES) {
+  const concluded = sales.filter((s) => s.status === "concluida");
 
   // Map mock's native methods into the PDV's 4 (Cartão → 60% Crédito + 40% Débito).
   const buckets: Record<PaymentRow["method"], { bruto: number; count: number }> = {
