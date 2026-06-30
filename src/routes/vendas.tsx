@@ -774,6 +774,7 @@ export function VendasPage() {
             <span className="font-mono tabular-nums">Esperado em dinheiro: <strong className="text-foreground">{BRL(expectedCash)}</strong></span>
           </div>
         )}
+        <PlanDaysLeftBadge compact />
         {shift ? (
           <button
             type="button"
