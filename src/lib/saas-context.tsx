@@ -184,7 +184,7 @@ type SaaSCtx = {
   logout: () => Promise<void>;
   hasRole: (...roles: Role[]) => boolean;
 
-  setCompanyStatus: (companyId: string, status: SubscriptionStatus) => void;
+  setCompanyStatus: (companyId: string, status: SubscriptionStatus) => Promise<void>;
   setCompanyPlan: (companyId: string, plan: Plan) => void;
   setCompanyDueDate: (companyId: string, isoDate: string) => void;
   activateRevenue: (companyId: string) => void;
@@ -470,10 +470,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     await supabase.from("companies").update(patch).eq("id", companyId);
   }, [tick]);
 
-  const setCompanyStatus = useCallback((companyId: string, status: SubscriptionStatus) => {
+  const setCompanyStatus = useCallback(async (companyId: string, status: SubscriptionStatus) => {
     const c = COMPANIES.find((x) => x.id === companyId); if (!c) return;
     const prev = c.status;
-    void updateCompanyOptimistic(companyId, { status });
+    await updateCompanyOptimistic(companyId, { status });
     logEvent({
       kind: "SUBSCRIPTION_CHANGE", company_id: c.id, companyName: c.fantasia,
       user: realUser?.name ?? "Sistema",
