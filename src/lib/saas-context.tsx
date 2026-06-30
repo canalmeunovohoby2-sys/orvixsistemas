@@ -6,7 +6,7 @@ import { notifyAdminNewClient } from "./admin-notifications";
 import { isStrongPassword } from "./password-policy";
 import {
   logEvent, markLogReverted, updateSaaSSettings, SAAS_SETTINGS,
-  type SaaSSettings, SYSTEM_LOGS,
+  type SaaSSettings, SYSTEM_LOGS, setDemoCompanyIds,
 } from "./mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import {
