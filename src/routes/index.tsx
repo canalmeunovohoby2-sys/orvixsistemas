@@ -66,7 +66,7 @@ function isSameLocalDay(iso: string, ref: Date): boolean {
 
 export function DashboardPage() {
   useMockStore();
-  const { company } = useSaaS();
+  const { company, lastSync } = useSaaS();
   const cid = company?.id ?? null;
   // Dashboard só mostra dados fictícios para empresas marcadas explicitamente
   // como demonstração (flag estável `isDemo`). Empresas reais — criadas via
@@ -105,6 +105,18 @@ export function DashboardPage() {
       .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
       .reduce((a, s) => a + s.total, 0);
   }, [tenantSales, now]);
+
+  // Indicador de frescor dos dados — recalculado a cada minuto via o mesmo `now`.
+  const syncStatus = useMemo(() => {
+    if (!lastSync) {
+      return { stale: true, label: "Aguardando sincronização inicial" };
+    }
+    const diffMin = Math.floor((now.getTime() - lastSync.getTime()) / 60_000);
+    if (diffMin > 2) {
+      return { stale: true, label: `Dados atualizados há ${diffMin} minutos` };
+    }
+    return { stale: false, label: `Sincronizado há ${Math.max(diffMin, 0)} min` };
+  }, [lastSync, now]);
 
   const kpiCards = [
     { label: "Faturamento (hoje)", value: BRL(faturamentoHoje), trend: 0, icon: Sun, positive: true, highlight: true },
@@ -168,6 +180,25 @@ export function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" breadcrumb={["Meu Saas", "Visão Geral"]}>
+      <div className="mb-4 flex justify-end">
+        <span
+          className={
+            "inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs font-medium " +
+            (syncStatus.stale
+              ? "border-amber-400/50 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+              : "border-border bg-muted/40 text-muted-foreground")
+          }
+          aria-live="polite"
+        >
+          <span
+            className={
+              "h-1.5 w-1.5 rounded-full " +
+              (syncStatus.stale ? "bg-amber-500" : "bg-emerald-500")
+            }
+          />
+          {syncStatus.label}
+        </span>
+      </div>
       {!demo && (
         <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary grid place-items-center shrink-0">
