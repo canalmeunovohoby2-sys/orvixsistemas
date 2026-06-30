@@ -4,7 +4,7 @@ import { Maximize2, Minimize2 } from "lucide-react";
 /**
  * Botão de tela cheia para o Caixa/PDV.
  * - Clique: alterna Fullscreen API do navegador.
- * - Atalho: Ctrl+Shift+Q sai do modo tela cheia (ESC também sai, nativo do browser).
+ * - Atalho: ESC sai do modo tela cheia (nativo do browser).
  * - Quando em tela cheia, renderiza um rodapé fixo com instrução de saída.
  */
 export function FullscreenToggle({ className = "" }: { className?: string }) {
@@ -32,20 +32,6 @@ export function FullscreenToggle({ className = "" }: { className?: string }) {
     else void enter();
   }, [enter, exit]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Ctrl+Shift+Q → sair do modo tela cheia.
-      if (e.ctrlKey && e.shiftKey && (e.key === "Q" || e.key === "q")) {
-        if (document.fullscreenElement) {
-          e.preventDefault();
-          void exit();
-        }
-      }
-    };
-    window.addEventListener("keydown", handler, { capture: true });
-    return () => window.removeEventListener("keydown", handler, { capture: true } as EventListenerOptions);
-  }, [exit]);
-
   return (
     <>
       <button
@@ -65,7 +51,7 @@ export function FullscreenToggle({ className = "" }: { className?: string }) {
           className="fixed bottom-0 inset-x-0 z-[9999] pointer-events-none flex justify-center pb-2"
         >
           <span className="pointer-events-auto rounded-full bg-black/70 text-white/90 text-[11px] font-medium px-3 py-1 backdrop-blur-sm shadow-lg">
-            Pressione <kbd className="font-mono">[ESC]</kbd> ou <kbd className="font-mono">[Ctrl+Shift+Q]</kbd> para sair do modo tela cheia
+            Pressione <kbd className="font-mono">[ESC]</kbd> para sair do modo tela cheia
           </span>
         </div>
       )}
