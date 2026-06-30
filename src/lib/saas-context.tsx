@@ -928,6 +928,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       createDemoAccess, processWebhookPayment,
       countUsers, canAddUser, inviteUser,
       countCashiers, canAddCashier, createCashier, deleteCashier,
+      renameCashier,
       deleteCompany, revertLog,
       impersonating: !!impersonatedCompanyId, impersonatedCompany,
       startImpersonation, stopImpersonation,
