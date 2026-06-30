@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { XCircle } from "lucide-react";
+import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
