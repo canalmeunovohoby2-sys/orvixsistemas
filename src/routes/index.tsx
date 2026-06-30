@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles, Sun, DoorClosed } from "lucide-react";
+import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,6 +49,7 @@ type ShiftHistoryEntry = {
   sales: { ts: number; method: ShiftPaymentKey; amount: number }[];
 };
 const SHIFT_HISTORY_KEY = (cid: string) => `orvix_pdv_shifts_history_${cid}`;
+const ACTIVE_SHIFT_PREFIX = (cid: string) => `orvix_pdv_shift_${cid}_`;
 
 function loadShiftHistory(cid: string | null): ShiftHistoryEntry[] {
   if (!cid || typeof window === "undefined") return [];
@@ -55,6 +57,30 @@ function loadShiftHistory(cid: string | null): ShiftHistoryEntry[] {
     const raw = window.localStorage.getItem(SHIFT_HISTORY_KEY(cid));
     return raw ? (JSON.parse(raw) as ShiftHistoryEntry[]) : [];
   } catch { return []; }
+}
+
+/**
+ * Lê todos os turnos ATIVOS (não fechados) da empresa no localStorage.
+ * O PDV grava um turno por (cid + userId), então pode haver múltiplos
+ * caixas abertos em paralelo.
+ */
+function loadActiveShifts(cid: string | null): ShiftHistoryEntry[] {
+  if (!cid || typeof window === "undefined") return [];
+  const prefix = ACTIVE_SHIFT_PREFIX(cid);
+  const out: ShiftHistoryEntry[] = [];
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith(prefix)) continue;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const s = JSON.parse(raw) as ShiftHistoryEntry;
+        if (!s.closedAt) out.push(s);
+      } catch {}
+    }
+  } catch {}
+  return out;
 }
 
 function isSameLocalDay(iso: string, ref: Date): boolean {
@@ -100,11 +126,6 @@ export function DashboardPage() {
     const t = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(t);
   }, []);
-  const faturamentoHoje = useMemo(() => {
-    return tenantSales
-      .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
-      .reduce((a, s) => a + s.total, 0);
-  }, [tenantSales, now]);
 
   // Indicador de frescor dos dados — recalculado a cada minuto via o mesmo `now`.
   const syncStatus = useMemo(() => {
@@ -148,7 +169,9 @@ export function DashboardPage() {
       if (!ce.detail?.cid || ce.detail.cid === cid) setShiftsTick((t) => t + 1);
     };
     const onStorage = (e: StorageEvent) => {
-      if (cid && e.key === SHIFT_HISTORY_KEY(cid)) setShiftsTick((t) => t + 1);
+      if (cid && e.key && (
+        e.key === SHIFT_HISTORY_KEY(cid) || e.key.startsWith(ACTIVE_SHIFT_PREFIX(cid))
+      )) setShiftsTick((t) => t + 1);
     };
     window.addEventListener("orvix:shifts-updated", onLocal as EventListener);
     window.addEventListener("storage", onStorage);
@@ -162,6 +185,35 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cid, shiftsTick],
   );
+
+  /**
+   * FATURAMENTO (HOJE) — fonte autoritativa: TURNOS persistidos no
+   * localStorage (ativos + fechados). O array `SALES` em memória é
+   * limpo a cada reload da aba, o que zerava o card mesmo com vendas
+   * reais registradas. Somando direto dos shifts garantimos persistência
+   * entre sessões e reflete em tempo real (via `orvix:shifts-updated`).
+   */
+  const faturamentoHoje = useMemo(() => {
+    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+    const startTs = startOfDay.getTime();
+    const endTs = startTs + 86_400_000;
+    const shifts = [...loadActiveShifts(cid), ...loadShiftHistory(cid)];
+    let total = 0;
+    for (const sh of shifts) {
+      for (const s of sh.sales ?? []) {
+        if (s.ts >= startTs && s.ts < endTs) total += s.amount;
+      }
+    }
+    // Fallback adicional: vendas em memória da sessão atual (cobre
+    // empresas demo, que não passam pelo fluxo de abrir turno).
+    if (total === 0) {
+      total = tenantSales
+        .filter((s) => s.status === "concluida" && isSameLocalDay(s.date, now))
+        .reduce((a, s) => a + s.total, 0);
+    }
+    return total;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cid, now, shiftsTick, tenantSales]);
 
   const cols: Column<Sale>[] = [
     { key: "id", label: "Pedido", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
@@ -181,6 +233,8 @@ export function DashboardPage() {
   return (
     <AppShell title="Dashboard" breadcrumb={["Meu Saas", "Visão Geral"]}>
       <div className="mb-4 flex justify-end">
+        <PlanDaysLeftBadge />
+        <span className="mx-2" />
         <span
           className={
             "inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs font-medium " +
