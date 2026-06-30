@@ -106,6 +106,56 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          city: string
+          company_id: string
+          created_at: string
+          credit_limit: number
+          current_debt: number
+          doc: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string
+          company_id: string
+          created_at?: string
+          credit_limit?: number
+          current_debt?: number
+          doc?: string
+          email?: string
+          id?: string
+          name: string
+          phone?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          company_id?: string
+          created_at?: string
+          credit_limit?: number
+          current_debt?: number
+          doc?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habit_logs: {
         Row: {
           created_at: string
