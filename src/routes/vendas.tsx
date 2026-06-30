@@ -1231,11 +1231,7 @@ export function VendasPage() {
       {/* MODAL — Abertura de Caixa (bloqueia vendas até confirmar). */}
       <Dialog
         open={openModal}
-        onOpenChange={(o) => {
-          // Não permite fechar sem abrir o caixa (a menos que já exista um turno).
-          if (!o && !shift) return;
-          setOpenModal(o);
-        }}
+        onOpenChange={setOpenModal}
       >
         <DialogContent className="border-border bg-card text-foreground sm:max-w-md">
           <DialogHeader>
@@ -1274,6 +1270,13 @@ export function VendasPage() {
             </p>
           </div>
           <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setOpenModal(false)}
+              className="h-10 px-4 inline-flex items-center justify-center rounded-md border border-border bg-secondary text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+            >
+              Cancelar
+            </button>
             <button
               type="button"
               onClick={openShift}
