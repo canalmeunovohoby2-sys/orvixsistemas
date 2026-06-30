@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { useSaaS, PLAN_PRICE, PLAN_LABEL, PLAN_LIMITS, type Plan } from "@/lib/saas-context";
 import { AlertTriangle, CreditCard, Lock, Check, Crown, Shield, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Monitor global de assinatura baseado em `company.dueDate`.
@@ -45,9 +46,12 @@ function daysUntil(iso: string | null | undefined): number | null {
   if (!iso) return null;
   const due = new Date(iso);
   if (Number.isNaN(due.getTime())) return null;
+  // Compara em UTC puro para evitar deslocamento por fuso (ex.: due_date salvo
+  // como 30/07 02:52 UTC virava 29/07 local em America/Sao_Paulo, gerando
+  // bloqueios incorretos).
   const now = new Date();
-  const a = Date.UTC(due.getFullYear(), due.getMonth(), due.getDate());
-  const b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const a = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+  const b = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return Math.round((a - b) / 86_400_000);
 }
 
@@ -108,7 +112,26 @@ export function SubscriptionExpiryGate() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const days = useMemo(() => daysUntil(company?.dueDate), [company?.dueDate]);
+  // Busca autoritativa direto do banco — evita decisões com base em estado
+  // potencialmente desatualizado (cache de contexto / localStorage).
+  const [liveDueDate, setLiveDueDate] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!company?.id || user?.role === "super_admin") { setLiveDueDate(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("due_date")
+        .eq("id", company.id)
+        .maybeSingle();
+      if (!alive) return;
+      setLiveDueDate((data?.due_date as string | null) ?? null);
+    })();
+    return () => { alive = false; };
+  }, [company?.id, user?.role]);
+
+  const effectiveDue = liveDueDate ?? company?.dueDate ?? null;
+  const days = useMemo(() => daysUntil(effectiveDue), [effectiveDue]);
   const isPrivileged = !user || user.role === "super_admin";
   const onAuthPage = pathname === "/login" || pathname === "/assinatura";
 
