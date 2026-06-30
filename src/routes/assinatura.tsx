@@ -33,11 +33,11 @@ function AssinaturaPage() {
 
   if (!mounted || !user) return null;
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!company) return;
-    setCompanyStatus(company.id, "active");
+    await setCompanyStatus(company.id, "active");
     toast.success("Pagamento confirmado. Acesso liberado!");
-    setTimeout(() => navigate({ to: user.role === "cashier" ? "/caixa" : "/dashboard" }), 600);
+    navigate({ to: user.role === "cashier" ? "/caixa" : "/dashboard" });
   };
 
   return (
