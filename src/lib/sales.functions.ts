@@ -64,12 +64,13 @@ export const getConsolidatedSalesMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: isSuper, error: roleErr } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "super_admin",
-    });
+    const { data: me, error: roleErr } = await supabase
+      .from("app_users")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
     if (roleErr) throw new Error(roleErr.message);
-    if (!isSuper) throw new Error("Forbidden");
+    if (!me || me.role !== "super_admin") throw new Error("Forbidden");
 
     const { data, error } = await supabase
       .from("sales")
