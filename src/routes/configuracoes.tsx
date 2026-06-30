@@ -4,7 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { useSaaS } from "@/lib/saas-context";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff } from "lucide-react";
+import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff, ImageIcon, Trash2, Info } from "lucide-react";
+import { getCompanyLogo, setCompanyLogo, useCompanyLogo } from "@/lib/company-logo";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -95,6 +96,8 @@ function ConfiguracoesPage() {
           </p>
         </div>
       </header>
+
+      <LogoUploadSection cid={cid} />
 
       <form onSubmit={save} className="grid gap-6 max-w-4xl">
         <section className="rounded-xl border border-border bg-card p-6">
