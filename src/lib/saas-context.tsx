@@ -18,6 +18,7 @@ import {
   adminDeleteUser,
   adminDeleteCompany as adminDeleteCompanyFn,
   adminClearTemporaryPasswordFlag,
+  adminRenameUser,
 } from "./saas-admin.functions";
 
 /* ============================================================
@@ -218,6 +219,7 @@ type SaaSCtx = {
     companyId: string, data: { name: string; email: string; password: string },
   ) => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; password?: string }>;
   deleteCashier: (userId: string) => Promise<{ ok: boolean; reason?: string }>;
+  renameCashier: (userId: string, newName: string) => Promise<{ ok: boolean; reason?: string }>;
 
   deleteCompany: (companyId: string) => Promise<{ ok: boolean; reason?: string }>;
   revertLog: (logId: string) => { ok: boolean; reason?: string };
@@ -849,6 +851,25 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       companyName: c?.fantasia ?? "Plataforma",
       user: realUser?.name ?? "Lojista",
       action: `Operador de caixa removido: ${target.name} (${target.email}).`,
+    });
+    return { ok: true };
+  }, [realUser, refresh]);
+
+  const renameCashier = useCallback(async (userId: string, newName: string) => {
+    const target = SAAS_USERS.find((u) => u.id === userId && u.role === "cashier");
+    if (!target) return { ok: false, reason: "Operador não encontrado." };
+    const name = newName.trim();
+    if (name.length < 2) return { ok: false, reason: "Informe um nome válido (mínimo 2 caracteres)." };
+    if (name === target.name) return { ok: true };
+    const res = await adminRenameUser({ data: { userId, name } });
+    if (!res.ok) return { ok: false, reason: res.reason };
+    await refresh();
+    const c = target.companyId ? COMPANIES.find((x) => x.id === target.companyId) : null;
+    logEvent({
+      kind: "SETTINGS_UPDATE", company_id: target.companyId,
+      companyName: c?.fantasia ?? "Plataforma",
+      user: realUser?.name ?? "Lojista",
+      action: `Terminal renomeado: "${target.name}" → "${name}" (${target.email}).`,
     });
     return { ok: true };
   }, [realUser, refresh]);
