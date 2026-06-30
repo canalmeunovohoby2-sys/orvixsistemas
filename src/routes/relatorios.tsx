@@ -95,9 +95,9 @@ function formatRange(period: Period) {
   return `${start.toLocaleDateString("pt-BR")} até ${end.toLocaleDateString("pt-BR")}`;
 }
 
-function getReportSales(companyId: string | null | undefined) {
+function getReportSales(companyId: string | null | undefined, useDemoFallback: boolean) {
   const scoped = companyId ? getCompanySales(companyId) : SALES;
-  return scoped.length > 0 ? scoped : SALES;
+  return scoped.length > 0 || !useDemoFallback ? scoped : SALES;
 }
 
 type PaymentRow = {
@@ -116,7 +116,7 @@ function RelatoriosPage() {
   const [period, setPeriod] = useState<Period>("Mensal");
   const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
-  const reportSales = getReportSales(company?.id);
+  const reportSales = getReportSales(company?.id, !company?.id || company?.isDemo === true);
   const filteredSales = useMemo(
     () => filterSalesByPeriod(reportSales, period),
     [period, company?.id, reportSales.length],
@@ -628,17 +628,17 @@ function computeReport(sales: typeof SALES = SALES) {
       margemReal: +margemReal.toFixed(1),
     },
     abc: { byVolume, byReceita },
-    forecast: computeForecast(),
+    forecast: computeForecast(concluded),
   };
 }
 
-function computeForecast(): { months: ForecastMonth[]; total: number; salesParceladas: number } {
+function computeForecast(sales: typeof SALES = SALES): { months: ForecastMonth[]; total: number; salesParceladas: number } {
   const now = new Date();
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const buckets = new Map<string, { amount: number; saleCount: number; date: Date }>();
   let salesParceladas = 0;
 
-  for (const s of SALES) {
+  for (const s of sales) {
     if (s.status !== "concluida") continue;
     if (s.payment !== "Cartão") continue;
     const n = s.installments ?? 1;
