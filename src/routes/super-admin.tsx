@@ -11,7 +11,6 @@ import {
   updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
-import { getConsolidatedSalesMetrics } from "@/lib/sales.functions";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
