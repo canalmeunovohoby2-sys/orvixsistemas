@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SaaSProvider } from "@/lib/saas-context";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { SubscriptionExpiryGate } from "@/components/SubscriptionExpiryGate";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -70,6 +71,7 @@ function RootComponent() {
     <SaaSProvider>
       <SubscriptionBanner />
       <ImpersonationBanner />
+      <SubscriptionExpiryGate />
       <Outlet />
       <Toaster position="top-right" />
     </SaaSProvider>

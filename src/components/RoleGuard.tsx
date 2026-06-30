@@ -32,6 +32,20 @@ export function RoleGuard({ allow, children }: { allow: Role[]; children: ReactN
       navigate({ to: "/assinatura" });
       return;
     }
+    // Vencimento da assinatura (D0+): bloqueio efetivo mesmo se o status
+    // ainda não foi marcado como `blocked` pelo backend.
+    if (user.role !== "super_admin" && company?.dueDate && pathname !== "/assinatura") {
+      const due = new Date(company.dueDate);
+      if (!Number.isNaN(due.getTime())) {
+        const a = Date.UTC(due.getFullYear(), due.getMonth(), due.getDate());
+        const now = new Date();
+        const b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+        if (a - b <= 0) {
+          navigate({ to: "/assinatura" });
+          return;
+        }
+      }
+    }
     if (!allow.includes(user.role)) {
       if (user.role === "cashier") navigate({ to: "/caixa" });
       else if (user.role === "super_admin") navigate({ to: "/super-admin" });
