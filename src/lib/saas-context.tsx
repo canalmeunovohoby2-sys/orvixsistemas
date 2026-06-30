@@ -268,7 +268,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setAuthInitialized(true);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         setAuthUserId(session?.user.id ?? null);
         setAuthInitialized(true);
       }
