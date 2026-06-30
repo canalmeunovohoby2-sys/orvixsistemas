@@ -241,6 +241,7 @@ const Ctx = createContext<SaaSCtx | null>(null);
  * ============================================================ */
 export function SaaSProvider({ children }: { children: ReactNode }) {
   const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [realUser, setRealUser] = useState<SaaSUser | null>(null);
   const [ready, setReady] = useState(false);
   const [, force] = useState(0);
@@ -262,12 +263,14 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       }
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
-      setAuthUserId(data.session?.user.id ?? null);
-      setReady(true);
+      const sessionUserId = data.session?.user.id ?? null;
+      setAuthUserId(sessionUserId);
+      setAuthInitialized(true);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         setAuthUserId(session?.user.id ?? null);
+        setAuthInitialized(true);
       }
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
@@ -275,10 +278,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Carrega perfil + empresas/usuários conforme o papel ---------- */
   const loadAll = useCallback(async (uid: string | null) => {
+    setReady(false);
     if (!uid) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
+      setReady(true);
       return;
     }
     // 1) Perfil do usuário logado
@@ -294,6 +299,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
+      setReady(true);
       return;
     }
     const me: SaaSUser = { ...resolvedMe.user, password: "", role: normalizeRole(resolvedMe.user.role) };
@@ -314,9 +320,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     }
     if (!companiesRes.error && !usersRes.error) updateLastSync();
     tick();
+    setReady(true);
   }, [tick, updateLastSync]);
 
-  useEffect(() => { void loadAll(authUserId); }, [authUserId, loadAll]);
+  useEffect(() => {
+    if (!authInitialized) return;
+    void loadAll(authUserId);
+  }, [authInitialized, authUserId, loadAll]);
 
   const refresh = useCallback(async () => { await loadAll(authUserId); }, [authUserId, loadAll]);
 
