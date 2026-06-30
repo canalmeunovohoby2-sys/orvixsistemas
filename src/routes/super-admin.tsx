@@ -216,7 +216,7 @@ function DashboardTab() {
   // ─────────────────────────────────────────────────────────────────
   const validSales = SALES.filter((s) => s.status === "concluida");
   const gmvTotal = validSales.reduce((a, s) => a + s.total, 0);
-  const lucroTotal = validSales.reduce((a, s) => a + (s.total - s.cost), 0);
+  const lucroTotal = validSales.reduce((a, s) => a + (s.total - (s.cost ?? 0)), 0);
   const empresasComVenda = new Set(validSales.map((s) => s.company_id)).size;
 
   useEffect(() => {
