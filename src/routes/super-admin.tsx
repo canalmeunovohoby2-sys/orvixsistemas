@@ -121,11 +121,20 @@ function SuperAdminPage() {
         <div className="h-16 flex items-center gap-3 px-4 lg:px-6">
           <Logo height={32} priority />
           <div className="h-8 w-px bg-border mx-1 hidden sm:block" />
-          <div className="min-w-0 hidden sm:flex items-center gap-2">
+          <div className="min-w-0 hidden sm:flex items-center gap-3">
             <Crown className="w-4 h-4 text-amber-500 shrink-0" />
             <div className="min-w-0">
               <p className="font-semibold text-sm leading-tight truncate">Painel Master</p>
               <p className="text-[11px] text-muted-foreground truncate">Plataforma · {user?.name}</p>
+            </div>
+            <div className="h-8 w-px bg-border mx-1" />
+            <div className="flex items-center gap-2.5">
+              <span className="relative inline-flex h-3 w-3 shrink-0" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75 animate-ping" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.85)]" />
+              </span>
+              <span className="text-xl md:text-2xl font-bold tracking-tight">Tiago Admin</span>
+              <span className="sr-only">Sistema ativo · monitoramento em tempo real</span>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -204,46 +213,20 @@ function DashboardTab() {
   const inadimplencia = cobrancaBase > 0 ? ((pendentes + bloqueadas) / cobrancaBase) * 100 : 0;
 
   // ─────────────────────────────────────────────────────────────────
-  // CONSOLIDAÇÃO DE VENDAS (GMV) — todas as empresas (Super Admin)
-  // O Super Admin NÃO aplica filtro por company_id; soma o array global.
-  // ATENÇÃO ARQUITETURAL: hoje as vendas vivem em memória (SALES) e no
-  // localStorage de cada tenant (orvix_pdv_shifts_history_${cid}). Ou
-  // seja, este painel só vê o que está carregado nesta sessão. Para
-  // consolidação real cross-tenant é preciso persistir vendas no
-  // Supabase (tabela `sales`) — feito isso, basta trocar este reduce
-  // por uma query agregando por company_id sem filtro de usuário.
+  // RECEITA DO SAAS — apenas assinaturas (planos contratados).
+  // NÃO somamos a tabela `sales` (PDV dos clientes): o dinheiro deles
+  // não é receita do SaaS. Aqui consolidamos exclusivamente o valor
+  // dos planos ativos de cada company, lido do banco via useSaaS().
   // ─────────────────────────────────────────────────────────────────
-  // Agregação consolidada vinda do Supabase (tabela `sales`, sem filtro por company_id).
-  const [salesAgg, setSalesAgg] = useState<{ gmv: number; profit: number; salesCount: number; companiesWithSales: number } | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await getConsolidatedSalesMetrics();
-        if (!cancelled) setSalesAgg(r);
-        // eslint-disable-next-line no-console
-        console.log("[SuperAdmin/Dashboard] Consolidação cross-tenant (Supabase)", {
-          fonteDados: "public.sales (SUM via RLS de super_admin)",
-          empresasCadastradas: companies.length,
-          ...r,
-        });
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("[SuperAdmin/Dashboard] Falha ao consolidar vendas:", e);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [companies.length]);
-  const gmvTotal = salesAgg?.gmv ?? 0;
-  const lucroTotal = salesAgg?.profit ?? 0;
-  const empresasComVenda = salesAgg?.companiesWithSales ?? 0;
-  const vendasConcluidas = salesAgg?.salesCount ?? 0;
+  const receitaAssinaturas = companies.reduce(
+    (a, c) => a + (c.status === "active" ? PLAN_PRICE[c.plan] : 0),
+    0,
+  );
 
   const KPI = [
+    { label: "Receita Consolidada (Assinaturas)", value: BRL(receitaAssinaturas), hint: `${ativas} plano(s) ativo(s) · soma dos planos contratados`, icon: TrendingUp, tone: "primary" as const },
     { label: "MRR (Receita Recorrente Mensal)", value: BRL(mrr), hint: `${ativas} empresa(s) ativa(s)`, icon: TrendingUp, tone: "primary" as const },
     { label: "ARR (Receita Anual Projetada)",  value: BRL(arr), hint: "MRR × 12 meses",                icon: TrendingUp, tone: "primary" as const },
-    { label: "GMV consolidado (todas)",        value: BRL(gmvTotal), hint: `${empresasComVenda} empresa(s) c/ venda · ${vendasConcluidas} venda(s)`, icon: TrendingUp, tone: "primary" as const },
-    { label: "Lucro consolidado (todas)",      value: BRL(lucroTotal), hint: "Soma de (total − custo) das vendas concluídas", icon: TrendingUp, tone: "primary" as const },
     { label: "Empresas na plataforma",         value: `${ativas}/${total}`, hint: `Ativas de ${total} cadastradas`, icon: Building2, tone: "neutral" as const },
     { label: "Taxa de inadimplência",          value: `${inadimplencia.toFixed(1)}%`, hint: `${pendentes + bloqueadas} em atraso`, icon: AlertTriangle, tone: inadimplencia > 25 ? "danger" : "warn" as const },
   ];
