@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, KeyRound, X } from "lucide-react";
+import { Copy, Check, KeyRound } from "lucide-react";
 
 export function CredentialsModal({
   title = "Credenciais criadas com sucesso!",
@@ -7,12 +7,14 @@ export function CredentialsModal({
   email,
   password,
   onClose,
+  copyAndCloseLabel = "Copiar e Fechar",
 }: {
   title?: string;
   subtitle?: string;
   email: string;
   password: string;
   onClose: () => void;
+  copyAndCloseLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -25,6 +27,11 @@ export function CredentialsModal({
     } catch {
       /* clipboard indisponível */
     }
+  };
+
+  const copyAndClose = async () => {
+    await copy();
+    onClose();
   };
 
   return (
@@ -47,13 +54,6 @@ export function CredentialsModal({
             <h2 id="cred-modal-title" className="font-bold leading-tight">{title}</h2>
             {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Fechar"
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </header>
         <div className="px-6 py-5 space-y-3">
           <div className="rounded-md border border-primary/30 bg-primary/5 p-4 font-mono text-sm space-y-2 select-all">
@@ -76,13 +76,13 @@ export function CredentialsModal({
             className="h-10 px-4 inline-flex items-center gap-2 rounded-md border border-border bg-secondary text-sm font-semibold hover:bg-accent transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copiado!" : "Copiar Credenciais"}
+            {copied ? "Copiado!" : "Copiar"}
           </button>
           <button
-            onClick={onClose}
+            onClick={copyAndClose}
             className="h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
           >
-            Entendi
+            {copyAndCloseLabel}
           </button>
         </footer>
       </div>

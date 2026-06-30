@@ -512,7 +512,13 @@ function CompaniesTab() {
           email={credModal.email}
           password={credModal.password}
           subtitle={credModal.subtitle}
-          onClose={() => setCredModal(null)}
+          onClose={() => {
+            setCredModal(null);
+            // Garante que a nova empresa apareça na listagem sem cache de memória.
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            }
+          }}
         />
       )}
     </>
