@@ -155,6 +155,9 @@ export function SubscriptionExpiryGate() {
   useEffect(() => {
     if (!ready || isPrivileged || !company || !dueDateFetchComplete) return;
     console.log("[SubscriptionExpiryGate] Verificação de vencimento", {
+      company_id: company.id,
+      company_code: (company as any).code ?? null,
+      company_name: company.name,
       due_date_banco: liveDueDate,
       hoje_comparacao_utc: todayUtcComparisonDate(),
       deve_bloquear: expired,
