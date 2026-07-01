@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check, KeyRound } from "lucide-react";
 
 export function CredentialsModal({
@@ -17,6 +17,11 @@ export function CredentialsModal({
   closeLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("[CredentialsModal] montado / isOpen=true com credenciais:", { email, password });
+  }, [email, password]);
 
   const copy = async () => {
     const text = `Login: ${email}\nSenha: ${password}`;
