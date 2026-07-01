@@ -250,8 +250,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const tick = useCallback(() => force((t) => t + 1), []);
   const [impersonatedCompanyId, setImpersonatedCompanyId] = useState<string | null>(null);
   const bootstrappedRef = useRef(false);
+  const readyRef = useRef(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
+
+  useEffect(() => {
+    readyRef.current = ready;
+  }, [ready]);
 
   /* ---------- Hidratação inicial: garante super admin + sessão ---------- */
   useEffect(() => {
@@ -280,7 +285,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Carrega perfil + empresas/usuários conforme o papel ---------- */
   const loadAll = useCallback(async (uid: string | null) => {
-    setReady(false);
+    // Não derruba `ready` durante refetches manuais do Painel Master.
+    // Antes isso desmontava `CompaniesTab` enquanto o fluxo de criação ainda
+    // aguardava `createDemoAccess()`, descartando o estado que abre o CredentialsModal.
+    if (!readyRef.current) setReady(false);
     if (!uid) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
@@ -689,13 +697,34 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       ok: res.ok, companyId: res.companyId, ownerId: res.ownerId,
       ownerEmail: res.ownerEmail, tempPassword,
     });
-    await refresh();
-    const newCompany =
-      COMPANIES.find((c) => c.id === res.companyId) ??
-      ({ id: res.companyId!, fantasia: `Loja ORVIX #${seq}`, plan: "bronze" } as Company);
-    const newUser =
-      SAAS_USERS.find((u) => u.id === res.ownerId) ??
-      ({ id: res.ownerId!, email: res.ownerEmail!, name: `Admin Loja #${seq}`, role: "admin", company_id: res.companyId! } as unknown as SaaSUser);
+    const newCompany: Company =
+      COMPANIES.find((c) => c.id === res.companyId) ?? {
+        id: res.companyId!,
+        razaoSocial: `Cliente ORVIX ${seq} LTDA`,
+        fantasia: `Loja ORVIX #${seq}`,
+        cnpj: "00.000.000/0001-00",
+        plan: "bronze",
+        status: "active",
+        mrr: 0,
+        createdAt: new Date().toISOString().slice(0, 10),
+        dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+        onboardingPending: true,
+        isDemo: false,
+      };
+    const newUser: SaaSUser =
+      SAAS_USERS.find((u) => u.id === res.ownerId) ?? {
+        id: res.ownerId!,
+        email: res.ownerEmail!,
+        name: `Admin Loja #${seq}`,
+        role: "admin",
+        companyId: res.companyId!,
+        password: "",
+        isTemporaryPassword: true,
+      };
+
+    if (!COMPANIES.some((c) => c.id === newCompany.id)) COMPANIES.push(newCompany);
+    if (!SAAS_USERS.some((u) => u.id === newUser.id)) SAAS_USERS.push(newUser);
+    tick();
     logEvent({
       kind: "SETTINGS_UPDATE", company_id: res.companyId, companyName: newCompany?.fantasia ?? res.companyId,
       user: realUser?.name ?? "Sistema",
@@ -712,8 +741,9 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const result = { ok: true as const, user: newUser, company: newCompany, email: newUser.email, password: tempPassword };
     // eslint-disable-next-line no-console
     console.log("[createDemoAccess] Retornando ao caller:", { email: newUser.email, password: tempPassword });
+    void refresh();
     return result;
-  }, [realUser, refresh]);
+  }, [realUser, refresh, tick]);
 
   /* ---------- Webhook Mercado Pago ---------- */
   const processWebhookPayment = useCallback(

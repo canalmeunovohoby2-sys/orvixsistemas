@@ -502,7 +502,6 @@ function CompaniesTab() {
                               const r = await deleteCompany(c.id);
                               if (r.ok) {
                                 await refresh();
-                                toast.success("Empresa excluída com sucesso");
                               } else {
                                 toast.error(r.reason ?? "Não foi possível remover a empresa.");
                               }
