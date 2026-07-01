@@ -684,9 +684,18 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       },
     });
     if (!res.ok) return { ok: false, reason: res.reason };
+    // eslint-disable-next-line no-console
+    console.log("[createDemoAccess] Supabase retornou:", {
+      ok: res.ok, companyId: res.companyId, ownerId: res.ownerId,
+      ownerEmail: res.ownerEmail, tempPassword,
+    });
     await refresh();
-    const newCompany = COMPANIES.find((c) => c.id === res.companyId);
-    const newUser = SAAS_USERS.find((u) => u.id === res.ownerId);
+    const newCompany =
+      COMPANIES.find((c) => c.id === res.companyId) ??
+      ({ id: res.companyId!, fantasia: `Loja ORVIX #${seq}`, plan: "bronze" } as Company);
+    const newUser =
+      SAAS_USERS.find((u) => u.id === res.ownerId) ??
+      ({ id: res.ownerId!, email: res.ownerEmail!, name: `Admin Loja #${seq}`, role: "admin", company_id: res.companyId! } as unknown as SaaSUser);
     logEvent({
       kind: "SETTINGS_UPDATE", company_id: res.companyId, companyName: newCompany?.fantasia ?? res.companyId,
       user: realUser?.name ?? "Sistema",
@@ -700,7 +709,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         origin: "Simulação", companyId: newCompany.id, cnpj: newCompany.cnpj,
       });
     }
-    return { ok: true, user: newUser, company: newCompany, password: tempPassword };
+    const result = { ok: true as const, user: newUser, company: newCompany, password: tempPassword };
+    // eslint-disable-next-line no-console
+    console.log("[createDemoAccess] Retornando ao caller:", { email: newUser.email, password: tempPassword });
+    return result;
   }, [realUser, refresh]);
 
   /* ---------- Webhook Mercado Pago ---------- */
