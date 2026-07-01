@@ -200,7 +200,7 @@ type SaaSCtx = {
     data: { fantasia: string; cnpj: string; phone: string; segment: string },
   ) => Promise<{ ok: boolean; reason?: string }>;
 
-  createDemoAccess: () => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; company?: Company; password?: string }>;
+  createDemoAccess: () => Promise<{ ok: boolean; reason?: string; user?: SaaSUser; company?: Company; email?: string; password?: string }>;
   processWebhookPayment: (ev: {
     id: string; externalId: string;
     type: "payment" | "subscription" | "unknown";
@@ -709,7 +709,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         origin: "Simulação", companyId: newCompany.id, cnpj: newCompany.cnpj,
       });
     }
-    const result = { ok: true as const, user: newUser, company: newCompany, password: tempPassword };
+    const result = { ok: true as const, user: newUser, company: newCompany, email: newUser.email, password: tempPassword };
     // eslint-disable-next-line no-console
     console.log("[createDemoAccess] Retornando ao caller:", { email: newUser.email, password: tempPassword });
     return result;
