@@ -334,16 +334,23 @@ function CompaniesTab() {
         <button
           onClick={async () => {
             const res = await createDemoAccess();
-            if (!res.ok || !res.user || !res.company) {
+            // eslint-disable-next-line no-console
+            console.log("[super-admin] createDemoAccess result:", res);
+            if (!res.ok) {
               toast.error(res.reason ?? "Não foi possível gerar o acesso.");
               return;
             }
+            const email = res.user?.email ?? "";
+            const password = res.password ?? "";
+            if (!email || !password) {
+              toast.error("Empresa criada, mas credenciais não retornaram. Verifique o console.");
+              return;
+            }
             setCredModal({
-              email: res.user.email,
-              password: res.password ?? "",
-              subtitle: `Cliente fictício para ${res.company.fantasia}`,
+              email,
+              password,
+              subtitle: `Cliente fictício para ${res.company?.fantasia ?? "nova empresa"}`,
             });
-            toast.success(`✅ Cliente fictício criado para ${res.company.fantasia}.`);
           }}
           className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
           title="Cria a empresa de testes e exibe as credenciais imediatamente na tela"
