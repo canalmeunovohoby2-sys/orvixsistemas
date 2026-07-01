@@ -318,9 +318,10 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany, refresh } = useSaaS();
   const navigate = useNavigate();
-  const [credModal, setCredModal] = useState<{ email: string; password: string; subtitle: string } | null>(null);
+  const [tempCredentials, setTempCredentials] = useState<{ email: string; password: string; subtitle: string } | null>(null);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
   const PLAN_OPTS: Plan[] = ["bronze", "prata", "ouro"];
 
@@ -340,17 +341,17 @@ function CompaniesTab() {
               toast.error(res.reason ?? "Não foi possível gerar o acesso.");
               return;
             }
-            const email = res.user?.email ?? "";
-            const password = res.password ?? "";
+            const { email = "", password = "" } = res;
             if (!email || !password) {
               toast.error("Empresa criada, mas credenciais não retornaram. Verifique o console.");
               return;
             }
-            setCredModal({
+            setTempCredentials({
               email,
               password,
               subtitle: `Cliente fictício para ${res.company?.fantasia ?? "nova empresa"}`,
             });
+            setIsCredentialsModalOpen(true);
           }}
           className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
           title="Cria a empresa de testes e exibe as credenciais imediatamente na tela"
@@ -496,7 +497,7 @@ function CompaniesTab() {
                           <AlertDialogAction
                             onClick={async () => {
                               const r = await deleteCompany(c.id);
-                              if (r.ok) toast.success(`${c.fantasia} foi removida da plataforma.`);
+                              if (r.ok) await refresh();
                               else toast.error(r.reason ?? "Não foi possível remover a empresa.");
                             }}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -514,17 +515,14 @@ function CompaniesTab() {
         </div>
       </div>
 
-      {credModal && (
+      {isCredentialsModalOpen && tempCredentials && (
         <CredentialsModal
-          email={credModal.email}
-          password={credModal.password}
-          subtitle={credModal.subtitle}
+          email={tempCredentials.email}
+          password={tempCredentials.password}
+          subtitle={tempCredentials.subtitle}
           onClose={() => {
-            setCredModal(null);
-            // Garante que a nova empresa apareça na listagem sem cache de memória.
-            if (typeof window !== "undefined") {
-              window.location.reload();
-            }
+            setIsCredentialsModalOpen(false);
+            setTempCredentials(null);
           }}
         />
       )}
