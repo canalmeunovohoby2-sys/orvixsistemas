@@ -7,14 +7,14 @@ export function CredentialsModal({
   email,
   password,
   onClose,
-  copyAndCloseLabel = "Copiar e Fechar",
+  closeLabel = "Ir para o Dashboard",
 }: {
   title?: string;
   subtitle?: string;
   email: string;
   password: string;
   onClose: () => void;
-  copyAndCloseLabel?: string;
+  closeLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -29,18 +29,12 @@ export function CredentialsModal({
     }
   };
 
-  const copyAndClose = async () => {
-    await copy();
-    onClose();
-  };
-
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="cred-modal-title"
       className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4"
-      onClick={onClose}
     >
       <div
         className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
@@ -70,19 +64,19 @@ export function CredentialsModal({
             Anote ou copie agora. Estas credenciais já estão gravadas no banco e funcionam imediatamente na tela de login.
           </p>
         </div>
-        <footer className="px-6 pb-6 flex items-center justify-end gap-2">
+        <footer className="px-6 pb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
           <button
             onClick={copy}
-            className="h-10 px-4 inline-flex items-center gap-2 rounded-md border border-border bg-secondary text-sm font-semibold hover:bg-accent transition-colors"
+            className="h-11 px-4 inline-flex items-center justify-center gap-2 rounded-md border border-border bg-secondary text-sm font-semibold hover:bg-accent transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copiado!" : "Copiar"}
+            {copied ? "Copiado!" : "Copiar Credenciais"}
           </button>
           <button
-            onClick={copyAndClose}
-            className="h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+            onClick={onClose}
+            className="h-11 px-4 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
           >
-            {copyAndCloseLabel}
+            {closeLabel}
           </button>
         </footer>
       </div>
