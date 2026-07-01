@@ -352,6 +352,8 @@ function CompaniesTab() {
               subtitle: `Cliente fictício para ${res.company?.fantasia ?? "nova empresa"}`,
             });
             setIsCredentialsModalOpen(true);
+            // eslint-disable-next-line no-console
+            console.log("[super-admin] Credenciais capturadas — modal forçado:", { email, password });
           }}
           className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow hover:bg-primary/90 transition-colors"
           title="Cria a empresa de testes e exibe as credenciais imediatamente na tela"
@@ -498,8 +500,12 @@ function CompaniesTab() {
                           <AlertDialogAction
                             onClick={async () => {
                               const r = await deleteCompany(c.id);
-                              if (r.ok) await refresh();
-                              else toast.error(r.reason ?? "Não foi possível remover a empresa.");
+                              if (r.ok) {
+                                await refresh();
+                                toast.success("Empresa excluída com sucesso");
+                              } else {
+                                toast.error(r.reason ?? "Não foi possível remover a empresa.");
+                              }
                             }}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
