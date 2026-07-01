@@ -38,6 +38,7 @@ import {
 import { XCircle } from "lucide-react";
 import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
+import { PeripheralsHelp } from "@/components/PeripheralsHelp";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
@@ -794,6 +795,7 @@ export function VendasPage() {
           </div>
         )}
         <PlanDaysLeftBadge compact />
+        <PeripheralsHelp />
         <FullscreenToggle />
         {shift ? (
           <button
