@@ -250,8 +250,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const tick = useCallback(() => force((t) => t + 1), []);
   const [impersonatedCompanyId, setImpersonatedCompanyId] = useState<string | null>(null);
   const bootstrappedRef = useRef(false);
+  const readyRef = useRef(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
+
+  useEffect(() => {
+    readyRef.current = ready;
+  }, [ready]);
 
   /* ---------- Hidratação inicial: garante super admin + sessão ---------- */
   useEffect(() => {
@@ -280,7 +285,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Carrega perfil + empresas/usuários conforme o papel ---------- */
   const loadAll = useCallback(async (uid: string | null) => {
-    setReady(false);
+    // Não derruba `ready` durante refetches manuais do Painel Master.
+    // Antes isso desmontava `CompaniesTab` enquanto o fluxo de criação ainda
+    // aguardava `createDemoAccess()`, descartando o estado que abre o CredentialsModal.
+    if (!readyRef.current) setReady(false);
     if (!uid) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
