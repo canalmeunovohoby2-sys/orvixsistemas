@@ -101,7 +101,9 @@ function LoginPage() {
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
             <div className="space-y-4">
               <div className="flex justify-center lg:justify-start">
-                <Logo height={84} priority />
+                <div className="animate-float">
+                  <Logo height={84} priority />
+                </div>
               </div>
               <h2 className="sr-only">Entrar na ORVIX SISTEMAS</h2>
               <p className="text-sm text-muted-foreground">
