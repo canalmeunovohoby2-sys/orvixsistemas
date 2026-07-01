@@ -179,12 +179,9 @@ html.theme-transitioning *::after {
 
 @keyframes float-logo {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
+  50%      { transform: translateY(-14px); }
 }
-.animate-float { animation: float-logo 4s ease-in-out infinite; will-change: transform; }
-@media (prefers-reduced-motion: reduce) {
-  .animate-float { animation: none; }
-}
+.animate-float { animation: float-logo 3s ease-in-out infinite; will-change: transform; display: inline-block; }
 
 a[href*="lovable.dev"], 
 iframe[src*="lovable.dev"],

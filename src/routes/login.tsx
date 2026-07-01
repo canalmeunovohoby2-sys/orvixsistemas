@@ -101,7 +101,10 @@ function LoginPage() {
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
             <div className="space-y-4">
               <div className="flex justify-center lg:justify-start">
-                <div className="animate-float">
+                <div
+                  className="animate-float"
+                  style={{ animation: "float-logo 3s ease-in-out infinite", display: "inline-block", willChange: "transform" }}
+                >
                   <Logo height={84} priority />
                 </div>
               </div>
