@@ -177,6 +177,15 @@ html.theme-transitioning *::after {
 }
 .animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
 
+@keyframes float-logo {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.animate-float { animation: float-logo 4s ease-in-out infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-float { animation: none; }
+}
+
 a[href*="lovable.dev"], 
 iframe[src*="lovable.dev"],
 div[style*="Edit with Lovable"],
