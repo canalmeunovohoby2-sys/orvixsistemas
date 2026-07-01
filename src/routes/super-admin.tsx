@@ -440,11 +440,12 @@ function CompaniesTab() {
                               const res = await inviteUser(c.id, "cashier");
                               if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
                               else if (res.user) {
-                                setCredModal({
+                                setTempCredentials({
                                   email: res.user.email,
                                   password: res.password ?? "",
                                   subtitle: `Novo usuário em ${c.fantasia}`,
                                 });
+                                setIsCredentialsModalOpen(true);
                               }
                             }}
                             className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-semibold hover:bg-accent transition-colors"
