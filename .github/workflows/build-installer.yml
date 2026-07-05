@@ -62,6 +62,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List every project file before artifact upload
+        if: always()
         shell: bash
         run: |
           echo "== pwd =="
@@ -72,6 +73,7 @@ jobs:
           ls -R
 
       - name: List build output
+        if: always()
         shell: pwsh
         run: |
           Write-Host "== working directory =="
