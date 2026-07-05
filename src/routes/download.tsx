@@ -137,9 +137,9 @@ function DownloadPage() {
           <TutorialStep n={1} icon={<Download className="w-5 h-5" />} title="Baixe o instalador">
             Clique em <strong>Baixar Instalador ORVIX Sistemas</strong> e aguarde o download terminar.
           </TutorialStep>
-          <TutorialStep n={2} icon={<Zap className="w-5 h-5" />} title="Execute o .exe">
-            Abra o arquivo baixado. O instalador cria automaticamente um atalho na área
-            de trabalho e no menu Iniciar.
+          <TutorialStep n={2} icon={<Zap className="w-5 h-5" />} title="Extraia e execute">
+            Descompacte o arquivo .zip em uma pasta (ex.: <code>C:\ORVIX</code>) e execute
+            o <strong>OrvixSistemas.exe</strong>. Fixe o atalho na barra de tarefas.
           </TutorialStep>
           <TutorialStep n={3} icon={<Monitor className="w-5 h-5" />} title="Abra o ORVIX Sistemas">
             Faça login com o mesmo e-mail e senha da Área do Cliente. A impressão
