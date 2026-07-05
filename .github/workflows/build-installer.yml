@@ -1,0 +1,66 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "electron/**"
+      - "electron-builder.yml"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build-installer.yml"
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build-windows:
+    name: Build OrvixSistemasSetup.exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer (NSIS)
+        run: npx electron-builder --win nsis --x64
+        env:
+          # Sem code signing por enquanto — descomente e configure secrets
+          # (CSC_LINK / CSC_KEY_PASSWORD) quando o certificado Authenticode
+          # for adquirido.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrvixSistemasSetup
+          path: dist-electron/OrvixSistemasSetup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload full build output (debug)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-electron-debug
+          path: dist-electron/
+          retention-days: 7
+
+      - name: Attach installer to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-electron/OrvixSistemasSetup.exe
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
