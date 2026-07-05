@@ -9,8 +9,9 @@ import logoDark from "@/assets/orvix-logo-dark.png.asset.json";
  * do Instalador ORVIX Sistemas para Windows. Não altera nenhuma regra de
  * negócio. Clique no botão dispara o download imediatamente.
  */
-const INSTALLER_URL = "/downloads/OrvixSistemas-Setup.exe";
-const INSTALLER_FILENAME = "OrvixSistemas-Setup.exe";
+const INSTALLER_URL =
+  "/__l5e/assets-v1/ef40e92f-569d-4917-9c9f-d6e319eae7e1/OrvixSistemas-Windows.zip";
+const INSTALLER_FILENAME = "OrvixSistemas-Windows.zip";
 
 export const Route = createFileRoute("/download")({
   head: () => ({
@@ -115,7 +116,7 @@ function DownloadPage() {
             >
               <Download className="w-5 h-5" />
               Baixar Instalador ORVIX Sistemas
-              <span className="ml-1 text-xs opacity-80">(.exe)</span>
+              <span className="ml-1 text-xs opacity-80">(.zip · Windows)</span>
             </a>
           </div>
 
@@ -123,7 +124,7 @@ function DownloadPage() {
             <Monitor className="w-3 h-3" />
             {isWindows === false
               ? "Disponível apenas para Windows 10 ou superior."
-              : "Requisitos: Windows 10 ou superior · 200 MB · conexão com a internet."}
+              : "Requisitos: Windows 10/11 · ~150 MB · extraia o .zip e execute OrvixSistemas.exe."}
           </p>
         </div>
       </section>
@@ -136,9 +137,9 @@ function DownloadPage() {
           <TutorialStep n={1} icon={<Download className="w-5 h-5" />} title="Baixe o instalador">
             Clique em <strong>Baixar Instalador ORVIX Sistemas</strong> e aguarde o download terminar.
           </TutorialStep>
-          <TutorialStep n={2} icon={<Zap className="w-5 h-5" />} title="Execute o .exe">
-            Abra o arquivo baixado. O instalador cria automaticamente um atalho na área
-            de trabalho e no menu Iniciar.
+          <TutorialStep n={2} icon={<Zap className="w-5 h-5" />} title="Extraia e execute">
+            Descompacte o arquivo .zip em uma pasta (ex.: <code>C:\ORVIX</code>) e execute
+            o <strong>OrvixSistemas.exe</strong>. Fixe o atalho na barra de tarefas.
           </TutorialStep>
           <TutorialStep n={3} icon={<Monitor className="w-5 h-5" />} title="Abra o ORVIX Sistemas">
             Faça login com o mesmo e-mail e senha da Área do Cliente. A impressão
