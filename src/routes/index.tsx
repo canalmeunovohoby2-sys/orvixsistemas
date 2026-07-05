@@ -82,9 +82,82 @@ function Reveal({
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-white font-sans antialiased overflow-x-hidden orvix-root">
+    <div className="min-h-screen text-white font-sans antialiased overflow-x-hidden orvix-root">
       <style>{`
-        .orvix-root { background-color: #000; }
+        .orvix-root {
+          background-color: #0a0a0a;
+          background-image:
+            radial-gradient(1200px 700px at 15% -10%, rgba(133,4,5,0.10), transparent 60%),
+            radial-gradient(900px 600px at 100% 20%, rgba(255,255,255,0.03), transparent 60%),
+            radial-gradient(1000px 800px at 50% 120%, rgba(133,4,5,0.08), transparent 65%),
+            linear-gradient(180deg, #070707 0%, #0a0a0a 40%, #050505 100%);
+          background-attachment: fixed;
+        }
+        .orvix-mesh-a {
+          background: radial-gradient(45% 45% at 30% 40%, rgba(133,4,5,0.16) 0%, rgba(133,4,5,0.04) 45%, rgba(0,0,0,0) 75%);
+          filter: blur(20px);
+        }
+        .orvix-mesh-b {
+          background: radial-gradient(45% 45% at 70% 60%, rgba(255,90,91,0.10) 0%, rgba(255,255,255,0.02) 45%, rgba(0,0,0,0) 75%);
+          filter: blur(24px);
+        }
+        .orvix-title-gradient {
+          background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 40%, #c9c9c9 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .orvix-card {
+          border: 1px solid #1f1f1f;
+          background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.012) 100%);
+          backdrop-filter: blur(10px);
+          transition: border-color 400ms ease, box-shadow 400ms ease, transform 400ms ease, background-color 400ms ease;
+        }
+        .orvix-card:hover {
+          border-color: rgba(133,4,5,0.55);
+          box-shadow: 0 0 60px -15px rgba(133,4,5,0.55), inset 0 1px 0 0 rgba(255,255,255,0.04);
+        }
+        .orvix-icon-halo {
+          position: relative;
+          isolation: isolate;
+        }
+        .orvix-icon-halo::before {
+          content: "";
+          position: absolute;
+          inset: -40%;
+          background: radial-gradient(50% 50% at 50% 50%, rgba(255,90,91,0.35) 0%, rgba(133,4,5,0.15) 40%, transparent 70%);
+          filter: blur(10px);
+          z-index: -1;
+          opacity: 0.75;
+          transition: opacity 300ms ease;
+        }
+        .group:hover .orvix-icon-halo::before { opacity: 1; }
+        .orvix-btn-primary {
+          background: #850405;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 18px 45px -18px rgba(133,4,5,0.7);
+          transition: box-shadow 350ms ease, transform 350ms ease, background-color 350ms ease;
+        }
+        .orvix-btn-primary:hover {
+          background: #9a0507;
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,0.08),
+            0 0 40px -6px rgba(133,4,5,0.85),
+            0 25px 70px -12px rgba(133,4,5,0.95);
+          transform: translateY(-1px) scale(1.02);
+        }
+        .orvix-btn-ghost {
+          color: #e5e5e5;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: transparent;
+          transition: color 300ms ease, border-color 300ms ease, background-color 300ms ease;
+        }
+        .orvix-btn-ghost:hover {
+          color: #ffffff;
+          border-color: rgba(255,255,255,0.20);
+          background: rgba(255,255,255,0.03);
+        }
+        .orvix-body { color: #e5e5e5; line-height: 1.75; }
+        .orvix-muted { color: #a3a3a3; line-height: 1.7; }
         .orvix-reveal {
           opacity: 0;
           transform: translateY(24px);
@@ -93,10 +166,10 @@ function LandingPage() {
         }
         .orvix-revealed { opacity: 1; transform: translateY(0); }
         .orvix-glow-radial {
-          background: radial-gradient(60% 60% at 50% 0%, rgba(133,4,5,0.35) 0%, rgba(133,4,5,0.08) 35%, rgba(0,0,0,0) 70%);
+          background: radial-gradient(60% 60% at 50% 0%, rgba(133,4,5,0.28) 0%, rgba(133,4,5,0.06) 35%, rgba(0,0,0,0) 70%);
         }
         .orvix-glow-soft {
-          background: radial-gradient(50% 50% at 50% 50%, rgba(133,4,5,0.18) 0%, rgba(0,0,0,0) 70%);
+          background: radial-gradient(50% 50% at 50% 50%, rgba(133,4,5,0.14) 0%, rgba(0,0,0,0) 70%);
         }
         .orvix-grid-bg {
           background-image:
