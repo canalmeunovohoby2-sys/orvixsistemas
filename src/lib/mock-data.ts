@@ -12,6 +12,13 @@ export const UNITS: { value: Unit; label: string; fractional: boolean }[] = [
 export const isFractional = (u: Unit) => u !== "un";
 
 /**
+ * ID interno exclusivo para dados comerciais de demonstração.
+ * Nunca use um ID no padrão EMP### aqui: empresas reais são geradas nessa sequência
+ * e uma empresa real EMP001 não pode herdar produtos/vendas/financeiro fictícios.
+ */
+export const DEMO_SEED_COMPANY_ID = "ORVIX_DEMO_SEED";
+
+/**
  * IDs de empresas "demo" — as únicas que carregam dados fictícios pré-povoados
  * (vendas, produtos, gráficos, KPIs). Empresas criadas a partir de cadastros
  * reais começam zeradas para que o lojista veja apenas os próprios dados.
@@ -19,10 +26,10 @@ export const isFractional = (u: Unit) => u !== "un";
  * Esta lista é sincronizada em tempo de execução pelo `SaaSProvider`
  * (src/lib/saas-context.tsx) a partir da coluna `companies.is_demo` no
  * Supabase via `setDemoCompanyIds(...)`. O valor inicial garante que o
- * tenant histórico (EMP001) continue exibindo o conteúdo de demonstração
+ * tenant interno de demonstração continue exibindo o conteúdo pré-povoado
  * mesmo antes da primeira sincronização.
  */
-export const DEMO_COMPANY_IDS: Set<string> = new Set<string>(["EMP001"]);
+export const DEMO_COMPANY_IDS: Set<string> = new Set<string>([DEMO_SEED_COMPANY_ID]);
 export const isDemoCompany = (id: string | null | undefined): boolean =>
   !!id && DEMO_COMPANY_IDS.has(id);
 
@@ -34,6 +41,7 @@ export const isDemoCompany = (id: string | null | undefined): boolean =>
  */
 export function setDemoCompanyIds(ids: Iterable<string>): void {
   DEMO_COMPANY_IDS.clear();
+  DEMO_COMPANY_IDS.add(DEMO_SEED_COMPANY_ID);
   for (const id of ids) DEMO_COMPANY_IDS.add(id);
   __emit();
 }
@@ -163,8 +171,8 @@ export function markLogReverted(logId: string) {
 (function seedLogs() {
   const base = Date.now();
   const seed: Array<Omit<SystemLog, "id" | "date"> & { offset: number }> = [
-    { offset: 1000 * 60 * 60 * 5,  kind: "LOGIN_OK",            company_id: "EMP001", companyName: "Mercadinho Orvix", user: "Ana Mendes",   action: "Login realizado com sucesso." },
-    { offset: 1000 * 60 * 60 * 4,  kind: "SALE_OK",             company_id: "EMP001", companyName: "Mercadinho Orvix", user: "Bruno Caixa",  action: "Venda V20012 concluída (R$ 184,90)." },
+    { offset: 1000 * 60 * 60 * 5,  kind: "LOGIN_OK",            company_id: DEMO_SEED_COMPANY_ID, companyName: "Mercadinho Orvix", user: "Ana Mendes",   action: "Login realizado com sucesso." },
+    { offset: 1000 * 60 * 60 * 4,  kind: "SALE_OK",             company_id: DEMO_SEED_COMPANY_ID, companyName: "Mercadinho Orvix", user: "Bruno Caixa",  action: "Venda V20012 concluída (R$ 184,90)." },
     { offset: 1000 * 60 * 60 * 3,  kind: "LOGIN_FAIL",          company_id: "EMP002", companyName: "Trigo Dourado",    user: "carla@trigo.com.br", action: "Tentativa de login com senha incorreta." },
     { offset: 1000 * 60 * 60 * 2,  kind: "SUBSCRIPTION_CHANGE", company_id: "EMP003", companyName: "Boi Bom",          user: "Sistema",      action: "Assinatura alterada para BLOQUEADA por inadimplência." },
     { offset: 1000 * 60 * 30,      kind: "LOGIN_OK",            company_id: null,     companyName: "Plataforma",       user: "Tiago (Orvix Sistemas)",     action: "Super Admin acessou o painel master." },
@@ -192,7 +200,7 @@ export type SupportTicket = {
 };
 
 export const SUPPORT_TICKETS: SupportTicket[] = [
-  { id: "T1001", company_id: "EMP001", companyName: "Mercadinho Orvix", subject: "Impressora térmica não emite cupom",
+  { id: "T1001", company_id: DEMO_SEED_COMPANY_ID, companyName: "Mercadinho Orvix", subject: "Impressora térmica não emite cupom",
     message: "Após a última atualização, o PDV trava ao enviar para a impressora Bematech MP-4200.",
     priority: "alta",  status: "em_andamento", openedAt: new Date(Date.now() - 1000*60*60*8).toISOString(), requester: "Ana Mendes" },
   { id: "T1002", company_id: "EMP002", companyName: "Trigo Dourado", subject: "Importação de planilha de produtos",
@@ -419,7 +427,7 @@ export const PRODUCTS: Product[] = PROD_SEEDS.map(({ name, unit, category }, i) 
   const rawMin = num(10, 40) + (isFractional(unit) ? +r().toFixed(2) : 0);
   return {
     id: `P${String(i + 1).padStart(4, "0")}`,
-    company_id: "EMP001",
+    company_id: DEMO_SEED_COMPANY_ID,
     ean: String(7890000000000 + num(1000, 999999)),
     name,
     category,
@@ -443,7 +451,7 @@ const SCAN_DEMO: { ean: string; name: string; unit: Unit; category: string; pric
 SCAN_DEMO.forEach((d, i) => {
   PRODUCTS.push({
     id: `PScan${i + 1}`,
-    company_id: "EMP001",
+    company_id: DEMO_SEED_COMPANY_ID,
     ean: d.ean,
     name: d.name,
     category: d.category,
@@ -465,7 +473,7 @@ const CUST_NAMES = [
 
 export const CUSTOMERS: Person[] = CUST_NAMES.map((name, i) => ({
   id: `C${String(i + 1).padStart(3, "0")}`,
-  company_id: "EMP001",
+  company_id: DEMO_SEED_COMPANY_ID,
   name,
   doc: name.includes("LTDA") || name.includes("ME") || name.includes("Construções") || name.includes("Materiais") || name.includes("Engenharia") || name.includes("Reformas")
     ? `${num(10, 99)}.${num(100, 999)}.${num(100, 999)}/0001-${num(10, 99)}`
@@ -479,7 +487,7 @@ export const CUSTOMERS: Person[] = CUST_NAMES.map((name, i) => ({
 
 export const SUPPLIERS: Person[] = SUPS.map((name, i) => ({
   id: `F${String(i + 1).padStart(3, "0")}`,
-  company_id: "EMP001",
+  company_id: DEMO_SEED_COMPANY_ID,
   name,
   doc: `${num(10, 99)}.${num(100, 999)}.${num(100, 999)}/0001-${num(10, 99)}`,
   email: `comercial@${name.toLowerCase().replace(/[^a-z]/g, "")}.com.br`,
@@ -501,7 +509,7 @@ export const SALES: Sale[] = Array.from({ length: 28 }, (_, i) => {
   const total = +(num(80, 4500) + r()).toFixed(2);
   return {
     id: `V${String(20240 + i).padStart(5, "0")}`,
-    company_id: "EMP001",
+    company_id: DEMO_SEED_COMPANY_ID,
     date: d.toISOString(),
     customer: pick(CUST_NAMES),
     total,
@@ -518,7 +526,7 @@ export const MOVEMENTS: Movement[] = Array.from({ length: 24 }, (_, i) => {
   d.setDate(d.getDate() - i);
   return {
     id: `M${String(5000 + i).padStart(5, "0")}`,
-    company_id: "EMP001",
+    company_id: DEMO_SEED_COMPANY_ID,
     date: d.toISOString(),
     product: pick(PROD_SEEDS).name,
     type: pick(["Entrada", "Saída", "Ajuste"] as const),
@@ -602,7 +610,7 @@ export const FINANCIAL_RECORDS: FinancialRecord[] = (() => {
     const d = new Date(now); d.setDate(d.getDate() + p.daysFromNow);
     const rec: FinancialRecord = {
       id: `FR${seq++}`,
-      company_id: "EMP001",
+      company_id: DEMO_SEED_COMPANY_ID,
       type: "PAGAR",
       description: p.desc,
       amount: p.amount,
@@ -618,7 +626,7 @@ export const FINANCIAL_RECORDS: FinancialRecord[] = (() => {
     const d = new Date(now); d.setDate(d.getDate() + (i * 7 - 4));
     const rec: FinancialRecord = {
       id: `FR${seq++}`,
-      company_id: "EMP001",
+      company_id: DEMO_SEED_COMPANY_ID,
       type: "RECEBER",
       description: `Crediário — ${c.name}`,
       amount: +(380 + i * 220).toFixed(2),
@@ -741,7 +749,7 @@ export function registerSale(input: {
 }): Sale {
   const sale: Sale = {
     id: `V${String(__saleSeq++).padStart(5, "0")}`,
-    company_id: input.company_id ?? "EMP001",
+    company_id: input.company_id ?? DEMO_SEED_COMPANY_ID,
     date: new Date().toISOString(),
     customer: input.customer || "Consumidor",
     total: +input.total.toFixed(2),
@@ -1240,7 +1248,7 @@ export function addProduct(input: {
 }): Product {
   const p: Product = {
     id: `P${String(__prodSeq++).padStart(4, "0")}`,
-    company_id: input.company_id ?? "EMP001",
+    company_id: input.company_id ?? DEMO_SEED_COMPANY_ID,
     ean: input.ean,
     name: input.brand ? `${input.name}${input.name.toLowerCase().includes(input.brand.toLowerCase()) ? "" : ` — ${input.brand}`}` : input.name,
     category: input.category,
