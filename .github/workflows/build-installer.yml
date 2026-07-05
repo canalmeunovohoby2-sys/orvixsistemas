@@ -31,8 +31,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build web app with full logs
+        shell: pwsh
+        run: |
+          Write-Host "== npm run build =="
+          npm run build 2>&1 | Tee-Object -FilePath npm-build.log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "npm run build failed with exit code $LASTEXITCODE"
+            Write-Host "== npm-build.log =="
+            Get-Content npm-build.log -Raw
+            exit $LASTEXITCODE
+          }
+
       - name: Build Windows installer (NSIS)
-        run: npx electron-builder --win nsis --x64
+        shell: pwsh
+        run: |
+          Write-Host "== npm run electron:build =="
+          npm run electron:build -- --publish never 2>&1 | Tee-Object -FilePath electron-builder.log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "electron-builder failed with exit code $LASTEXITCODE"
+            Write-Host "== electron-builder.log =="
+            Get-Content electron-builder.log -Raw
+            exit $LASTEXITCODE
+          }
         env:
           # Sem code signing por enquanto — descomente e configure secrets
           # (CSC_LINK / CSC_KEY_PASSWORD) quando o certificado Authenticode
@@ -40,7 +61,19 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: List every project file before artifact upload
+        if: always()
+        shell: bash
+        run: |
+          echo "== pwd =="
+          pwd
+          echo "== ls -la =="
+          ls -la
+          echo "== ls -R =="
+          ls -R
+
       - name: List build output
+        if: always()
         shell: pwsh
         run: |
           Write-Host "== working directory =="
@@ -73,6 +106,8 @@ jobs:
         with:
           name: dist-electron-debug
           path: |
+            npm-build.log
+            electron-builder.log
             dist-electron/
             dist/
             build/
