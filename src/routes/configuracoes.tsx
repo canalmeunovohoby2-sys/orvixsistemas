@@ -104,6 +104,8 @@ function ConfiguracoesPage() {
 
       {cid && <LogoUploadSection cid={cid} />}
 
+      {cid && <PrinterSection cid={cid} />}
+
       <form onSubmit={save} className="grid gap-6 max-w-4xl">
         <section className="rounded-xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
