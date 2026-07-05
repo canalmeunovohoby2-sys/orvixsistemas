@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useSaaS } from "@/lib/saas-context";
 
@@ -9,6 +9,8 @@ import { useSaaS } from "@/lib/saas-context";
  */
 export function SubscriptionBanner() {
   const { user, company } = useSaaS();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname === "/") return null;
   if (!user || user.role === "super_admin") return null;
   if (!company || company.status !== "pending") return null;
 

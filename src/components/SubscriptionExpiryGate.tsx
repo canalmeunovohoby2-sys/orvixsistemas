@@ -193,6 +193,7 @@ export function SubscriptionExpiryGate() {
   const days = useMemo(() => daysUntil(effectiveDue), [effectiveDue]);
   const isPrivileged = !user || user.role === "super_admin" || isBypassed;
   const onAuthPage = pathname === "/login" || pathname === "/assinatura";
+  const onPublicLanding = pathname === "/";
 
   const expired = days !== null && days <= 0;
   const warning = days !== null && days >= 1 && days <= 3;
@@ -212,10 +213,11 @@ export function SubscriptionExpiryGate() {
   // Bloqueio total: data vencida → empurra para /assinatura.
   useEffect(() => {
     if (!ready || isPrivileged) return;
+    if (onPublicLanding) return;
     if (expired && pathname !== "/assinatura" && pathname !== "/login") {
       navigate({ to: "/assinatura" });
     }
-  }, [ready, isPrivileged, expired, pathname, navigate]);
+  }, [ready, isPrivileged, expired, pathname, navigate, onPublicLanding]);
 
   // Dialog dispensável uma vez por dia por empresa.
   const dismissKey = company && days !== null ? `orvix_expiry_dismissed_${company.id}_d${days}` : null;
@@ -227,6 +229,7 @@ export function SubscriptionExpiryGate() {
   }, [dismissKey]);
 
   if (!ready || isPrivileged || !company) return null;
+  if (onPublicLanding) return null;
 
   // (1) Vencido → AlertDialog total. Não renderiza fora de /assinatura porque o useEffect já redireciona,
   // mas mantemos a tela de bloqueio caso o redirecionamento ainda esteja em transição.
