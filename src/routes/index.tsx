@@ -82,9 +82,82 @@ function Reveal({
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-white font-sans antialiased overflow-x-hidden orvix-root">
+    <div className="min-h-screen text-white font-sans antialiased overflow-x-hidden orvix-root">
       <style>{`
-        .orvix-root { background-color: #000; }
+        .orvix-root {
+          background-color: #0a0a0a;
+          background-image:
+            radial-gradient(1200px 700px at 15% -10%, rgba(133,4,5,0.10), transparent 60%),
+            radial-gradient(900px 600px at 100% 20%, rgba(255,255,255,0.03), transparent 60%),
+            radial-gradient(1000px 800px at 50% 120%, rgba(133,4,5,0.08), transparent 65%),
+            linear-gradient(180deg, #070707 0%, #0a0a0a 40%, #050505 100%);
+          background-attachment: fixed;
+        }
+        .orvix-mesh-a {
+          background: radial-gradient(45% 45% at 30% 40%, rgba(133,4,5,0.16) 0%, rgba(133,4,5,0.04) 45%, rgba(0,0,0,0) 75%);
+          filter: blur(20px);
+        }
+        .orvix-mesh-b {
+          background: radial-gradient(45% 45% at 70% 60%, rgba(255,90,91,0.10) 0%, rgba(255,255,255,0.02) 45%, rgba(0,0,0,0) 75%);
+          filter: blur(24px);
+        }
+        .orvix-title-gradient {
+          background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 40%, #c9c9c9 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .orvix-card {
+          border: 1px solid #1f1f1f;
+          background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.012) 100%);
+          backdrop-filter: blur(10px);
+          transition: border-color 400ms ease, box-shadow 400ms ease, transform 400ms ease, background-color 400ms ease;
+        }
+        .orvix-card:hover {
+          border-color: rgba(133,4,5,0.55);
+          box-shadow: 0 0 60px -15px rgba(133,4,5,0.55), inset 0 1px 0 0 rgba(255,255,255,0.04);
+        }
+        .orvix-icon-halo {
+          position: relative;
+          isolation: isolate;
+        }
+        .orvix-icon-halo::before {
+          content: "";
+          position: absolute;
+          inset: -40%;
+          background: radial-gradient(50% 50% at 50% 50%, rgba(255,90,91,0.35) 0%, rgba(133,4,5,0.15) 40%, transparent 70%);
+          filter: blur(10px);
+          z-index: -1;
+          opacity: 0.75;
+          transition: opacity 300ms ease;
+        }
+        .group:hover .orvix-icon-halo::before { opacity: 1; }
+        .orvix-btn-primary {
+          background: #850405;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 18px 45px -18px rgba(133,4,5,0.7);
+          transition: box-shadow 350ms ease, transform 350ms ease, background-color 350ms ease;
+        }
+        .orvix-btn-primary:hover {
+          background: #9a0507;
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,0.08),
+            0 0 40px -6px rgba(133,4,5,0.85),
+            0 25px 70px -12px rgba(133,4,5,0.95);
+          transform: translateY(-1px) scale(1.02);
+        }
+        .orvix-btn-ghost {
+          color: #e5e5e5;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: transparent;
+          transition: color 300ms ease, border-color 300ms ease, background-color 300ms ease;
+        }
+        .orvix-btn-ghost:hover {
+          color: #ffffff;
+          border-color: rgba(255,255,255,0.20);
+          background: rgba(255,255,255,0.03);
+        }
+        .orvix-body { color: #e5e5e5; line-height: 1.75; }
+        .orvix-muted { color: #a3a3a3; line-height: 1.7; }
         .orvix-reveal {
           opacity: 0;
           transform: translateY(24px);
@@ -93,10 +166,10 @@ function LandingPage() {
         }
         .orvix-revealed { opacity: 1; transform: translateY(0); }
         .orvix-glow-radial {
-          background: radial-gradient(60% 60% at 50% 0%, rgba(133,4,5,0.35) 0%, rgba(133,4,5,0.08) 35%, rgba(0,0,0,0) 70%);
+          background: radial-gradient(60% 60% at 50% 0%, rgba(133,4,5,0.28) 0%, rgba(133,4,5,0.06) 35%, rgba(0,0,0,0) 70%);
         }
         .orvix-glow-soft {
-          background: radial-gradient(50% 50% at 50% 50%, rgba(133,4,5,0.18) 0%, rgba(0,0,0,0) 70%);
+          background: radial-gradient(50% 50% at 50% 50%, rgba(133,4,5,0.14) 0%, rgba(0,0,0,0) 70%);
         }
         .orvix-grid-bg {
           background-image:
@@ -130,7 +203,7 @@ function LandingPage() {
 
 function Header() {
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-black/70 backdrop-blur-md border-b border-white/10">
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#050505]/70 backdrop-blur-xl border-b border-[#1f1f1f]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center group">
           <img
@@ -178,7 +251,7 @@ function Hero() {
         </Reveal>
 
         <Reveal delay={80}>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] orvix-title-gradient">
             Controle o seu comércio com a{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-[#850405]">
               velocidade e precisão
@@ -188,7 +261,7 @@ function Hero() {
         </Reveal>
 
         <Reveal delay={160}>
-          <p className="mt-6 sm:mt-8 text-base sm:text-lg lg:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="mt-7 sm:mt-9 text-base sm:text-lg lg:text-xl orvix-body max-w-3xl mx-auto">
             Frente de Caixa (PDV) ultra-rápido, controle rigoroso de estoque, crediário
             inteligente e gestão financeira simplificada. O software de gestão estruturado
             para proteger sua margem e escalar seu lucro real.
@@ -196,17 +269,17 @@ function Hero() {
         </Reveal>
 
         <Reveal delay={240}>
-          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="#planos"
-              className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#850405] text-white font-semibold text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_20px_60px_-15px_rgba(133,4,5,0.7)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_25px_70px_-10px_rgba(133,4,5,0.9)] transition-all duration-300 hover:scale-[1.03]"
+              className="group orvix-btn-primary inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white font-semibold text-sm"
             >
               Ver planos e preços
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-white/15 text-white font-semibold text-sm hover:border-white/40 hover:bg-white/[0.04] transition-all duration-300 hover:scale-[1.03]"
+              className="orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-medium text-sm"
             >
               Acessar minha conta
             </Link>
@@ -219,7 +292,7 @@ function Hero() {
               aria-hidden
               className="absolute -inset-6 sm:-inset-10 rounded-[2rem] bg-gradient-to-br from-[#850405]/40 via-[#850405]/10 to-transparent blur-3xl opacity-70"
             />
-            <div className="relative aspect-video rounded-2xl border border-white/10 bg-[#0a0a0a] overflow-hidden shadow-[0_40px_120px_-20px_rgba(133,4,5,0.45),0_0_0_1px_rgba(255,255,255,0.04)]">
+            <div className="relative aspect-video rounded-2xl border border-[#1f1f1f] bg-[#0a0a0a] overflow-hidden shadow-[0_40px_120px_-20px_rgba(133,4,5,0.4),0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-[10px]">
               <div
                 aria-hidden
                 className="absolute inset-0 rounded-2xl pointer-events-none"
@@ -285,7 +358,9 @@ const FEATURES = [
 
 function Bento() {
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-32">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-36">
+      <div aria-hidden className="orvix-mesh-a absolute top-10 -left-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
+      <div aria-hidden className="orvix-mesh-b absolute bottom-10 -right-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
       <div
         aria-hidden
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] orvix-glow-soft pointer-events-none"
@@ -297,10 +372,10 @@ function Bento() {
             <p className="text-xs font-semibold tracking-[0.2em] text-[#850405] uppercase mb-4">
               A vitrine do produto
             </p>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.1]">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight orvix-title-gradient leading-[1.1]">
               Tudo que o seu comércio precisa, em uma plataforma só.
             </h2>
-            <p className="mt-5 text-slate-400 text-base sm:text-lg">
+            <p className="mt-6 orvix-body text-base sm:text-lg">
               Recursos pensados por quem opera no varejo. Sem firulas, sem complexidade desnecessária.
             </p>
           </div>
@@ -311,13 +386,13 @@ function Bento() {
             const Icon = f.icon;
             return (
               <Reveal key={f.title} delay={i * 90} className={f.span}>
-                <div className="group relative h-full rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-7 sm:p-8 overflow-hidden transition-all duration-500 hover:border-[#850405]/60 hover:shadow-[0_0_60px_-15px_rgba(133,4,5,0.6)] hover:-translate-y-1">
+                <div className="group orvix-card relative h-full rounded-2xl p-9 sm:p-10 overflow-hidden hover:-translate-y-1">
                   <div
                     aria-hidden
                     className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#850405]/0 group-hover:bg-[#850405]/20 blur-3xl transition-all duration-700"
                   />
                   <div className="relative flex flex-col h-full">
-                    <div className="w-11 h-11 rounded-xl bg-[#850405]/10 border border-[#850405]/30 flex items-center justify-center mb-5 group-hover:bg-[#850405]/20 group-hover:border-[#850405] transition-all duration-300">
+                    <div className="orvix-icon-halo w-12 h-12 rounded-xl bg-[#850405]/12 border border-[#850405]/35 flex items-center justify-center mb-6 group-hover:bg-[#850405]/22 group-hover:border-[#850405] transition-all duration-300">
                       <Icon className="w-5 h-5 text-[#ff5a5b]" strokeWidth={2} />
                     </div>
                     <h3
@@ -328,7 +403,7 @@ function Bento() {
                       {f.title}
                     </h3>
                     <p
-                      className={`mt-3 text-slate-400 leading-relaxed ${
+                      className={`mt-4 orvix-body ${
                         f.big ? "text-base max-w-md" : "text-sm"
                       }`}
                     >
@@ -393,11 +468,13 @@ const PLANS = [
 
 function Pricing() {
   return (
-    <section id="planos" className="relative px-5 sm:px-8 py-24 sm:py-32 border-t border-white/[0.05]">
+    <section id="planos" className="relative px-5 sm:px-8 py-28 sm:py-36 border-t border-[#141414]">
       <div
         aria-hidden
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] orvix-glow-radial pointer-events-none"
       />
+      <div aria-hidden className="orvix-mesh-a absolute top-1/3 -right-32 w-[560px] h-[560px] pointer-events-none rounded-full" />
+      <div aria-hidden className="orvix-mesh-b absolute bottom-0 -left-24 w-[480px] h-[480px] pointer-events-none rounded-full" />
 
       <div className="relative max-w-7xl mx-auto">
         <Reveal>
@@ -405,10 +482,10 @@ function Pricing() {
             <p className="text-xs font-semibold tracking-[0.2em] text-[#850405] uppercase mb-4">
               Planos e preços
             </p>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.1]">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight orvix-title-gradient leading-[1.1]">
               Escolha o plano certo para o tamanho do seu negócio.
             </h2>
-            <p className="mt-5 text-slate-400 text-base sm:text-lg">
+            <p className="mt-6 orvix-body text-base sm:text-lg">
               Sem fidelidade. Sem taxas escondidas. Cancele quando quiser.
             </p>
           </div>
@@ -418,10 +495,10 @@ function Pricing() {
           {PLANS.map((p, i) => (
             <Reveal key={p.name} delay={i * 100}>
               <div
-                className={`group relative h-full rounded-3xl p-7 sm:p-8 flex flex-col transition-all duration-500 hover:-translate-y-2 ${
+                className={`group relative h-full rounded-3xl p-9 sm:p-10 flex flex-col transition-all duration-500 hover:-translate-y-2 backdrop-blur-[10px] ${
                   p.featured
-                    ? "border border-[#850405] bg-gradient-to-b from-[#850405]/15 via-[#1a0203]/40 to-black shadow-[0_0_50px_-10px_rgba(133,4,5,0.6),inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-                    : "border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent hover:border-[#850405]/70 hover:shadow-[0_0_40px_-15px_rgba(133,4,5,0.5)]"
+                    ? "border border-[#850405] bg-gradient-to-b from-[#850405]/15 via-[#1a0203]/40 to-[#050505] shadow-[0_0_50px_-10px_rgba(133,4,5,0.55),inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+                    : "orvix-card"
                 }`}
               >
                 {p.featured && "badge" in p && p.badge && (
@@ -437,16 +514,16 @@ function Pricing() {
                   </div>
                   <div className="mt-5 flex items-baseline gap-1">
                     <span className="text-sm text-slate-400">R$</span>
-                    <span className="text-5xl font-bold text-white tracking-tight">{p.price}</span>
+                    <span className="text-5xl font-bold orvix-title-gradient tracking-tight">{p.price}</span>
                     <span className="text-sm text-slate-400">/mês</span>
                   </div>
                 </div>
 
                 <ul className="space-y-3.5 mb-8 flex-1">
                   {p.benefits.map((b) => (
-                    <li key={b} className="flex items-start gap-3 text-sm text-slate-300">
+                    <li key={b} className="flex items-start gap-3 text-sm text-[#e5e5e5]">
                       <span
-                        className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                        className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center orvix-icon-halo ${
                           p.featured ? "bg-[#850405]" : "bg-white/10"
                         }`}
                       >
@@ -461,10 +538,8 @@ function Pricing() {
                   href={p.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`block w-full text-center px-6 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 hover:scale-[1.03] ${
-                    p.featured
-                      ? "bg-[#850405] text-white shadow-[0_10px_40px_-10px_rgba(133,4,5,0.8)] hover:shadow-[0_15px_50px_-5px_rgba(133,4,5,1)]"
-                      : "border border-white/20 text-white bg-transparent hover:bg-white/5 hover:border-white/40"
+                  className={`block w-full text-center px-6 py-3.5 rounded-full font-semibold text-sm ${
+                    p.featured ? "orvix-btn-primary text-white" : "orvix-btn-ghost"
                   }`}
                 >
                   {p.cta}
@@ -480,23 +555,24 @@ function Pricing() {
 
 function Guarantee() {
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-28">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-32">
+      <div aria-hidden className="orvix-mesh-a absolute top-0 left-1/4 w-[420px] h-[420px] pointer-events-none rounded-full" />
       <div className="relative max-w-4xl mx-auto">
         <Reveal>
-          <div className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-transparent p-8 sm:p-12 overflow-hidden">
+          <div className="orvix-card relative rounded-3xl p-10 sm:p-14 overflow-hidden">
             <div
               aria-hidden
               className="absolute -top-32 -right-32 w-96 h-96 orvix-glow-soft pointer-events-none"
             />
             <div className="relative flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
-              <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#850405]/15 border border-[#850405]/40 flex items-center justify-center">
+              <div className="orvix-icon-halo flex-shrink-0 w-14 h-14 rounded-2xl bg-[#850405]/15 border border-[#850405]/40 flex items-center justify-center">
                 <ShieldCheck className="w-7 h-7 text-[#ff5a5b]" strokeWidth={1.75} />
               </div>
               <div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
+                <h3 className="text-2xl sm:text-3xl font-bold orvix-title-gradient tracking-tight leading-tight">
                   Acesso imediato e automatizado.
                 </h3>
-                <p className="mt-4 text-slate-400 text-base sm:text-lg leading-relaxed">
+                <p className="mt-5 orvix-body text-base sm:text-lg">
                   Assim que o Mercado Pago processar a sua assinatura, nosso sistema cria
                   a sua empresa instantaneamente e envia suas credenciais de acesso
                   temporárias direto para o seu e-mail cadastrado.{" "}
@@ -539,35 +615,36 @@ const FAQ_ITEMS = [
 function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-28">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-32">
       <div
         aria-hidden
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] orvix-glow-soft pointer-events-none opacity-60"
       />
+      <div aria-hidden className="orvix-mesh-b absolute top-10 -right-24 w-[420px] h-[420px] pointer-events-none rounded-full" />
       <div className="relative max-w-3xl mx-auto">
         <Reveal>
           <div className="text-center mb-12 sm:mb-16">
             <span className="inline-block text-xs font-medium tracking-[0.2em] uppercase text-[#ff5a5b]/80">
               FAQ
             </span>
-            <h2 className="mt-4 text-3xl sm:text-5xl font-bold text-white tracking-tight">
+            <h2 className="mt-4 text-3xl sm:text-5xl font-bold orvix-title-gradient tracking-tight">
               Perguntas frequentes
             </h2>
-            <p className="mt-4 text-slate-400 text-base sm:text-lg">
+            <p className="mt-5 orvix-body text-base sm:text-lg">
               Respostas diretas para você decidir com segurança.
             </p>
           </div>
         </Reveal>
 
         <Reveal>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+          <div className="rounded-2xl border border-[#1f1f1f] bg-white/[0.015] overflow-hidden backdrop-blur-[10px]">
             {FAQ_ITEMS.map((item, i) => {
               const isOpen = open === i;
               return (
                 <div
                   key={i}
                   className={
-                    "border-b border-white/[0.06] last:border-b-0 transition-colors " +
+                    "border-b border-[#1f1f1f] last:border-b-0 transition-colors " +
                     (isOpen ? "bg-white/[0.02]" : "")
                   }
                 >
@@ -575,7 +652,7 @@ function FAQ() {
                     type="button"
                     onClick={() => setOpen(isOpen ? null : i)}
                     aria-expanded={isOpen}
-                    className="w-full flex items-center justify-between gap-6 text-left px-5 sm:px-7 py-5 sm:py-6 group"
+                    className="w-full flex items-center justify-between gap-6 text-left px-6 sm:px-8 py-6 sm:py-7 group"
                   >
                     <span
                       className={
@@ -604,7 +681,7 @@ function FAQ() {
                     }}
                   >
                     <div className="overflow-hidden">
-                      <p className="px-5 sm:px-7 pb-6 pr-12 sm:pr-20 text-slate-400 text-sm sm:text-base leading-relaxed">
+                      <p className="px-6 sm:px-8 pb-7 pr-12 sm:pr-20 orvix-body text-sm sm:text-base">
                         {item.a}
                       </p>
                     </div>
@@ -621,7 +698,7 @@ function FAQ() {
 
 function Footer() {
   return (
-    <footer className="relative border-t border-white/[0.06] px-5 sm:px-8 py-10">
+    <footer className="relative border-t border-[#1f1f1f] px-5 sm:px-8 py-12">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <img src={logoLight} alt="ORVIX SISTEMAS" className="h-6 w-auto opacity-90" />
