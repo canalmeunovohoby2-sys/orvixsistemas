@@ -842,6 +842,8 @@ export function VendasPage() {
         )}
       </section>
 
+      {printReceipt && <PrinterAutoPrintBanner cid={cid} />}
+
       {!shift && (
         <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 flex items-start gap-4">
           <div className="w-12 h-12 shrink-0 grid place-items-center rounded-xl bg-primary/15 text-primary border border-primary/30">
