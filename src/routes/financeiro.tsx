@@ -80,6 +80,7 @@ function FinanceiroPage() {
   }
 
   function handleSave() {
+    if (!cid) { toast.error("Empresa não identificada."); return; }
     const desc = form.description.trim();
     const amt = parseFloat(form.amount.replace(",", "."));
     if (!desc) { toast.error("Informe a descrição."); return; }
