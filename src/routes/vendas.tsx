@@ -454,7 +454,7 @@ export function VendasPage() {
   const tryScanBarcode = useCallback((code: string): boolean => {
     const ean = code.trim();
     if (!/^\d{8,14}$/.test(ean)) return false;
-    const product = PRODUCTS.find((p) => p.ean === ean);
+    const product = PRODUCTS.find((p) => p.company_id === cid && p.ean === ean);
     if (product) {
       add(product);
       toast.success(`+ ${product.name}`, { duration: 1400 });
