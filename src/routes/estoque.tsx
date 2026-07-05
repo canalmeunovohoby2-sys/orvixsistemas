@@ -7,6 +7,7 @@ import { MOVEMENTS, PRODUCTS, deleteMovement, formatQty, type Movement } from "@
 import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw, ClipboardList } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { useMockStore } from "@/hooks/use-mock-store";
+import { useSaaS } from "@/lib/saas-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/estoque")({
@@ -25,9 +26,12 @@ export const Route = createFileRoute("/estoque")({
 
 function EstoquePage() {
   useMockStore();
-  const totalEntradas = MOVEMENTS.filter(m => m.type === "Entrada").reduce((a, m) => a + m.qty, 0);
-  const totalSaidas = MOVEMENTS.filter(m => m.type === "Saída").reduce((a, m) => a + m.qty, 0);
-  const totalAjustes = MOVEMENTS.filter(m => m.type === "Ajuste").length;
+  const { user } = useSaaS();
+  const cid = user?.companyId ?? null;
+  const tenantMovements = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
+  const totalEntradas = tenantMovements.filter(m => m.type === "Entrada").reduce((a, m) => a + m.qty, 0);
+  const totalSaidas = tenantMovements.filter(m => m.type === "Saída").reduce((a, m) => a + m.qty, 0);
+  const totalAjustes = tenantMovements.filter(m => m.type === "Ajuste").length;
 
   const cols: Column<Movement>[] = [
     { key: "id", label: "Mov.", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
@@ -68,7 +72,7 @@ function EstoquePage() {
       </section>
 
       <DataTable<Movement>
-        rows={MOVEMENTS}
+        rows={tenantMovements}
         columns={cols}
         searchKeys={["product", "user", "id"]}
         pageSize={10}
@@ -82,7 +86,9 @@ function EstoquePage() {
 }
 
 function AuditLog() {
-  const rows = MOVEMENTS;
+  const { user } = useSaaS();
+  const cid = user?.companyId ?? null;
+  const rows = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
   return (
     <section className="mt-8">
       <div className="flex items-center gap-2 mb-3">
@@ -132,8 +138,11 @@ function AuditLog() {
 
 function InventorySummary() {
   const [onlyLow, setOnlyLow] = useState(false);
-  const lowCount = PRODUCTS.filter((p) => p.stock <= p.minStock).length;
-  const rows = onlyLow ? PRODUCTS.filter((p) => p.stock <= p.minStock) : PRODUCTS;
+  const { user } = useSaaS();
+  const cid = user?.companyId ?? null;
+  const tenantProducts = cid ? PRODUCTS.filter((p) => p.company_id === cid) : [];
+  const lowCount = tenantProducts.filter((p) => p.stock <= p.minStock).length;
+  const rows = onlyLow ? tenantProducts.filter((p) => p.stock <= p.minStock) : tenantProducts;
 
   return (
     <section className="mt-8">
