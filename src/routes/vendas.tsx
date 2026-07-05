@@ -414,8 +414,10 @@ export function VendasPage() {
     const n = q.toLowerCase();
     // Lista completa filtrada — a navegação por setas faz scroll automático
     // dentro do container, então não truncamos resultados.
-    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q));
-  }, [q]);
+    return PRODUCTS.filter(
+      (p) => p.company_id === cid && (p.name.toLowerCase().includes(n) || p.ean.includes(q)),
+    );
+  }, [q, cid]);
 
   // Reset do índice destacado sempre que a lista filtrada mudar.
   useEffect(() => { setHighlight(0); }, [q]);
