@@ -3,130 +3,10 @@ import { useEffect, useState } from "react";
 import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
-import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock, Download, Monitor } from "lucide-react";
+import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { PasswordRules } from "@/components/PasswordRules";
 import { isStrongPassword } from "@/lib/password-policy";
-
-/**
- * URL do instalador Windows. Substituído pelo pipeline de release
- * (electron-builder → GitHub Releases / R2). Enquanto o build final não
- * está publicado, o botão dispara o download; se o arquivo não existir,
- * o servidor devolve 404 e o navegador não abre nada.
- */
-const INSTALLER_URL = "/downloads/OrvixSistemas-Setup.exe";
-const INSTALLER_FILENAME = "OrvixSistemas-Setup.exe";
-
-/**
- * Card de download público exibido na página de login.
- * `variant="promo"`  → grande, para a coluna esquerda desktop.
- * `variant="inline"` → compacto, acima do formulário (mobile + fallback).
- * Detecta Windows: em outros SOs mostra aviso "apenas Windows" e mantém
- * o botão desabilitado para não confundir o usuário.
- */
-function DownloadInstallerCard({ variant }: { variant: "promo" | "inline" }) {
-  const [isWindows, setIsWindows] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    const ua = (navigator.userAgent || "").toLowerCase();
-    // Cobre Win10/11 desktop e evita falsos positivos de Windows Phone.
-    setIsWindows(/windows nt/.test(ua) && !/phone|arm/.test(ua) ? true : /windows nt/.test(ua));
-  }, []);
-
-  const handleDownload = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isWindows === false) {
-      e.preventDefault();
-      toast.error("O Instalador ORVIX Sistemas é exclusivo para Windows 10 ou superior.");
-      return;
-    }
-    // Fallback programático — garante o download imediato mesmo com
-    // extensões que interceptam navegação por âncora.
-    try {
-      const a = document.createElement("a");
-      a.href = INSTALLER_URL;
-      a.download = INSTALLER_FILENAME;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      e.preventDefault();
-      toast.success("Download iniciado — abra o instalador ao terminar.");
-    } catch {
-      // Deixa o comportamento padrão do <a> assumir.
-    }
-  };
-
-  const disabled = isWindows === false;
-
-  if (variant === "promo") {
-    return (
-      <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card p-6 shadow-lg">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-primary font-bold">
-            <ShieldCheck className="w-3 h-3" /> App oficial · assinado
-          </span>
-        </div>
-        <h3 className="text-xl font-extrabold leading-tight">
-          Instalador ORVIX Sistemas
-        </h3>
-        <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">
-          App nativo para Windows. Impressão silenciosa, atualização
-          automática e desempenho profissional — sem depender do navegador.
-        </p>
-        <a
-          href={INSTALLER_URL}
-          onClick={handleDownload}
-          aria-disabled={disabled}
-          className={`mt-5 inline-flex items-center gap-2.5 px-5 py-3 rounded-full font-bold text-sm shadow-lg transition-all ${
-            disabled
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/30 hover:scale-[1.02]"
-          }`}
-        >
-          <Download className="w-4 h-4" />
-          Baixar Instalador ORVIX Sistemas
-          <span className="ml-1 text-[11px] opacity-80">(.exe)</span>
-        </a>
-        <p className="mt-2.5 text-[11px] text-muted-foreground flex items-center gap-1.5">
-          <Monitor className="w-3 h-3" />
-          {isWindows === false
-            ? "Disponível apenas para Windows 10 ou superior."
-            : "Windows 10 ou superior · 200 MB · conexão com a internet."}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 flex items-start gap-3 lg:hidden">
-      <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary grid place-items-center shrink-0">
-        <Download className="w-5 h-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-tight">Instalador ORVIX Sistemas</p>
-        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-          {isWindows === false
-            ? "Disponível apenas para Windows 10 ou superior."
-            : "App nativo para Windows · impressão silenciosa."}
-        </p>
-        <a
-          href={INSTALLER_URL}
-          onClick={handleDownload}
-          aria-disabled={disabled}
-          className={`mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold transition-colors ${
-            disabled
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }`}
-        >
-          <Download className="w-3.5 h-3.5" />
-          Baixar Instalador
-        </a>
-      </div>
-    </div>
-  );
-}
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -215,12 +95,10 @@ function LoginPage() {
             <li className="flex gap-2"><Store className="w-4 h-4 mt-0.5 text-primary" /> Cada empresa enxerga apenas seus próprios dados</li>
             <li className="flex gap-2"><ShoppingCart className="w-4 h-4 mt-0.5 text-primary" /> PDV otimizado para operação 100% via teclado</li>
           </ul>
-          <DownloadInstallerCard variant="promo" />
         </section>
 
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
-            <DownloadInstallerCard variant="inline" />
             <div className="space-y-4">
               <div className="flex justify-center lg:justify-start">
                 <div
