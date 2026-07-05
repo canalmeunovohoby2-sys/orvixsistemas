@@ -46,6 +46,7 @@ function ClientesPage() {
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
+    if (!cid) { setRows([]); setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from("customers")
