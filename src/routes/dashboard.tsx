@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
-import { DashboardPage } from "./index";
+import { DashboardPage } from "@/components/DashboardPageContent";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({

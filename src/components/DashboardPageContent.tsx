@@ -1,5 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { RoleGuard } from "@/components/RoleGuard";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
@@ -16,20 +15,6 @@ import {
 } from "recharts";
 import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles, Sun, DoorClosed } from "lucide-react";
 import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Dashboard — Meu Saas" },
-      { name: "description", content: "Visão geral de vendas, lucro, estoque e produtos críticos em tempo real no Meu Saas." },
-      { property: "og:title", content: "Dashboard — Meu Saas" },
-      { property: "og:description", content: "Visão geral de vendas, lucro, estoque e produtos críticos." },
-      { property: "og:url", content: "/" },
-    ],
-    links: [{ rel: "canonical", href: "/" }],
-  }),
-  component: () => (<RoleGuard allow={["admin"]}><DashboardPage /></RoleGuard>),
-});
 
 const CHART_COLORS = ["#8B0000", "#5A8FB8", "#5BA67C", "#C9A961", "#8B6F8E"];
 
