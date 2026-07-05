@@ -43,18 +43,27 @@ jobs:
       - name: List build output
         shell: pwsh
         run: |
-          Write-Host "== dist-electron =="
-          if (Test-Path dist-electron) { Get-ChildItem -Recurse dist-electron | Select-Object FullName, Length } else { Write-Host "dist-electron NOT FOUND" }
-          Write-Host "== dist =="
-          if (Test-Path dist) { Get-ChildItem -Recurse dist | Select-Object FullName, Length } else { Write-Host "dist NOT FOUND" }
+          Write-Host "== working directory =="
+          Get-Location
+          Write-Host "== top-level =="
+          Get-ChildItem | Select-Object Name, Mode, Length
+          foreach ($dir in @('dist-electron','dist','build','out')) {
+            Write-Host "== $dir =="
+            if (Test-Path $dir) { Get-ChildItem -Recurse $dir | Select-Object FullName, Length } else { Write-Host "$dir NOT FOUND" }
+          }
+          Write-Host "== ALL .exe files in repo =="
+          Get-ChildItem -Recurse -Filter *.exe -ErrorAction SilentlyContinue | Select-Object FullName, Length
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: OrvixSistemasSetup
           path: |
-            dist-electron/*Setup*.exe
-            dist-electron/*.exe
+            **/*Setup*.exe
+            dist/**/*.exe
+            dist-electron/**/*.exe
+            build/**/*.exe
+            out/**/*.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -63,14 +72,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-electron-debug
-          path: dist-electron/
+          path: |
+            dist-electron/
+            dist/
+            build/
+            out/
           retention-days: 7
 
       - name: Attach installer to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-electron/*Setup*.exe
+          files: |
+            **/*Setup*.exe
+            dist/**/*.exe
+            dist-electron/**/*.exe
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
