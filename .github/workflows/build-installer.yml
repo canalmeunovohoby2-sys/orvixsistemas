@@ -43,10 +43,16 @@ jobs:
       - name: List build output
         shell: pwsh
         run: |
-          Write-Host "== dist-electron =="
-          if (Test-Path dist-electron) { Get-ChildItem -Recurse dist-electron | Select-Object FullName, Length } else { Write-Host "dist-electron NOT FOUND" }
-          Write-Host "== dist =="
-          if (Test-Path dist) { Get-ChildItem -Recurse dist | Select-Object FullName, Length } else { Write-Host "dist NOT FOUND" }
+          Write-Host "== working directory =="
+          Get-Location
+          Write-Host "== top-level =="
+          Get-ChildItem | Select-Object Name, Mode, Length
+          foreach ($dir in @('dist-electron','dist','build','out')) {
+            Write-Host "== $dir =="
+            if (Test-Path $dir) { Get-ChildItem -Recurse $dir | Select-Object FullName, Length } else { Write-Host "$dir NOT FOUND" }
+          }
+          Write-Host "== ALL .exe files in repo =="
+          Get-ChildItem -Recurse -Filter *.exe -ErrorAction SilentlyContinue | Select-Object FullName, Length
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
