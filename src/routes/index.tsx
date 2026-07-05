@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
-  BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE,
+  BRL, KPIS, PRODUCTS, SALES, SALES_BY_DAY, TOP_PRODUCTS, CATEGORY_SHARE, DEMO_SEED_COMPANY_ID,
   formatQty, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -101,13 +101,15 @@ export function DashboardPage() {
   const demo = company?.isDemo === true;
 
   // Em empresas reais (não-demo) os dados ficam zerados até o lojista operar o sistema.
+  const dataCompanyId = demo ? DEMO_SEED_COMPANY_ID : cid;
+
   const tenantProducts = useMemo(
-    () => (cid ? PRODUCTS.filter((p) => p.company_id === cid) : []),
-    [cid],
+    () => (dataCompanyId ? PRODUCTS.filter((p) => p.company_id === dataCompanyId) : []),
+    [dataCompanyId],
   );
   const tenantSales = useMemo(
-    () => (cid ? SALES.filter((s) => s.company_id === cid) : []),
-    [cid],
+    () => (dataCompanyId ? SALES.filter((s) => s.company_id === dataCompanyId) : []),
+    [dataCompanyId],
   );
 
   const vendasMes = demo

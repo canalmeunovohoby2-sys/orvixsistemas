@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, type Column } from "@/components/DataTable";
-import { addSupplier, deleteSupplier, getCompanySuppliers, type Person } from "@/lib/mock-data";
+import { addSupplier, deleteSupplier, getCompanySuppliers, DEMO_SEED_COMPANY_ID, type Person } from "@/lib/mock-data";
 import { useSaaS } from "@/lib/saas-context";
 import { Plus } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/fornecedores")({
 
 function FornecedoresPage() {
   useMockStore();
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const [open, setOpen] = useState(false);
   const rows = getCompanySuppliers(cid);
   const cols: Column<Person>[] = [

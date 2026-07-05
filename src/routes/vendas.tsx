@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
 import {
   BRL, CUSTOMERS, PRODUCTS, SALES, commitPdvSale,
-  formatQty, isFractional,
+  formatQty, isFractional, DEMO_SEED_COMPANY_ID,
   type Product, type Sale,
 } from "@/lib/mock-data";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -274,7 +274,7 @@ export function VendasPage() {
   const [openingFloat, setOpeningFloat] = useState<string>("");
   const [closingCash, setClosingCash] = useState<string>("");
 
-  const cid = company?.id ?? user?.companyId ?? "EMP001";
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : company?.id ?? user?.companyId ?? null;
 
   // ── Trava de Caixas Simultâneos por plano ──
   // Cada aba registra um id único em `localStorage` com heartbeat. Se o número
@@ -283,7 +283,7 @@ export function VendasPage() {
   const [pdvBlocked, setPdvBlocked] = useState<{ active: number; limit: number } | null>(null);
 
   useEffect(() => {
-    if (!company) return;
+    if (!company || !cid) return;
     const STORAGE_KEY = `orvix_pdv_open_${cid}`;
     const MY_ID = sessionIdRef.current;
     const limit = getPlanCaixasLimit(company.plan);
@@ -465,7 +465,7 @@ export function VendasPage() {
     // Mantém o foco para o próximo bip
     requestAnimationFrame(() => searchRef.current?.focus());
     return true;
-  }, [add]);
+  }, [add, cid]);
 
   const setQty = (id: string, raw: string) => {
     setCart((c) =>

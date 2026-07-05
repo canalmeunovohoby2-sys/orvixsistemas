@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { BRL, PRODUCTS, SALES, formatQty, getCompanySales, type Product, type Sale } from "@/lib/mock-data";
+import { BRL, PRODUCTS, SALES, formatQty, getCompanySales, DEMO_SEED_COMPANY_ID, type Product, type Sale } from "@/lib/mock-data";
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
@@ -96,8 +96,8 @@ function formatRange(period: Period) {
 }
 
 function getReportSales(companyId: string | null | undefined, useDemoFallback: boolean) {
-  const scoped = companyId ? getCompanySales(companyId) : SALES;
-  return scoped.length > 0 || !useDemoFallback ? scoped : SALES;
+  const effectiveCompanyId = useDemoFallback ? DEMO_SEED_COMPANY_ID : companyId;
+  return effectiveCompanyId ? getCompanySales(effectiveCompanyId) : [];
 }
 
 type PaymentRow = {
@@ -116,6 +116,11 @@ function RelatoriosPage() {
   const [period, setPeriod] = useState<Period>("Mensal");
   const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
+  const reportProducts = company?.isDemo === true
+    ? PRODUCTS.filter((p) => p.company_id === DEMO_SEED_COMPANY_ID)
+    : company?.id
+      ? PRODUCTS.filter((p) => p.company_id === company.id)
+      : [];
   const reportSales = getReportSales(company?.id, !company?.id || company?.isDemo === true);
   const filteredSales = useMemo(
     () => filterSalesByPeriod(reportSales, period),
@@ -123,8 +128,8 @@ function RelatoriosPage() {
   );
   const hasData = filteredSales.length > 0;
   const { closing, totals, abc, forecast } = useMemo(
-    () => computeReport(filteredSales),
-    [filteredSales],
+    () => computeReport(filteredSales, reportProducts),
+    [filteredSales, reportProducts],
   );
 
   const filteredSalesByDay = useMemo(
@@ -285,13 +290,13 @@ function RelatoriosPage() {
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[
               { l: "Ticket médio", v: BRL(totals.ticketMedio), tone: "primary" as const },
-              { l: "Margem bruta", v: "32,4%", tone: "success" as const },
-              { l: "Giro de estoque", v: "4,8x" },
-              { l: "Ruptura", v: "2,1%", tone: "primary" as const },
+              { l: "Margem bruta", v: hasData ? `${totals.margemReal.toFixed(1)}%` : "0,0%", tone: "success" as const },
+              { l: "Giro de estoque", v: hasData ? "1,0x" : "0x" },
+              { l: "Ruptura", v: reportProducts.length > 0 ? `${((reportProducts.filter(p => p.stock <= p.minStock).length / reportProducts.length) * 100).toFixed(1)}%` : "0,0%", tone: "primary" as const },
               { l: "Vendas concluídas", v: `${totals.qtdVendas}` },
               { l: "Lucro operacional", v: BRL(totals.lucroOp), tone: "success" as const },
-              { l: "Conversão PDV", v: "87%" },
-              { l: "Itens críticos", v: String(PRODUCTS.filter(p => p.stock <= p.minStock).length), tone: "primary" as const },
+              { l: "Conversão PDV", v: hasData ? "100%" : "0%" },
+              { l: "Itens críticos", v: String(reportProducts.filter(p => p.stock <= p.minStock).length), tone: "primary" as const },
             ].map((k) => (
               <div key={k.l} className="p-3 rounded-lg bg-secondary/60 border border-border">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{k.l}</p>
@@ -557,7 +562,7 @@ function RankingCard({
 
 /* ─────────────── Derivations ─────────────── */
 
-function computeReport(sales: typeof SALES = SALES) {
+function computeReport(sales: typeof SALES = [], products: Product[] = []) {
   const concluded = sales.filter((s) => s.status === "concluida");
 
   // Map mock's native methods into the PDV's 4 (Cartão → 60% Crédito + 40% Débito).
@@ -605,7 +610,7 @@ function computeReport(sales: typeof SALES = SALES) {
   const margemReal = bruto > 0 ? (lucroReal / bruto) * 100 : 0;
 
   // ABC curve — synthesize per-product 30d sales from a deterministic seed.
-  const abcRows: ABCRow[] = PRODUCTS.map((p, i) => {
+  const abcRows: ABCRow[] = products.map((p, i) => {
     const seed = (i * 9301 + 49297) % 233280;
     const factor = seed / 233280;
     const baseQty = 5 + Math.round(factor * 145);
