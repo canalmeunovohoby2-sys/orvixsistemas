@@ -238,6 +238,11 @@ function ProductDrawer({ onClose, companyId }: { onClose: () => void; companyId:
       supplier: supplier || undefined,
       company_id: companyId ?? undefined,
     });
+    // Aprendizado colaborativo: alimenta a Base Global do Orvix apenas com
+    // dados públicos do produto (jamais preços, estoque ou dados da empresa).
+    void contributeToGlobalCatalog({
+      ean, name, brand: brand || undefined, category, unit,
+    });
     toast.success(`Produto "${p.name}" cadastrado.`);
     onClose();
   }
