@@ -275,51 +275,6 @@ export function HelpCenter() {
                 </Section>
               </AccordionContent>
             </AccordionItem>
-
-            {/* Impressora / QZ Tray */}
-            <AccordionItem value="impressora" className="border border-border rounded-lg bg-card px-4">
-              <AccordionTrigger className="text-left hover:no-underline py-4">
-                <span className="flex items-center gap-2 font-semibold">
-                  <span aria-hidden>🖨️</span> Instalação do Driver de Impressão (QZ Tray)
-                  <Badge variant="secondary" className="ml-2 font-mono text-[10px]">impressora</Badge>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="pb-5 space-y-4 text-sm text-muted-foreground">
-                <Section title="Passo extra do onboarding — Impressão automática">
-                  <p>
-                    Para o cupom sair da bobina térmica <strong className="text-foreground">sem abrir o diálogo do navegador</strong>,
-                    é preciso instalar o driver gratuito <strong className="text-foreground">QZ Tray</strong> no computador do caixa.
-                    Ele fica rodando na bandeja do sistema (ao lado do relógio) e conversa com o PDV via WebSocket na rede local.
-                  </p>
-                  <ol className="list-decimal ml-5 space-y-1.5 text-foreground/90">
-                    <li>Baixe o instalador oficial pelo botão abaixo.</li>
-                    <li>Execute o arquivo em seu computador (Windows) e conclua a instalação padrão.</li>
-                    <li>Abra o QZ Tray — ele fica invisível, apenas com o ícone na bandeja do sistema.</li>
-                    <li>Reinicie o PDV (F5 nesta página) e vá em <Code>Configurações → Impressoras</Code> para selecionar a bobina.</li>
-                  </ol>
-                  <a
-                    href="https://github.com/qzind/tray/releases/download/v2.2.6/qz-tray-2.2.6-x86_64.exe"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
-                  >
-                    ⬇ Baixar QZ Tray (Windows)
-                  </a>
-                </Section>
-                <Section title="Como saber se está funcionando">
-                  <Tip tone="ok">
-                    No canto superior da <strong className="text-foreground">tela do Caixa</strong> há um indicador
-                    (bolinha colorida) ao lado do ícone da impressora: <strong>verde</strong> = pronta,
-                    <strong> âmbar</strong> = driver ativo mas sem impressora escolhida, <strong>cinza</strong> = driver não detectado.
-                    Clicar na bolinha abre o modal de configuração diretamente.
-                  </Tip>
-                  <Tip tone="warn">
-                    Se o QZ Tray for fechado, o cupom volta a ser impresso pelo diálogo do navegador — sem prejuízo à venda,
-                    apenas com um clique extra.
-                  </Tip>
-                </Section>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
 
           <p className="mt-6 text-[11px] text-muted-foreground text-center">
