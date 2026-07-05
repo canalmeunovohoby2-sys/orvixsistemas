@@ -3,7 +3,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Warehouse, Truck, BarChart3, Users, Wallet,
-  Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown, Settings, MonitorSmartphone,
+  Search, ChevronLeft, ChevronRight, Menu, X, LogOut, ChevronDown, Settings, MonitorSmartphone, Download,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
@@ -32,11 +32,13 @@ const NAV_FULL: NavItem[] = [
   { label: "Financeiro", to: "/financeiro", icon: Wallet },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
   { label: "Terminais", to: "/terminais", icon: MonitorSmartphone },
+  { label: "Download", to: "/download", icon: Download },
   { label: "Configurações", to: "/configuracoes", icon: Settings },
 ];
 
 const NAV_CASHIER: NavItem[] = [
   { label: "Caixa", to: "/caixa", icon: ShoppingCart },
+  { label: "Download", to: "/download", icon: Download },
 ];
 
 function useStored<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
