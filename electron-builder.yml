@@ -2,8 +2,8 @@
 # Execute no pipeline Windows (ver README-ELECTRON.md):
 #   npx electron-builder --win nsis
 
-appId: com.orvixsistemas.pdv
-productName: ORVIX PDV
+appId: com.orvixsistemas.app
+productName: ORVIX Sistemas
 copyright: © 2026 ORVIX SISTEMAS
 
 directories:
@@ -13,7 +13,7 @@ directories:
 files:
   - electron/**/*
   - package.json
-  # NÃO empacotamos /src ou /dist — o app carrega a URL SSR remota.
+  # NÃO empacotamos /src ou /dist — o app carrega a URL SSR remota (/login).
 
 asar: true
 
@@ -27,7 +27,7 @@ win:
     - target: nsis
       arch: [x64]
   icon: electron/assets/icon.ico
-  artifactName: OrvixPDV-Setup-${version}.${ext}
+  artifactName: OrvixSistemasSetup.${ext}
   publisherName: ORVIX SISTEMAS
   # Descomente após emitir certificado Authenticode:
   # certificateFile: ./signing/orvix.pfx
@@ -40,16 +40,12 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: ORVIX PDV
+  shortcutName: ORVIX Sistemas
   installerIcon: electron/assets/icon.ico
   uninstallerIcon: electron/assets/icon.ico
-  installerHeader: electron/assets/installer-header.bmp
-  installerSidebar: electron/assets/installer-sidebar.bmp
-  uninstallDisplayName: ORVIX PDV
-  license: electron/assets/LICENSE.txt
-  # Branding — usa a paleta ORVIX (#850405 primary sobre preto).
-  installerLanguages: [pt_BR]
-  language: "1046"
+  uninstallDisplayName: ORVIX Sistemas
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
 
 mac:
   target:
@@ -57,11 +53,11 @@ mac:
       arch: [x64, arm64]
   icon: electron/assets/icon.icns
   category: public.app-category.business
-  artifactName: OrvixPDV-${version}.${ext}
+  artifactName: OrvixSistemas-${version}.${ext}
 
 linux:
   target:
     - AppImage
   icon: electron/assets
   category: Office
-  artifactName: OrvixPDV-${version}.${ext}
+  artifactName: OrvixSistemas-${version}.${ext}

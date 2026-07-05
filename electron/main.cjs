@@ -16,8 +16,8 @@
 const { app, BrowserWindow, ipcMain, shell, session } = require("electron");
 const path = require("node:path");
 
-const APP_URL = process.env.ORVIX_APP_URL || "https://orvixsistemas.lovable.app";
-const APP_NAME = "ORVIX PDV";
+const APP_URL = process.env.ORVIX_APP_URL || "https://orvixsistemas.lovable.app/login";
+const APP_NAME = "ORVIX Sistemas";
 
 // Instância única — impede que o operador abra dois PDVs ao mesmo tempo.
 const gotLock = app.requestSingleInstanceLock();
