@@ -53,8 +53,11 @@ jobs:
         with:
           name: OrvixSistemasSetup
           path: |
-            dist-electron/*Setup*.exe
-            dist-electron/*.exe
+            **/*Setup*.exe
+            dist/**/*.exe
+            dist-electron/**/*.exe
+            build/**/*.exe
+            out/**/*.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -63,14 +66,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-electron-debug
-          path: dist-electron/
+          path: |
+            dist-electron/
+            dist/
+            build/
+            out/
           retention-days: 7
 
       - name: Attach installer to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-electron/*Setup*.exe
+          files: |
+            **/*Setup*.exe
+            dist/**/*.exe
+            dist-electron/**/*.exe
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
