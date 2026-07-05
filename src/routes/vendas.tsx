@@ -1188,7 +1188,7 @@ export function VendasPage() {
 
       <h2 className="text-xl font-bold mb-3">Histórico de vendas</h2>
       <DataTable<Sale>
-        rows={SALES}
+        rows={SALES.filter((s) => s.company_id === cid)}
         columns={cols}
         searchKeys={["customer", "id"]}
         pageSize={10}
