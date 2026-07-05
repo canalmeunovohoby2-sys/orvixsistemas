@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Camera, CheckCircle2, Loader2, Plus, ScanLine, X } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { useMockStore } from "@/hooks/use-mock-store";
+import { useSaaS } from "@/lib/saas-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/produtos")({
@@ -26,10 +27,13 @@ export const Route = createFileRoute("/produtos")({
 
 function ProdutosPage() {
   useMockStore();
+  const { user } = useSaaS();
+  const cid = user?.companyId ?? null;
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "low" | "inactive">("all");
 
-  const rows = PRODUCTS.filter((p) => {
+  const tenantProducts = cid ? PRODUCTS.filter((p) => p.company_id === cid) : [];
+  const rows = tenantProducts.filter((p) => {
     if (filter === "low") return p.stock <= p.minStock;
     if (filter === "inactive") return p.status === "inativo";
     return true;
@@ -97,8 +101,8 @@ function ProdutosPage() {
         toolbar={
           <div className="flex flex-wrap gap-2">
             {[
-              { id: "all" as const, label: `Todos (${PRODUCTS.length})` },
-              { id: "low" as const, label: `Estoque baixo (${PRODUCTS.filter(p => p.stock <= p.minStock).length})` },
+              { id: "all" as const, label: `Todos (${tenantProducts.length})` },
+              { id: "low" as const, label: `Estoque baixo (${tenantProducts.filter(p => p.stock <= p.minStock).length})` },
               { id: "inactive" as const, label: "Inativos" },
             ].map((f) => (
               <button
@@ -122,7 +126,7 @@ function ProdutosPage() {
       />
 
       <AnimatePresence>
-        {open && <ProductDrawer onClose={() => setOpen(false)} />}
+        {open && <ProductDrawer companyId={cid} onClose={() => setOpen(false)} />}
       </AnimatePresence>
     </AppShell>
   );
@@ -130,7 +134,7 @@ function ProdutosPage() {
 
 type LookupState = "idle" | "searching" | "found" | "notfound";
 
-function ProductDrawer({ onClose }: { onClose: () => void }) {
+function ProductDrawer({ onClose, companyId }: { onClose: () => void; companyId: string | null }) {
   const [ean, setEan] = useState("");
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -225,6 +229,7 @@ function ProductDrawer({ onClose }: { onClose: () => void }) {
       stock: parseFloat(stock) || 0,
       minStock: parseFloat(minStock) || 0,
       supplier: supplier || undefined,
+      company_id: companyId ?? undefined,
     });
     toast.success(`Produto "${p.name}" cadastrado.`);
     onClose();
