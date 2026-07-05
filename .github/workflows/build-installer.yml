@@ -43,17 +43,54 @@ jobs:
             exit $LASTEXITCODE
           }
 
+      - name: Ensure Electron build dependencies
+        shell: pwsh
+        run: |
+          Write-Host "== checking Electron dependency setup =="
+          if (Test-Path "electron/package.json") {
+            Write-Host "electron/package.json found; installing electron directory dependencies"
+            npm ci --prefix electron 2>&1 | Tee-Object -FilePath electron-deps.log
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "electron directory dependency install failed with exit code $LASTEXITCODE"
+              Get-Content electron-deps.log -Raw
+              exit $LASTEXITCODE
+            }
+          } else {
+            Write-Host "No electron/package.json found; verifying root Electron packages"
+            npm ls electron electron-builder 2>&1 | Tee-Object -FilePath electron-deps.log
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Required Electron packages missing from root install; installing temporary build dependencies"
+              npm install --no-save electron electron-builder 2>&1 | Tee-Object -Append -FilePath electron-deps.log
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "Temporary Electron dependency install failed with exit code $LASTEXITCODE"
+                Get-Content electron-deps.log -Raw
+                exit $LASTEXITCODE
+              }
+            }
+          }
+
       - name: Build Windows installer (NSIS)
         shell: pwsh
         run: |
-          Write-Host "== npm run electron:build =="
-          npm run electron:build -- --publish never 2>&1 | Tee-Object -FilePath electron-builder.log
+          Write-Host "== npm run electron:build -- --verbose =="
+          npm run electron:build -- --verbose 2>&1 | Tee-Object -FilePath electron-builder.log
           if ($LASTEXITCODE -ne 0) {
             Write-Host "electron-builder failed with exit code $LASTEXITCODE"
             Write-Host "== electron-builder.log =="
             Get-Content electron-builder.log -Raw
             exit $LASTEXITCODE
           }
+
+      - name: List dist directory after Electron build
+        if: always()
+        shell: bash
+        run: |
+          echo "== ls -R dist =="
+          if [ -d dist ]; then
+            ls -R dist
+          else
+            echo "dist NOT FOUND"
+          fi
         env:
           # Sem code signing por enquanto — descomente e configure secrets
           # (CSC_LINK / CSC_KEY_PASSWORD) quando o certificado Authenticode
@@ -107,6 +144,7 @@ jobs:
           name: dist-electron-debug
           path: |
             npm-build.log
+            electron-deps.log
             electron-builder.log
             dist-electron/
             dist/
