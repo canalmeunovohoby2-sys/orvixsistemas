@@ -1,0 +1,8 @@
+{
+  "name": "orvix-sistemas",
+  "productName": "ORVIX Sistemas",
+  "version": "1.0.0",
+  "description": "ORVIX Sistemas - PDV nativo",
+  "main": "main.cjs",
+  "author": "ORVIX Sistemas"
+}
