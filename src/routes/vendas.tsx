@@ -414,8 +414,10 @@ export function VendasPage() {
     const n = q.toLowerCase();
     // Lista completa filtrada — a navegação por setas faz scroll automático
     // dentro do container, então não truncamos resultados.
-    return PRODUCTS.filter((p) => p.name.toLowerCase().includes(n) || p.ean.includes(q));
-  }, [q]);
+    return PRODUCTS.filter(
+      (p) => p.company_id === cid && (p.name.toLowerCase().includes(n) || p.ean.includes(q)),
+    );
+  }, [q, cid]);
 
   // Reset do índice destacado sempre que a lista filtrada mudar.
   useEffect(() => { setHighlight(0); }, [q]);
@@ -452,7 +454,7 @@ export function VendasPage() {
   const tryScanBarcode = useCallback((code: string): boolean => {
     const ean = code.trim();
     if (!/^\d{8,14}$/.test(ean)) return false;
-    const product = PRODUCTS.find((p) => p.ean === ean);
+    const product = PRODUCTS.find((p) => p.company_id === cid && p.ean === ean);
     if (product) {
       add(product);
       toast.success(`+ ${product.name}`, { duration: 1400 });
@@ -1186,7 +1188,7 @@ export function VendasPage() {
 
       <h2 className="text-xl font-bold mb-3">Histórico de vendas</h2>
       <DataTable<Sale>
-        rows={SALES}
+        rows={SALES.filter((s) => s.company_id === cid)}
         columns={cols}
         searchKeys={["customer", "id"]}
         pageSize={10}
