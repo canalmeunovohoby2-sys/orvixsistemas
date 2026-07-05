@@ -501,3 +501,62 @@ function Field({
     </label>
   );
 }
+
+function PrinterSection({ cid }: { cid: string }) {
+  const status = useQzTray(true);
+  const [open, setOpen] = useState(false);
+  const [printer, setPrinter] = useState<string | null>(null);
+
+  useEffect(() => { setPrinter(getSelectedPrinter(cid)); }, [cid, open]);
+
+  const dotCls =
+    status === "connected" && printer ? "bg-emerald-500"
+    : status === "connected" ? "bg-amber-500"
+    : "bg-muted-foreground/60";
+
+  const label =
+    status === "connected" && printer ? `Impressão automática ativa — ${printer}`
+    : status === "connected" ? "QZ Tray detectado — selecione a impressora de cupom"
+    : "QZ Tray não detectado — instale o driver para imprimir sem cliques";
+
+  return (
+    <section className="mb-6 rounded-xl border border-border bg-card p-6 max-w-4xl">
+      <div className="flex items-center gap-2 mb-4">
+        <Printer className="w-4 h-4 text-primary" />
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Impressoras</h2>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className={`w-2.5 h-2.5 rounded-full ${dotCls}`} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{label}</p>
+            <p className="text-xs text-muted-foreground">
+              A impressão silenciosa (sem diálogo do navegador) exige o driver QZ Tray rodando no computador do caixa.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={QZ_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-10 px-4 rounded-md border border-border text-sm font-semibold hover:bg-accent inline-flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Baixar driver
+          </a>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 inline-flex items-center gap-2"
+          >
+            <Settings2 className="w-4 h-4" /> Configurar impressora
+          </button>
+        </div>
+      </div>
+
+      <PrinterSetupDialog open={open} onOpenChange={setOpen} cid={cid} />
+    </section>
+  );
+}
