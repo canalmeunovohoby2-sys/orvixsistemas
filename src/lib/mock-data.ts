@@ -1236,10 +1236,11 @@ export function addProduct(input: {
   stock: number;
   minStock: number;
   supplier?: string;
+  company_id?: string;
 }): Product {
   const p: Product = {
     id: `P${String(__prodSeq++).padStart(4, "0")}`,
-    company_id: "EMP001",
+    company_id: input.company_id ?? "EMP001",
     ean: input.ean,
     name: input.brand ? `${input.name}${input.name.toLowerCase().includes(input.brand.toLowerCase()) ? "" : ` — ${input.brand}`}` : input.name,
     category: input.category,
