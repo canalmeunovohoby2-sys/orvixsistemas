@@ -41,6 +41,7 @@ import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { PeripheralsHelp } from "@/components/PeripheralsHelp";
 import { PrinterStatusChip } from "@/components/PrinterStatusChip";
 import { getSelectedPrinter, getQzStatus, printReceiptHtml } from "@/lib/qz-tray";
+import { PrinterAutoPrintBanner } from "@/components/PrinterStatusChip";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
