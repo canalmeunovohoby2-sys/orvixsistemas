@@ -3,10 +3,19 @@ import { useEffect, useState } from "react";
 import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
-import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock, Download, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { PasswordRules } from "@/components/PasswordRules";
 import { isStrongPassword } from "@/lib/password-policy";
+
+/**
+ * URL do instalador Windows. Substituído pelo pipeline de release
+ * (electron-builder → GitHub Releases / R2). Enquanto o build final não
+ * está publicado, o botão dispara o download; se o arquivo não existir,
+ * o servidor devolve 404 e o navegador não abre nada.
+ */
+const INSTALLER_URL = "/downloads/OrvixSistemas-Setup.exe";
+const INSTALLER_FILENAME = "OrvixSistemas-Setup.exe";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
