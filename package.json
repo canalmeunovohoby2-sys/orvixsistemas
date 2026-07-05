@@ -1,5 +1,7 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "orvix-sistemas",
+  "description": "Sistema de Gestão para o Varejo",
+  "author": "ORVIX Sistemas",
   "private": true,
   "sideEffects": false,
   "type": "module",
