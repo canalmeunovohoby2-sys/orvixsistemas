@@ -39,6 +39,9 @@ import { XCircle } from "lucide-react";
 import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { PeripheralsHelp } from "@/components/PeripheralsHelp";
+import { PrinterStatusChip } from "@/components/PrinterStatusChip";
+import { getSelectedPrinter, getQzStatus, printReceiptHtml } from "@/lib/qz-tray";
+import { PrinterAutoPrintBanner } from "@/components/PrinterStatusChip";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
@@ -561,7 +564,26 @@ export function VendasPage() {
           ? { customer: companyCustomers.find((c) => c.id === customerId)?.name }
           : undefined,
       });
-      printHTML(html);
+      // Preferência: imprimir direto via QZ Tray (sem diálogo). Caso o driver
+      // não esteja rodando ou nenhuma impressora esteja configurada,
+      // recorremos ao fallback silencioso via iframe.
+      const printer = getSelectedPrinter(cid);
+      const qzReady = getQzStatus() === "connected" && !!printer;
+      if (qzReady) {
+        void printReceiptHtml(printer!, html).then((ok) => {
+          if (!ok) {
+            toast.warning("Impressora não conectada. Verifique se o QZ Tray está aberto.");
+            printHTML(html);
+          }
+        });
+      } else {
+        if (!printer) {
+          toast.message("Impressão manual", {
+            description: "Configure o QZ Tray em Configurações para imprimir sem cliques.",
+          });
+        }
+        printHTML(html);
+      }
     }
 
     setCart([]);
@@ -800,6 +822,7 @@ export function VendasPage() {
         <PlanDaysLeftBadge compact />
         <PeripheralsHelp />
         <FullscreenToggle />
+        <PrinterStatusChip cid={cid} />
         {shift ? (
           <button
             type="button"
@@ -818,6 +841,8 @@ export function VendasPage() {
           </button>
         )}
       </section>
+
+      {printReceipt && <PrinterAutoPrintBanner cid={cid} />}
 
       {!shift && (
         <div className="mb-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 flex items-start gap-4">
