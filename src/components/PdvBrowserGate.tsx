@@ -40,7 +40,7 @@ export function PdvBrowserGate() {
     return (
       <span
         className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-[11px] font-semibold"
-        title={`ORVIX PDV nativo${version ? ` v${version}` : ""} · conectado`}
+        title={`ORVIX Sistemas nativo${version ? ` v${version}` : ""} · conectado`}
       >
         <ShieldCheck className="w-3.5 h-3.5" />
         App Nativo{version ? ` · v${version}` : ""}
@@ -55,7 +55,7 @@ export function PdvBrowserGate() {
           type="button"
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-semibold hover:bg-amber-500/25 transition-colors"
-          title="Você está usando o PDV pelo navegador. Baixe o app nativo."
+          title="Você está usando o sistema pelo navegador. Baixe o app nativo."
         >
           <Monitor className="w-3.5 h-3.5" />
           Modo Navegador
@@ -90,7 +90,7 @@ export function PdvBrowserGate() {
                 </div>
                 <div>
                   <h2 id="pdv-gate-title" className="text-lg md:text-xl font-bold leading-tight">
-                    Instale o ORVIX PDV para Windows
+                    Instale o ORVIX Sistemas para Windows
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     App nativo · impressão silenciosa · sem travamentos
@@ -98,8 +98,8 @@ export function PdvBrowserGate() {
                 </div>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Você está acessando o caixa pelo navegador. Para garantir
-                <strong className="text-foreground"> impressão automática de cupom</strong>,
+                Você está acessando pelo navegador. Para garantir
+                <strong className="text-foreground"> impressão automática</strong>,
                 foco de janela e desempenho máximo, migre para o app nativo.
               </p>
             </div>
@@ -130,7 +130,7 @@ export function PdvBrowserGate() {
                 className="h-10 px-5 inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors order-1 sm:order-2"
               >
                 <Download className="w-4 h-4" />
-                Baixar ORVIX PDV
+                Baixar Instalador ORVIX Sistemas
               </Link>
             </div>
           </div>
