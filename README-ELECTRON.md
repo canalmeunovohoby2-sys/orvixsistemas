@@ -1,3 +1,27 @@
+
+## GitHub Actions — Build automatizado do .exe
+
+O workflow `.github/workflows/build-installer.yml` compila o instalador
+`OrvixSistemasSetup.exe` em um runner `windows-latest`.
+
+Gatilhos:
+- push em `main` alterando `electron/**`, `electron-builder.yml` ou `package.json`
+- `workflow_dispatch` (botão "Run workflow" na aba Actions)
+- criação de um Release (o `.exe` é anexado ao release automaticamente)
+
+Como baixar o instalador após o build:
+1. Conecte o projeto ao GitHub (menu + → GitHub → Connect project).
+2. Abra a aba **Actions** no repositório.
+3. Selecione a última execução verde de "Build Windows Installer".
+4. Baixe o artifact **OrvixSistemasSetup** (contém `OrvixSistemasSetup.exe`).
+5. Suba o `.exe` para o storage da Área do Cliente e atualize a URL do
+   botão de download em `src/routes/download.tsx` (`INSTALLER_URL`).
+
+Code signing (opcional, recomendado para produção):
+- Adquira certificado Authenticode (.pfx).
+- Adicione secrets no repositório: `CSC_LINK` (base64 do .pfx) e
+  `CSC_KEY_PASSWORD`.
+- Remova a linha `CSC_IDENTITY_AUTO_DISCOVERY: "false"` do workflow.
 # ORVIX PDV — Empacotamento Desktop (Electron)
 
 Este documento descreve como gerar o instalador **`.exe`** assinado do ORVIX PDV
