@@ -139,13 +139,21 @@ function Header() {
             className="h-8 sm:h-12 w-auto transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
-        <Link
-          to="/login"
-          className="group inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full border border-white/15 text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
-        >
-          Área do Cliente
-          <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/download"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white/80 hover:text-white transition-colors"
+          >
+            Baixar PDV
+          </Link>
+          <Link
+            to="/login"
+            className="group inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full border border-white/15 text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
+          >
+            Área do Cliente
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </Link>
+        </div>
       </div>
     </header>
   );
