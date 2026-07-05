@@ -480,6 +480,7 @@ export function VendasPage() {
   };
 
   const finalize = useCallback(() => {
+    if (!cid) return toast.error("Empresa não identificada.");
     if (cart.length === 0) return toast.error("Carrinho vazio.");
     if (!shift) {
       setOpenModal(true);
