@@ -4,8 +4,11 @@ import { AppShell } from "@/components/AppShell";
 import { useSaaS } from "@/lib/saas-context";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff, ImageIcon, Trash2, Info } from "lucide-react";
+import { FileText, Upload, ShieldCheck, KeyRound, Building2, Lock, Eye, EyeOff, ImageIcon, Trash2, Info, Printer, Download, Settings2 } from "lucide-react";
 import { setCompanyLogo, useCompanyLogo } from "@/lib/company-logo";
+import { PrinterSetupDialog } from "@/components/PrinterSetupDialog";
+import { QZ_DOWNLOAD_URL, getSelectedPrinter } from "@/lib/qz-tray";
+import { useQzTray } from "@/hooks/useQzTray";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
