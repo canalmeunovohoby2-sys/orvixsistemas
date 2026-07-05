@@ -40,7 +40,7 @@ export const Route = createFileRoute("/clientes")({
 
 function ClientesPage() {
   const { user } = useSaaS();
-  const cid = user?.companyId ?? "EMP001";
+  const cid = user?.companyId ?? null;
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);

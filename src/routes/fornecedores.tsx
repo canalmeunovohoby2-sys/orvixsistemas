@@ -27,7 +27,7 @@ export const Route = createFileRoute("/fornecedores")({
 function FornecedoresPage() {
   useMockStore();
   const { user } = useSaaS();
-  const cid = user?.companyId ?? "EMP001";
+  const cid = user?.companyId ?? null;
   const [open, setOpen] = useState(false);
   const rows = getCompanySuppliers(cid);
   const cols: Column<Person>[] = [
