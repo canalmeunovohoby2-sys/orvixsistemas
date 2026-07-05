@@ -39,6 +39,8 @@ import { XCircle } from "lucide-react";
 import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { PeripheralsHelp } from "@/components/PeripheralsHelp";
+import { PrinterStatusChip } from "@/components/PrinterStatusChip";
+import { getSelectedPrinter, getQzStatus, printReceiptHtml } from "@/lib/qz-tray";
 
 export const Route = createFileRoute("/vendas")({
   head: () => ({
@@ -800,6 +802,7 @@ export function VendasPage() {
         <PlanDaysLeftBadge compact />
         <PeripheralsHelp />
         <FullscreenToggle />
+        <PrinterStatusChip cid={cid} />
         {shift ? (
           <button
             type="button"
