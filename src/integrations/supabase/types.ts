@@ -156,6 +156,39 @@ export type Database = {
           },
         ]
       }
+      global_products: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string
+          ean: string
+          image_url: string | null
+          name: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string
+          category?: string
+          created_at?: string
+          ean: string
+          image_url?: string | null
+          name: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string
+          ean?: string
+          image_url?: string | null
+          name?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       habit_logs: {
         Row: {
           created_at: string
