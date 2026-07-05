@@ -170,7 +170,7 @@ function ProductDrawer({ onClose, companyId }: { onClose: () => void; companyId:
     if (![8, 12, 13].includes(code.length) || lastSearched.current === code) return;
     lastSearched.current = code;
     setLookup("searching");
-    const hit = await lookupEan(code);
+    const hit = await resolveProductByEan(code);
     if (!mountedRef.current) return;
     if (hit) {
       setName(hit.name);
@@ -179,7 +179,13 @@ function ProductDrawer({ onClose, companyId }: { onClose: () => void; companyId:
       setUnit(hit.unit);
       setAutoFilled(new Set(["name", "brand", "category", "unit"]));
       setLookup("found");
-      toast.success(`Produto encontrado: ${hit.name}`, { description: `Marca: ${hit.brand} · Categoria: ${hit.category}` });
+      const sourceLabel =
+        hit.source === "company" ? "catálogo da empresa"
+        : hit.source === "global" ? "Base Global Orvix"
+        : "base pública externa";
+      toast.success(`Produto encontrado: ${hit.name}`, {
+        description: `Marca: ${hit.brand || "—"} · Categoria: ${hit.category} · Fonte: ${sourceLabel}`,
+      });
       setTimeout(() => costRef.current?.focus(), 60);
     } else {
       setLookup("notfound");
