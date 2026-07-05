@@ -6,7 +6,7 @@ import { useSaaS } from "@/lib/saas-context";
 import { useMockStore } from "@/hooks/use-mock-store";
 import {
   BRL, getCompanyFinancialRecords, markFinancialPaid, markFinancialPending, addFinancialRecord,
-  type FinancialRecord, type FinancialType, type FinancialStatus,
+  DEMO_SEED_COMPANY_ID, type FinancialRecord, type FinancialType, type FinancialStatus,
 } from "@/lib/mock-data";
 import {
   ArrowDownCircle, ArrowUpCircle, CheckCircle2, RotateCcw, Wallet, AlertTriangle, CalendarClock, Plus,
@@ -41,8 +41,8 @@ const STATUS_BADGE: Record<FinancialStatus, string> = {
 
 function FinanceiroPage() {
   useMockStore();
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const all = getCompanyFinancialRecords(cid);
 
   const [tab, setTab] = useState<"all" | FinancialType>("all");

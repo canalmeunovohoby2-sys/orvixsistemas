@@ -43,7 +43,7 @@ const EMPTY: FiscalData = {
 
 function ConfiguracoesPage() {
   const { company, user, changeOwnPassword, logout } = useSaaS();
-  const cid = company?.id ?? "EMP001";
+  const cid = company?.id ?? user?.companyId ?? null;
   const storageKey = `orvix_fiscal_${cid}`;
 
   const [data, setData] = useState<FiscalData>(EMPTY);
@@ -52,6 +52,7 @@ function ConfiguracoesPage() {
 
   useEffect(() => {
     try {
+      if (!cid) { setData(EMPTY); return; }
       const raw = localStorage.getItem(storageKey);
       if (raw) setData({ ...EMPTY, ...JSON.parse(raw) });
       else setData({ ...EMPTY, razaoSocial: company?.razaoSocial ?? company?.fantasia ?? "", cnpj: company?.cnpj ?? "" });
@@ -74,6 +75,7 @@ function ConfiguracoesPage() {
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cid) { toast.error("Empresa não identificada."); return; }
     try {
       // Persist tudo, exceto a senha do certificado (mock).
       const { certPassword: _omit, ...safe } = data;
@@ -97,7 +99,7 @@ function ConfiguracoesPage() {
         </div>
       </header>
 
-      <LogoUploadSection cid={cid} />
+      {cid && <LogoUploadSection cid={cid} />}
 
       <form onSubmit={save} className="grid gap-6 max-w-4xl">
         <section className="rounded-xl border border-border bg-card p-6">

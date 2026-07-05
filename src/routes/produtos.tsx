@@ -3,7 +3,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { BRL, PRODUCTS, UNITS, addProduct, deleteProduct, formatQty, isFractional, lookupEan, type Product, type Unit } from "@/lib/mock-data";
+import { BRL, PRODUCTS, UNITS, addProduct, deleteProduct, formatQty, isFractional, lookupEan, DEMO_SEED_COMPANY_ID, type Product, type Unit } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Camera, CheckCircle2, Loader2, Plus, ScanLine, X } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -27,8 +27,8 @@ export const Route = createFileRoute("/produtos")({
 
 function ProdutosPage() {
   useMockStore();
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "low" | "inactive">("all");
 

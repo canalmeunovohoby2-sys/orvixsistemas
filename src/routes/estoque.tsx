@@ -3,7 +3,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DataTable, StatusBadge, type Column } from "@/components/DataTable";
-import { MOVEMENTS, PRODUCTS, deleteMovement, formatQty, type Movement } from "@/lib/mock-data";
+import { MOVEMENTS, PRODUCTS, deleteMovement, formatQty, DEMO_SEED_COMPANY_ID, type Movement } from "@/lib/mock-data";
 import { AlertTriangle, ArrowDown, ArrowUp, RefreshCcw, ClipboardList } from "lucide-react";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { useMockStore } from "@/hooks/use-mock-store";
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/estoque")({
 
 function EstoquePage() {
   useMockStore();
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const tenantMovements = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
   const totalEntradas = tenantMovements.filter(m => m.type === "Entrada").reduce((a, m) => a + m.qty, 0);
   const totalSaidas = tenantMovements.filter(m => m.type === "Saída").reduce((a, m) => a + m.qty, 0);
@@ -86,8 +86,8 @@ function EstoquePage() {
 }
 
 function AuditLog() {
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const rows = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
   return (
     <section className="mt-8">
@@ -138,8 +138,8 @@ function AuditLog() {
 
 function InventorySummary() {
   const [onlyLow, setOnlyLow] = useState(false);
-  const { user } = useSaaS();
-  const cid = user?.companyId ?? null;
+  const { user, company } = useSaaS();
+  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const tenantProducts = cid ? PRODUCTS.filter((p) => p.company_id === cid) : [];
   const lowCount = tenantProducts.filter((p) => p.stock <= p.minStock).length;
   const rows = onlyLow ? tenantProducts.filter((p) => p.stock <= p.minStock) : tenantProducts;
