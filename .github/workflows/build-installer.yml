@@ -71,9 +71,11 @@ jobs:
 
       - name: Build Windows installer (NSIS)
         shell: pwsh
+        env:
+          DEBUG: electron-builder*
         run: |
-          Write-Host "== npm run electron:build -- --verbose =="
-          npm run electron:build -- --verbose 2>&1 | Tee-Object -FilePath electron-builder.log
+          Write-Host "== npm run electron:build (DEBUG=electron-builder*) =="
+          npm run electron:build 2>&1 | Tee-Object -FilePath electron-builder.log
           if ($LASTEXITCODE -ne 0) {
             Write-Host "electron-builder failed with exit code $LASTEXITCODE"
             Write-Host "== electron-builder.log =="
