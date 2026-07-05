@@ -140,7 +140,7 @@ function Header() {
           />
         </Link>
         <Link
-          to="/login"
+          to="/download"
           className="group inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full border border-white/15 text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
         >
           Área do Cliente
