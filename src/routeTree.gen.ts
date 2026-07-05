@@ -23,6 +23,7 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CaixaRouteImport } from './routes/caixa'
 import { Route as AssinaturaRouteImport } from './routes/assinatura'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
 import { Route as ApiPublicNotifyAdminRouteImport } from './routes/api/public/notify-admin'
 
@@ -96,6 +97,11 @@ const AssinaturaRoute = AssinaturaRouteImport.update({
   path: '/assinatura',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   id: '/api/webhooks/mercadopago',
   path: '/api/webhooks/mercadopago',
@@ -108,6 +114,7 @@ const ApiPublicNotifyAdminRoute = ApiPublicNotifyAdminRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/assinatura': typeof AssinaturaRoute
   '/caixa': typeof CaixaRoute
   '/clientes': typeof ClientesRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/assinatura': typeof AssinaturaRoute
   '/caixa': typeof CaixaRoute
   '/clientes': typeof ClientesRoute
@@ -145,6 +153,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/assinatura': typeof AssinaturaRoute
   '/caixa': typeof CaixaRoute
   '/clientes': typeof ClientesRoute
@@ -165,6 +174,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/assinatura'
     | '/caixa'
     | '/clientes'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/mercadopago'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/assinatura'
     | '/caixa'
     | '/clientes'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/mercadopago'
   id:
     | '__root__'
+    | '/'
     | '/assinatura'
     | '/caixa'
     | '/clientes'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AssinaturaRoute: typeof AssinaturaRoute
   CaixaRoute: typeof CaixaRoute
   ClientesRoute: typeof ClientesRoute
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssinaturaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/mercadopago': {
       id: '/api/webhooks/mercadopago'
       path: '/api/webhooks/mercadopago'
@@ -356,6 +376,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AssinaturaRoute: AssinaturaRoute,
   CaixaRoute: CaixaRoute,
   ClientesRoute: ClientesRoute,
