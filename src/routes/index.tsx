@@ -12,7 +12,8 @@ import {
   PlayCircle,
   Plus,
 } from "lucide-react";
-import logoLight from "@/assets/orvix-logo-light.png";
+import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
+const logoLight = logoAsset.url;
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
