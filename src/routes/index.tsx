@@ -358,7 +358,9 @@ const FEATURES = [
 
 function Bento() {
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-32">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-36">
+      <div aria-hidden className="orvix-mesh-a absolute top-10 -left-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
+      <div aria-hidden className="orvix-mesh-b absolute bottom-10 -right-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
       <div
         aria-hidden
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] orvix-glow-soft pointer-events-none"
@@ -466,11 +468,13 @@ const PLANS = [
 
 function Pricing() {
   return (
-    <section id="planos" className="relative px-5 sm:px-8 py-24 sm:py-32 border-t border-white/[0.05]">
+    <section id="planos" className="relative px-5 sm:px-8 py-28 sm:py-36 border-t border-[#141414]">
       <div
         aria-hidden
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] orvix-glow-radial pointer-events-none"
       />
+      <div aria-hidden className="orvix-mesh-a absolute top-1/3 -right-32 w-[560px] h-[560px] pointer-events-none rounded-full" />
+      <div aria-hidden className="orvix-mesh-b absolute bottom-0 -left-24 w-[480px] h-[480px] pointer-events-none rounded-full" />
 
       <div className="relative max-w-7xl mx-auto">
         <Reveal>
@@ -551,7 +555,8 @@ function Pricing() {
 
 function Guarantee() {
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-28">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-32">
+      <div aria-hidden className="orvix-mesh-a absolute top-0 left-1/4 w-[420px] h-[420px] pointer-events-none rounded-full" />
       <div className="relative max-w-4xl mx-auto">
         <Reveal>
           <div className="orvix-card relative rounded-3xl p-10 sm:p-14 overflow-hidden">
@@ -610,11 +615,12 @@ const FAQ_ITEMS = [
 function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section className="relative px-5 sm:px-8 py-24 sm:py-28">
+    <section className="relative px-5 sm:px-8 py-28 sm:py-32">
       <div
         aria-hidden
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] orvix-glow-soft pointer-events-none opacity-60"
       />
+      <div aria-hidden className="orvix-mesh-b absolute top-10 -right-24 w-[420px] h-[420px] pointer-events-none rounded-full" />
       <div className="relative max-w-3xl mx-auto">
         <Reveal>
           <div className="text-center mb-12 sm:mb-16">
