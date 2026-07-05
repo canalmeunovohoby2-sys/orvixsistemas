@@ -563,7 +563,26 @@ export function VendasPage() {
           ? { customer: companyCustomers.find((c) => c.id === customerId)?.name }
           : undefined,
       });
-      printHTML(html);
+      // Preferência: imprimir direto via QZ Tray (sem diálogo). Caso o driver
+      // não esteja rodando ou nenhuma impressora esteja configurada,
+      // recorremos ao fallback silencioso via iframe.
+      const printer = getSelectedPrinter(cid);
+      const qzReady = getQzStatus() === "connected" && !!printer;
+      if (qzReady) {
+        void printReceiptHtml(printer!, html).then((ok) => {
+          if (!ok) {
+            toast.warning("Impressora não conectada. Verifique se o QZ Tray está aberto.");
+            printHTML(html);
+          }
+        });
+      } else {
+        if (!printer) {
+          toast.message("Impressão manual", {
+            description: "Configure o QZ Tray em Configurações para imprimir sem cliques.",
+          });
+        }
+        printHTML(html);
+      }
     }
 
     setCart([]);
