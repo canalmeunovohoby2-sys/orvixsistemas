@@ -42,7 +42,7 @@ const STATUS_BADGE: Record<FinancialStatus, string> = {
 function FinanceiroPage() {
   useMockStore();
   const { user } = useSaaS();
-  const cid = user?.companyId ?? "EMP001";
+  const cid = user?.companyId ?? null;
   const all = getCompanyFinancialRecords(cid);
 
   const [tab, setTab] = useState<"all" | FinancialType>("all");
