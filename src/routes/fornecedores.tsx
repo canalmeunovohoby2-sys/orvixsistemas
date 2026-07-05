@@ -79,6 +79,7 @@ function FornecedoresPage() {
         <SupplierFormModal
           onClose={() => setOpen(false)}
           onSave={(data) => {
+            if (!cid) { toast.error("Empresa não identificada."); return; }
             const s = addSupplier(cid, data);
             toast.success(`Fornecedor "${s.name}" cadastrado.`);
             setOpen(false);
