@@ -143,7 +143,7 @@ export function AppShell({ children, title, breadcrumb }: { children: React.Reac
           </div>
           <div className="flex-1 md:hidden" />
 
-          <HelpCenter />
+          {!isCashier && <HelpCenter />}
           <ThemeToggle />
 
           <UserMenu />
