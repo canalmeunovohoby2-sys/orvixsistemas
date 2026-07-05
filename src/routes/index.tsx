@@ -479,9 +479,9 @@ function EmptyChart({ label }: { label: string }) {
 
 function CriticalAlerts() {
   const { user } = useSaaS();
-  const cid = user?.companyId ?? "EMP001";
+  const cid = user?.companyId ?? null;
   const low = useMemo(
-    () => PRODUCTS.filter((p) => p.company_id === cid && p.stock <= p.minStock),
+    () => (cid ? PRODUCTS.filter((p) => p.company_id === cid && p.stock <= p.minStock) : []),
     [cid],
   );
   const categories = useMemo(
