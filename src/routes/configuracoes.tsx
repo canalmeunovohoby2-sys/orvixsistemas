@@ -374,11 +374,6 @@ const inputCls =
   "w-full h-10 px-3 rounded-md bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/60";
 
 function LogoUploadSection({ cid }: { cid: string }) {
-  void 0;
-  return _LogoUploadSection({ cid });
-}
-
-function _LogoUploadSection({ cid }: { cid: string }) {
   const logo = useCompanyLogo(cid);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
