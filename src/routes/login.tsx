@@ -99,15 +99,17 @@ function LoginPage() {
           <p className="text-muted-foreground max-w-md mb-8">
             Gestão de produtos, estoque, vendas e relatórios — com isolamento total de dados por empresa.
           </p>
-          <ul className="space-y-3 text-sm">
+          <ul className="space-y-3 text-sm mb-10">
             <li className="flex gap-2"><ShieldCheck className="w-4 h-4 mt-0.5 text-primary" /> Controle de acesso por papel (Admin e Caixa)</li>
             <li className="flex gap-2"><Store className="w-4 h-4 mt-0.5 text-primary" /> Cada empresa enxerga apenas seus próprios dados</li>
             <li className="flex gap-2"><ShoppingCart className="w-4 h-4 mt-0.5 text-primary" /> PDV otimizado para operação 100% via teclado</li>
           </ul>
+          <DownloadInstallerCard variant="promo" />
         </section>
 
         <section className="flex items-center justify-center p-6">
           <form onSubmit={submit} className="w-full max-w-md space-y-5">
+            <DownloadInstallerCard variant="inline" />
             <div className="space-y-4">
               <div className="flex justify-center lg:justify-start">
                 <div
