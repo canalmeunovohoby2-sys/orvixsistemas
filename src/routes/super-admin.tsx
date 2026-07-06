@@ -333,6 +333,20 @@ function CompaniesTab() {
   const STATUS_OPTS: SubscriptionStatus[] = ["active", "trial", "pending", "blocked", "canceled"];
   const PLAN_OPTS: Plan[] = ["bronze", "prata", "ouro"];
 
+  // "Now" que reavalia o status online/offline a cada 30s sem refetch da lista.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  // Considera "online" quando updated_at (proxy de última atividade) < 5 min.
+  const ONLINE_WINDOW_MS = 5 * 60_000;
+  const isOnline = (iso?: string) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return Number.isFinite(t) && now - t < ONLINE_WINDOW_MS;
+  };
+
   return (
     <>
       <div className="flex items-end justify-between flex-wrap gap-3">
@@ -389,7 +403,31 @@ function CompaniesTab() {
               {companies.map((c) => (
                 <tr key={c.id} className="border-t border-border align-middle">
                   <td className="px-4 py-3">
-                    <div className="font-semibold">{c.fantasia}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                          isOnline(c.updatedAt)
+                            ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+                            : "bg-muted-foreground/40"
+                        }`}
+                        title={
+                          isOnline(c.updatedAt)
+                            ? "Online — atividade nos últimos 5 minutos"
+                            : "Offline — sem sincronização recente"
+                        }
+                        aria-label={isOnline(c.updatedAt) ? "Online" : "Offline"}
+                      />
+                      <span className="font-semibold">{c.fantasia}</span>
+                      {c.status === "trial" && (
+                        <span
+                          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-[10px] font-semibold uppercase tracking-wide"
+                          title="Cliente em período de teste de 7 dias"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Teste 7 dias
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">{c.razaoSocial}</div>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{c.cnpj}</td>
