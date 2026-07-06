@@ -38,7 +38,8 @@ export function SupportTicketModal({ open, onClose }: { open: boolean; onClose: 
     });
     setSaving(false);
     if (error) {
-      toast.error("Não foi possível enviar o chamado. Tente novamente.");
+      console.error("[support_tickets:insert]", error);
+      toast.error(`Não foi possível enviar o chamado: ${error.message}`);
       return;
     }
     toast.success("Requisição enviada! Nossa equipe responderá em breve.");
