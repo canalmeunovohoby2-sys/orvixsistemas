@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Download, ShieldCheck, Printer, Zap, Cpu, RefreshCw, Monitor, ArrowLeft, LogIn } from "lucide-react";
+import { Download, ShieldCheck, Printer, Zap, Cpu, RefreshCw, Monitor, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import logoDark from "@/assets/orvix-logo-dark.png.asset.json";
 
@@ -79,13 +79,7 @@ function DownloadPage() {
           <Link to="/" className="flex items-center">
             <img src={logoDark.url} alt="ORVIX SISTEMAS" className="h-7 sm:h-9 w-auto" />
           </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full border border-white/15 text-xs sm:text-sm font-medium text-white/80 hover:text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-colors"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            Entrar
-          </Link>
+          <span aria-hidden className="w-[72px]" />
         </div>
       </header>
 
