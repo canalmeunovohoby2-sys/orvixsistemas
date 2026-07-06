@@ -75,13 +75,13 @@ export function CrossMarquee() {
       {/* Faixa 1: diagonal, direita -> esquerda */}
       <div aria-hidden className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[-8deg] sm:rotate-[-12deg]">
         <div className="border-y border-neutral-200 bg-white/70 backdrop-blur-[2px] py-3 sm:py-4">
-          <Row direction={1} duration={22} variant="light" />
+          <Row direction={1} duration={48} variant="light" />
         </div>
       </div>
       {/* Faixa 2: diagonal oposta, esquerda -> direita */}
       <div aria-hidden className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[8deg] sm:rotate-[12deg]">
         <div className="border-y border-[#850405]/20 bg-[#850405] text-white py-3 sm:py-4">
-          <Row direction={-1} duration={20} variant="dark" />
+          <Row direction={-1} duration={44} variant="dark" />
         </div>
       </div>
       {/* Fade laterais */}
@@ -89,9 +89,9 @@ export function CrossMarquee() {
       <div aria-hidden className="absolute inset-y-0 right-0 w-16 sm:w-28 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
 
       {/* Título de âncora centralizado sobre o cruzamento do X */}
-      <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-        <div className="pointer-events-auto rounded-full border border-white/60 bg-white/60 backdrop-blur-xl px-5 sm:px-8 py-2.5 sm:py-3.5 shadow-[0_10px_40px_-10px_rgba(133,4,5,0.35)]">
-          <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] uppercase text-[#850405]">
+      <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div className="pointer-events-auto rounded-full border border-neutral-200 bg-white px-6 sm:px-10 py-3 sm:py-4 shadow-[0_20px_60px_-15px_rgba(133,4,5,0.35),0_0_0_6px_rgba(255,255,255,0.9)]">
+          <span className="text-xs sm:text-sm font-bold tracking-[0.25em] uppercase text-[#850405]">
             Vantagens Exclusivas ORVIX
           </span>
         </div>
