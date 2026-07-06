@@ -5,6 +5,7 @@
 appId: com.orvixsistemas.app
 productName: ORVIX Sistemas
 copyright: © 2026 ORVIX SISTEMAS
+artifactName: OrvixSistemasSetup.${ext}
 
 directories:
   output: dist-electron
@@ -24,10 +25,8 @@ publish:
 
 win:
   target:
-    - target: nsis
-      arch: [x64]
+    - nsis
   icon: electron/assets/icon.ico
-  artifactName: OrvixSistemasSetup.${ext}
   publisherName: ORVIX SISTEMAS
   # Descomente após emitir certificado Authenticode:
   # certificateFile: ./signing/orvix.pfx
