@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { Mail, Sparkles, X, Loader2, ShieldCheck } from "lucide-react";
+import { Mail, Sparkles, X, Loader2, ShieldCheck, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { startTrial } from "@/lib/trial.functions";
+
+function maskWhatsapp(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function isValidWhatsapp(masked: string) {
+  const d = masked.replace(/\D/g, "");
+  return d.length === 10 || d.length === 11;
+}
 
 /**
  * Modal de cadastro do Acesso de Teste (7 dias).
@@ -20,6 +32,8 @@ export function TrialSignupModal({
   onActivated: (email: string, daysLeft: number) => void;
 }) {
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const startTrialFn = useServerFn(startTrial);
 
@@ -35,9 +49,19 @@ export function TrialSignupModal({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    if (fullName.trim().length < 3) {
+      toast.error("Informe seu nome completo.");
+      return;
+    }
+    if (!isValidWhatsapp(whatsapp)) {
+      toast.error("WhatsApp inválido. Use o formato (XX) 9XXXX-XXXX.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await startTrialFn({ data: { email } });
+      const res = await startTrialFn({
+        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
+      });
       if (!res.ok) {
         toast.error(res.reason ?? "Falha ao iniciar o teste.");
         return;
@@ -93,13 +117,48 @@ export function TrialSignupModal({
         <div className="px-6 py-5 space-y-4">
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Nome completo
+            </span>
+            <div className="relative">
+              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                required
+                autoFocus
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ex: João Silva"
+                className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              WhatsApp
+            </span>
+            <div className="relative">
+              <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="tel"
+                required
+                inputMode="numeric"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(maskWhatsapp(e.target.value))}
+                placeholder="(11) 9XXXX-XXXX"
+                className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Seu e-mail
             </span>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="email"
-                autoFocus
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
