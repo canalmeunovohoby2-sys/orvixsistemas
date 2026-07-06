@@ -3,7 +3,6 @@ productName: ORVIX Sistemas
 copyright: © 2026 ORVIX SISTEMAS
 artifactName: OrvixSistemasSetup.${ext}
 
-# Define o formato de saída e diretórios
 directories:
   output: dist-installer
   buildResources: electron/assets
@@ -24,3 +23,9 @@ nsis:
   installerIcon: electron/assets/icon.ico
   uninstallerIcon: electron/assets/icon.ico
   uninstallDisplayName: ORVIX Sistemas
+
+files:
+  - from: .
+    filter:
+      - package.json
+      - electron/**/*
