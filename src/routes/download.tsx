@@ -10,8 +10,8 @@ import logoDark from "@/assets/orvix-logo-dark.png.asset.json";
  * negócio. Clique no botão dispara o download imediatamente.
  */
 const INSTALLER_URL =
-  "/__l5e/assets-v1/ef40e92f-569d-4917-9c9f-d6e319eae7e1/OrvixSistemas-Windows.zip";
-const INSTALLER_FILENAME = "OrvixSistemas-Windows.zip";
+  "https://drive.google.com/uc?export=download&id=19ze1QZeFptEGt1bQnG5jaEYVltDwI5vy";
+const INSTALLER_FILENAME = "OrvixSistemasSetup.exe";
 
 export const Route = createFileRoute("/download")({
   head: () => ({
@@ -55,6 +55,7 @@ function DownloadPage() {
       a.href = INSTALLER_URL;
       a.download = INSTALLER_FILENAME;
       a.rel = "noopener";
+      a.target = "_self";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -116,7 +117,7 @@ function DownloadPage() {
             >
               <Download className="w-5 h-5" />
               Baixar Instalador ORVIX Sistemas
-              <span className="ml-1 text-xs opacity-80">(.zip · Windows)</span>
+              <span className="ml-1 text-xs opacity-80">(.exe · Windows)</span>
             </a>
           </div>
 
