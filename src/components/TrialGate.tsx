@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
-import { Lock, CreditCard, Sparkles } from "lucide-react";
+import { Lock, CreditCard, Sparkles, AlertTriangle, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { checkTrialStatus } from "@/lib/trial.functions";
 import { useSaaS } from "@/lib/saas-context";
@@ -9,6 +9,7 @@ import { useSaaS } from "@/lib/saas-context";
 export const TRIAL_EMAIL_KEY = "orvix_trial_email";
 export const TRIAL_ACTIVE_KEY = "orvix_trial_active"; // "1" enquanto sessão de teste em uso
 const CHECK_INTERVAL_MS = 60_000; // reverifica a cada 60s
+const WARN_24H_ACK_KEY = "orvix_trial_warn24_ack"; // dismissal por sessão
 
 /**
  * Gate global de expiração do Acesso de Teste (7 dias).
@@ -27,7 +28,16 @@ export function TrialGate() {
   const check = useServerFn(checkTrialStatus);
 
   const [email, setEmail] = useState<string | null>(null);
-  const [state, setState] = useState<{ daysLeft: number; expired: boolean } | null>(null);
+  const [state, setState] = useState<
+    { daysLeft: number; hoursLeft: number; expired: boolean; expiresAt: string } | null
+  >(null);
+  const [warn24Dismissed, setWarn24Dismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(WARN_24H_ACK_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
 
   // Lê a chave de teste no mount.
   useEffect(() => {
@@ -55,10 +65,17 @@ export function TrialGate() {
       const res = await check({ data: { email } });
       if (!res.ok) {
         // Registro inválido — encerra o modo teste com segurança.
-        setState({ daysLeft: 0, expired: true });
+        setState({ daysLeft: 0, hoursLeft: 0, expired: true, expiresAt: new Date().toISOString() });
         return;
       }
-      setState({ daysLeft: res.daysLeft, expired: res.expired });
+      const msLeft = Math.max(0, new Date(res.expiresAt).getTime() - new Date(res.serverNow).getTime());
+      const hoursLeft = Math.ceil(msLeft / 3_600_000);
+      setState({
+        daysLeft: res.daysLeft,
+        hoursLeft,
+        expired: res.expired,
+        expiresAt: res.expiresAt,
+      });
     } catch (e) {
       console.warn("[TrialGate] checkTrialStatus falhou", e);
     }
@@ -71,10 +88,11 @@ export function TrialGate() {
     return () => window.clearInterval(id);
   }, [email, runCheck]);
 
-  // Redireciona para a tela de planos quando expira.
+  // Redireciona para a tela de planos quando expira — bloqueio total. Só permite
+  // ficar na própria tela de planos, na landing e na área de download.
   useEffect(() => {
     if (!email || !state?.expired) return;
-    if (pathname === "/assinatura" || pathname === "/login" || pathname === "/" || pathname === "/download") return;
+    if (pathname === "/assinatura" || pathname === "/" || pathname === "/download") return;
     navigate({ to: "/assinatura" });
   }, [email, state?.expired, pathname, navigate]);
 
@@ -82,7 +100,21 @@ export function TrialGate() {
   if (!email) return null;
 
   // Trial expirado → bloqueio total (não dispensável). Também protege rotas internas.
+  // Na tela de planos exibimos um banner topo persistente; nas demais o modal fullscreen.
   if (state?.expired) {
+    if (pathname === "/assinatura") {
+      return (
+        <div className="fixed top-0 left-0 right-0 z-[80] bg-gradient-to-r from-red-700 to-red-900 text-white shadow-lg">
+          <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-3 text-sm">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span className="flex-1 leading-tight">
+              <strong>Acesso bloqueado.</strong> Seu teste de 7 dias terminou —
+              contrate um plano abaixo para reativar o software.
+            </span>
+          </div>
+        </div>
+      );
+    }
     return (
       <AlertDialog open>
         <AlertDialogContent className="bg-zinc-950 border-red-900/60 text-zinc-100">
@@ -95,7 +127,7 @@ export function TrialGate() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-zinc-400">
               Os 7 dias grátis do ORVIX Sistemas para <strong>{email}</strong> expiraram.
-              Contrate um dos planos para continuar usando o software.
+              O software está bloqueado — contrate um plano mensal para continuar usando.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">
@@ -111,17 +143,75 @@ export function TrialGate() {
     );
   }
 
-  // Trial ativo → badge discreto flutuante com dias restantes.
-  if (state && !state.expired && pathname !== "/" && pathname !== "/download") {
-    return (
-      <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
-        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[#850405]/40 bg-black/80 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-          <Sparkles className="w-3.5 h-3.5 text-[#e94f4f]" />
-          Teste: {state.daysLeft} {state.daysLeft === 1 ? "dia restante" : "dias restantes"}
-        </div>
-      </div>
-    );
-  }
+  // Trial ativo → badge + alerta de 24h quando aplicável.
+  const showOnRoute = pathname !== "/" && pathname !== "/download";
+  if (!state || !showOnRoute) return null;
 
-  return null;
+  const in24hWindow = state.daysLeft === 1 || state.hoursLeft <= 24;
+  const badgeAccent = in24hWindow
+    ? "border-amber-500/70 bg-amber-500/15 text-amber-100"
+    : "border-[#850405]/40 bg-black/80 text-white";
+
+  return (
+    <>
+      <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/assinatura" })}
+          className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border backdrop-blur-md px-3 py-1.5 text-xs font-semibold shadow-lg hover:brightness-110 transition ${badgeAccent}`}
+        >
+          {in24hWindow ? (
+            <AlertTriangle className="w-3.5 h-3.5" />
+          ) : (
+            <Sparkles className="w-3.5 h-3.5 text-[#e94f4f]" />
+          )}
+          Teste: {state.hoursLeft <= 24
+            ? `${state.hoursLeft}h restantes`
+            : `${state.daysLeft} ${state.daysLeft === 1 ? "dia restante" : "dias restantes"}`}
+          <ArrowRight className="w-3 h-3 opacity-70" />
+        </button>
+      </div>
+
+      {in24hWindow && !warn24Dismissed && pathname !== "/assinatura" && (
+        <AlertDialog open>
+          <AlertDialogContent className="bg-zinc-950 border-amber-500/50 text-zinc-100">
+            <AlertDialogHeader>
+              <div className="mx-auto mb-2 grid place-items-center w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-700">
+                <AlertTriangle className="w-6 h-6 text-white" />
+              </div>
+              <AlertDialogTitle className="text-center text-zinc-50">
+                Seu período de teste vence em 24 horas
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center text-zinc-400">
+                Faltam aproximadamente <strong>{state.hoursLeft}h</strong> para o
+                bloqueio total do software. Garanta o seu acesso agora contratando
+                um dos planos mensais — sem perder nenhum dado da sua operação.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-center gap-2">
+              <button
+                onClick={() => {
+                  try { sessionStorage.setItem(WARN_24H_ACK_KEY, "1"); } catch { /* ok */ }
+                  setWarn24Dismissed(true);
+                }}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-md border border-zinc-700 text-zinc-200 font-medium hover:bg-zinc-900 transition"
+              >
+                Lembrar mais tarde
+              </button>
+              <button
+                onClick={() => {
+                  try { sessionStorage.setItem(WARN_24H_ACK_KEY, "1"); } catch { /* ok */ }
+                  setWarn24Dismissed(true);
+                  navigate({ to: "/assinatura" });
+                }}
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-md bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow hover:from-amber-400 hover:to-orange-500 transition"
+              >
+                <CreditCard className="w-4 h-4" /> Contratar plano mensal
+              </button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
+  );
 }
