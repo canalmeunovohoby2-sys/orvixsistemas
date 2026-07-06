@@ -285,7 +285,7 @@ function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
         </Reveal>
 
         <Reveal delay={240}>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
             <a
               href="#planos"
               className="group orvix-btn-primary inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white font-semibold text-sm"
@@ -301,6 +301,13 @@ function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
               <Sparkles className="w-4 h-4 text-[#ff5a5b]" />
               Teste Grátis (7 dias)
             </button>
+            <Link
+              to="/download"
+              className="group orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm"
+            >
+              <Download className="w-4 h-4 text-[#ff5a5b]" />
+              Área do Cliente
+            </Link>
           </div>
         </Reveal>
 
