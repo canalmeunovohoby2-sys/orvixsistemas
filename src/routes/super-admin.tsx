@@ -24,7 +24,9 @@ import {
 } from "lucide-react";
 import { Send, Megaphone, Clock, Phone } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { listRemarketingLeads, sendRemarketingEmail, type RemarketingLead } from "@/lib/remarketing.functions";
+import { listRemarketingLeads, sendRemarketingEmail, deleteRemarketingLead, type RemarketingLead } from "@/lib/remarketing.functions";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { MessageCircle, CalendarX2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
