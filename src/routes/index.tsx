@@ -277,12 +277,6 @@ function Hero() {
               Ver planos e preços
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <Link
-              to="/login"
-              className="orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-medium text-sm"
-            >
-              Acessar minha conta
-            </Link>
           </div>
         </Reveal>
 
