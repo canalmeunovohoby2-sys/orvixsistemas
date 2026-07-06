@@ -1,19 +1,23 @@
 import { motion } from "framer-motion";
 
 const ITEMS = [
-  "Impressão Silenciosa",
-  "Offline-First",
+  "PDV de Alta Performance",
+  "Impressão Silenciosa e Automática",
+  "Modo Offline-First (Não pare de vender)",
   "Sincronização em Tempo Real",
-  "Segurança Bancária",
-  "Suporte Especializado",
-  "Gestão Multi-terminal",
+  "Painel de Gestão Administrativa",
+  "Suporte Técnico Especializado",
+  "Gestão de Estoque Inteligente",
+  "Interface Intuitiva e Moderna",
+  "Segurança de Dados com Criptografia",
+  "Atualizações Automáticas",
 ];
 
-function Row({ direction = 1, duration = 28 }: { direction?: 1 | -1; duration?: number }) {
+function Row({ direction = 1, duration = 12 }: { direction?: 1 | -1; duration?: number }) {
   const loop = [...ITEMS, ...ITEMS, ...ITEMS];
   return (
     <motion.div
-      className="flex gap-10 whitespace-nowrap will-change-transform"
+      className="flex gap-16 sm:gap-20 whitespace-nowrap will-change-transform"
       animate={{ x: direction === 1 ? ["0%", "-50%"] : ["-50%", "0%"] }}
       transition={{ duration, ease: "linear", repeat: Infinity }}
     >
@@ -46,16 +50,16 @@ export function CrossMarquee() {
       {/* Faixa 1: diagonal, direita -> esquerda */}
       <div className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[-8deg] sm:rotate-[-12deg]">
         <div className="border-y border-neutral-200 bg-white/70 backdrop-blur-[2px] py-3 sm:py-4">
-          <Row direction={1} duration={32} />
+          <Row direction={1} duration={14} />
         </div>
       </div>
       {/* Faixa 2: diagonal oposta, esquerda -> direita */}
       <div className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[8deg] sm:rotate-[12deg]">
         <div className="border-y border-[#850405]/20 bg-[#850405] text-white py-3 sm:py-4">
           <motion.div
-            className="flex gap-10 whitespace-nowrap will-change-transform"
+            className="flex gap-16 sm:gap-20 whitespace-nowrap will-change-transform"
             animate={{ x: ["-50%", "0%"] }}
-            transition={{ duration: 28, ease: "linear", repeat: Infinity }}
+            transition={{ duration: 12, ease: "linear", repeat: Infinity }}
           >
             {[...ITEMS, ...ITEMS, ...ITEMS].map((t, i) => (
               <span
@@ -70,8 +74,8 @@ export function CrossMarquee() {
         </div>
       </div>
       {/* Fade laterais */}
-      <div className="absolute inset-y-0 left-0 w-16 sm:w-24 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-16 sm:w-24 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+      <div className="absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none z-10" />
+      <div className="absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none z-10" />
     </div>
   );
 }
