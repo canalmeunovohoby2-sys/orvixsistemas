@@ -407,6 +407,8 @@ function Bento() {
           </div>
         </Reveal>
 
+        <CrossMarquee />
+
         <div className="grid grid-cols-1 md:grid-cols-4 md:auto-rows-[minmax(220px,auto)] gap-4 sm:gap-5">
           {FEATURES.map((f, i) => {
             const Icon = f.icon;
