@@ -22,6 +22,9 @@ import {
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
   LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
+import { Send, Megaphone, Clock } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { listRemarketingLeads, sendRemarketingEmail, type RemarketingLead } from "@/lib/remarketing.functions";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -58,7 +61,7 @@ function SuperAdminEmailGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "config";
+type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "remarketing" | "config";
 
 function SuperAdminPage() {
   useMockStore();
@@ -113,6 +116,7 @@ function SuperAdminPage() {
     { id: "empresas",  label: "Empresas",     icon: Building2 },
     { id: "auditoria", label: "Auditoria",    icon: ShieldCheck },
     { id: "suporte",   label: "Suporte",      icon: LifeBuoy },
+    { id: "remarketing", label: "Remarketing", icon: Megaphone },
     { id: "config",    label: "Configurações",icon: Settings },
   ];
 
@@ -189,6 +193,7 @@ function SuperAdminPage() {
         {tab === "empresas"  && <CompaniesTab />}
         {tab === "auditoria" && <AuditTab />}
         {tab === "suporte"   && <SupportTab />}
+        {tab === "remarketing" && <RemarketingTab />}
         {tab === "config"    && <SettingsTab />}
       </main>
       {pwdModal && (
