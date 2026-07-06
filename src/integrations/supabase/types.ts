@@ -395,6 +395,7 @@ export type Database = {
       }
       trial_accounts: {
         Row: {
+          contacted_at: string | null
           created_at: string
           email: string
           id: string
@@ -404,6 +405,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contacted_at?: string | null
           created_at?: string
           email: string
           id?: string
@@ -413,6 +415,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contacted_at?: string | null
           created_at?: string
           email?: string
           id?: string

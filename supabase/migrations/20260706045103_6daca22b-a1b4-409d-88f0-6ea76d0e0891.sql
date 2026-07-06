@@ -1,0 +1,1 @@
+ALTER TABLE public.trial_accounts ADD COLUMN IF NOT EXISTS contacted_at timestamptz;
