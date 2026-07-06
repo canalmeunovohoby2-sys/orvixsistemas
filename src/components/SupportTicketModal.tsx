@@ -29,16 +29,17 @@ export function SupportTicketModal({ open, onClose }: { open: boolean; onClose: 
     setSaving(true);
     const { error } = await supabase.from("support_tickets").insert({
       company_id: company.id,
-      company_name: company.fantasia,
+      company_name: (company.fantasia || "Empresa").slice(0, 140),
       user_id: user.id,
-      requester_name: user.name,
+      requester_name: (user.name || user.email || "Usuário").slice(0, 140),
       subject: s.slice(0, 140),
       message: m.slice(0, 4000),
       priority,
     });
     setSaving(false);
     if (error) {
-      toast.error("Não foi possível enviar o chamado. Tente novamente.");
+      console.error("[support_tickets:insert]", error);
+      toast.error(`Não foi possível enviar o chamado: ${error.message}`);
       return;
     }
     toast.success("Requisição enviada! Nossa equipe responderá em breve.");
