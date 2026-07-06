@@ -1,16 +1,16 @@
 appId: com.orvixsistemas.app
 productName: ORVIX Sistemas
-copyright: © 2026 ORVIX SISTEMAS
 artifactName: OrvixSistemasSetup.${ext}
 
 directories:
   output: dist-installer
   buildResources: electron/assets
 
-win:
-  target: nsis
-  icon: electron/assets/icon.ico
-  publisherName: ORVIX SISTEMAS
+files:
+  - from: .
+    filter:
+      - package.json
+      - electron/**/*
 
 nsis:
   oneClick: false
@@ -23,9 +23,3 @@ nsis:
   installerIcon: electron/assets/icon.ico
   uninstallerIcon: electron/assets/icon.ico
   uninstallDisplayName: ORVIX Sistemas
-
-files:
-  - from: .
-    filter:
-      - package.json
-      - electron/**/*
