@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const ITEMS = [
+const ADVANTAGES: readonly string[] = [
   "PDV de Alta Performance",
   "Impressão Silenciosa e Automática",
   "Modo Offline-First (Venda sem Internet)",
@@ -13,23 +13,46 @@ const ITEMS = [
   "Atualizações Automáticas",
   "Relatórios de Lucro e Vendas",
   "Suporte a Leitores de Código de Barras",
-];
+] as const;
 
-function Row({ direction = 1, duration = 7 }: { direction?: 1 | -1; duration?: number }) {
-  const loop = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
+// Triplicamos o array para garantir loop infinito sem espaços vazios.
+// A translação usa -33.3333% (1/3), então o final da 1ª cópia encosta
+// exatamente no início da 2ª — seamless loop com TODOS os 12 itens visíveis.
+const LOOP_ITEMS: string[] = [...ADVANTAGES, ...ADVANTAGES, ...ADVANTAGES];
+const LOOP_SHIFT = "-33.3333%";
+
+function Row({
+  direction = 1,
+  duration = 22,
+  variant = "light",
+}: {
+  direction?: 1 | -1;
+  duration?: number;
+  variant?: "light" | "dark";
+}) {
+  const isDark = variant === "dark";
   return (
     <motion.div
-      className="flex gap-14 sm:gap-20 whitespace-nowrap will-change-transform"
-      animate={{ x: direction === 1 ? ["0%", "-50%"] : ["-50%", "0%"] }}
+      className="flex min-w-max gap-14 sm:gap-20 whitespace-nowrap will-change-transform"
+      animate={{
+        x: direction === 1 ? ["0%", LOOP_SHIFT] : [LOOP_SHIFT, "0%"],
+      }}
       transition={{ duration, ease: "linear", repeat: Infinity }}
     >
-      {loop.map((t, i) => (
+      {LOOP_ITEMS.map((t, i) => (
         <span
-          key={i}
-          className="inline-flex items-center gap-5 text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-neutral-900"
+          key={`${variant}-${i}-${t}`}
+          className={`inline-flex shrink-0 items-center gap-5 text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight ${
+            isDark ? "text-white" : "text-neutral-900"
+          }`}
         >
           {t}
-          <span aria-hidden className="inline-block w-2 h-2 rounded-full bg-[#850405]/70" />
+          <span
+            aria-hidden
+            className={`inline-block w-2 h-2 rounded-full ${
+              isDark ? "bg-white/70" : "bg-[#850405]/70"
+            }`}
+          />
         </span>
       ))}
     </motion.div>
@@ -52,32 +75,18 @@ export function CrossMarquee() {
       {/* Faixa 1: diagonal, direita -> esquerda */}
       <div aria-hidden className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[-8deg] sm:rotate-[-12deg]">
         <div className="border-y border-neutral-200 bg-white/70 backdrop-blur-[2px] py-3 sm:py-4">
-          <Row direction={1} duration={8} />
+          <Row direction={1} duration={22} variant="light" />
         </div>
       </div>
       {/* Faixa 2: diagonal oposta, esquerda -> direita */}
       <div aria-hidden className="absolute inset-x-[-20%] top-1/2 -translate-y-1/2 rotate-[8deg] sm:rotate-[12deg]">
         <div className="border-y border-[#850405]/20 bg-[#850405] text-white py-3 sm:py-4">
-          <motion.div
-            className="flex gap-14 sm:gap-20 whitespace-nowrap will-change-transform"
-            animate={{ x: ["-50%", "0%"] }}
-            transition={{ duration: 7, ease: "linear", repeat: Infinity }}
-          >
-            {[...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS].map((t, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-5 text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white"
-              >
-                {t}
-                <span aria-hidden className="inline-block w-2 h-2 rounded-full bg-white/70" />
-              </span>
-            ))}
-          </motion.div>
+          <Row direction={-1} duration={20} variant="dark" />
         </div>
       </div>
       {/* Fade laterais */}
-      <div aria-hidden className="absolute inset-y-0 left-0 w-32 sm:w-56 bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none z-10" />
-      <div aria-hidden className="absolute inset-y-0 right-0 w-32 sm:w-56 bg-gradient-to-l from-white via-white/90 to-transparent pointer-events-none z-10" />
+      <div aria-hidden className="absolute inset-y-0 left-0 w-16 sm:w-28 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+      <div aria-hidden className="absolute inset-y-0 right-0 w-16 sm:w-28 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
 
       {/* Título de âncora centralizado sobre o cruzamento do X */}
       <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
