@@ -13,7 +13,7 @@
  *   - Bridge segura (contextIsolation + preload) exposta em window.orvix.
  */
 
-const { app, BrowserWindow, ipcMain, shell, session } = require("electron");
+const { app, BrowserWindow, Menu, MenuItem, ipcMain, shell, session } = require("electron");
 const path = require("node:path");
 
 const APP_URL = process.env.ORVIX_APP_URL || "https://orvixsistemas.lovable.app/login";
@@ -50,6 +50,41 @@ function createWindow() {
   });
 
   mainWindow.removeMenu();
+
+  // Menu de contexto nativo (Copiar / Colar / Recortar / Selecionar tudo /
+  // Desfazer / Refazer). Essencial para que o operador consiga colar
+  // credenciais e editar campos de input dentro do app instalado.
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    const { editFlags, isEditable, selectionText, misspelledWord, dictionarySuggestions } = params;
+    const menu = new Menu();
+
+    if (misspelledWord && Array.isArray(dictionarySuggestions) && dictionarySuggestions.length) {
+      for (const suggestion of dictionarySuggestions) {
+        menu.append(new MenuItem({
+          label: suggestion,
+          click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
+        }));
+      }
+      menu.append(new MenuItem({ type: "separator" }));
+    }
+
+    if (isEditable) {
+      menu.append(new MenuItem({ role: "undo", enabled: editFlags.canUndo }));
+      menu.append(new MenuItem({ role: "redo", enabled: editFlags.canRedo }));
+      menu.append(new MenuItem({ type: "separator" }));
+    }
+    menu.append(new MenuItem({ role: "cut", enabled: editFlags.canCut }));
+    menu.append(new MenuItem({ role: "copy", enabled: editFlags.canCopy || !!selectionText }));
+    menu.append(new MenuItem({ role: "paste", enabled: editFlags.canPaste }));
+    if (isEditable) {
+      menu.append(new MenuItem({ role: "pasteAndMatchStyle", enabled: editFlags.canPaste }));
+      menu.append(new MenuItem({ role: "delete", enabled: editFlags.canDelete }));
+    }
+    menu.append(new MenuItem({ type: "separator" }));
+    menu.append(new MenuItem({ role: "selectAll", enabled: editFlags.canSelectAll }));
+
+    if (mainWindow) menu.popup({ window: mainWindow });
+  });
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
@@ -155,6 +190,14 @@ app.on("window-all-closed", () => {
 });
 
 app.whenReady().then(() => {
+  // Menu de aplicação oculto (autoHideMenuBar), mas com o role "editMenu"
+  // registrado — é isso que faz Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Ctrl+Y
+  // funcionarem em qualquer input da aplicação após removeMenu() da janela.
+  const editOnlyMenu = Menu.buildFromTemplate([
+    { role: "editMenu" },
+  ]);
+  Menu.setApplicationMenu(editOnlyMenu);
+
   // Content-Security frame permissions — nada além da origem oficial.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => {
     // Concede acesso a impressoras / clipboard sem prompt (app confiável).
