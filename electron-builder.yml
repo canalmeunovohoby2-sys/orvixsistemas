@@ -3,18 +3,16 @@ productName: ORVIX Sistemas
 copyright: © 2026 ORVIX SISTEMAS
 artifactName: OrvixSistemasSetup.${ext}
 
-# Arquivos incluídos no instalador
-files:
-  - electron/**/*
-  - package.json
+# Define o formato de saída e diretórios
+directories:
+  output: dist-installer
+  buildResources: electron/assets
 
-# Configuração do instalador Windows
-win:
-  target: nsis
-  icon: electron/assets/icon.ico
-  publisherName: ORVIX SISTEMAS
+# Configuração do instalador Windows (NSIS)
+target: nsis
+icon: electron/assets/icon.ico
+publisherName: ORVIX SISTEMAS
 
-# Configuração específica do NSIS
 nsis:
   oneClick: false
   perMachine: false
