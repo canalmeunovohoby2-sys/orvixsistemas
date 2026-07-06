@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 import { useSaaS, type SaaSUser } from "@/lib/saas-context";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
-import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { LogIn, ShieldCheck, Store, ShoppingCart, KeyRound, Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PasswordRules } from "@/components/PasswordRules";
 import { isStrongPassword } from "@/lib/password-policy";
+import { TrialSignupModal } from "@/components/TrialSignupModal";
+import { TRIAL_EMAIL_KEY, TRIAL_ACTIVE_KEY } from "@/components/TrialGate";
+import { TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD } from "@/lib/saas-context";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -26,6 +29,7 @@ function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingUser, setPendingUser] = useState<SaaSUser | null>(null);
+  const [trialOpen, setTrialOpen] = useState(false);
 
   const routeForRole = (role: SaaSUser["role"]) => {
     if (role === "cashier") navigate({ to: "/caixa" });
@@ -75,6 +79,22 @@ function LoginPage() {
     const role = pendingUser.role;
     setPendingUser(null);
     routeForRole(role);
+  };
+
+  const handleTrialActivated = async (trialEmail: string) => {
+    try {
+      localStorage.setItem(TRIAL_EMAIL_KEY, trialEmail);
+      localStorage.setItem(TRIAL_ACTIVE_KEY, "1");
+    } catch { /* storage bloqueado — segue mesmo assim */ }
+    setTrialOpen(false);
+    // Entra no ambiente de demonstração (sandbox isolado). O TrialGate global
+    // continua contando os 7 dias no servidor e bloqueia quando expira.
+    const res = await loginWithCredentials(TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD);
+    if (!res.ok || !res.user) {
+      toast.error("Não foi possível abrir o ambiente de teste. Contate o suporte.");
+      return;
+    }
+    routeForRole(res.user.role);
   };
 
   return (
@@ -162,6 +182,26 @@ function LoginPage() {
               <LogIn className="w-4 h-4" /> Entrar na plataforma
             </button>
 
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center" aria-hidden>
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-3 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  ou experimente antes
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setTrialOpen(true)}
+              className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md border border-primary/40 bg-primary/5 text-foreground font-semibold hover:bg-primary/10 hover:border-primary/60 transition-colors"
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              Acesso de Teste (7 dias)
+            </button>
+
             <p className="text-center text-xs text-muted-foreground">
               Acesso fornecido exclusivamente pela equipe <strong>ORVIX SISTEMAS</strong> após a contratação do plano.
             </p>
@@ -171,6 +211,11 @@ function LoginPage() {
       {pendingUser && (
         <ForcePasswordChangeModal user={pendingUser} onConfirm={handlePasswordUpdated} />
       )}
+      <TrialSignupModal
+        open={trialOpen}
+        onClose={() => setTrialOpen(false)}
+        onActivated={handleTrialActivated}
+      />
     </div>
   );
 }

@@ -343,12 +343,48 @@ export type Database = {
           },
         ]
       }
+      trial_accounts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_trial: boolean
+          last_seen_at: string
+          trial_start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_trial?: boolean
+          last_seen_at?: string
+          trial_start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_trial?: boolean
+          last_seen_at?: string
+          trial_start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       next_company_id: { Args: never; Returns: string }
+      trial_server_now: {
+        Args: never
+        Returns: {
+          now: string
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "cashier"

@@ -5,6 +5,7 @@ import { SaaSProvider } from "@/lib/saas-context";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { SubscriptionExpiryGate } from "@/components/SubscriptionExpiryGate";
+import { TrialGate } from "@/components/TrialGate";
 import { initSalesSync } from "@/lib/sales-sync";
 import appCss from "../styles.css?url";
 
@@ -75,6 +76,7 @@ function RootComponent() {
       <SubscriptionBanner />
       <ImpersonationBanner />
       <SubscriptionExpiryGate />
+      <TrialGate />
       <Outlet />
       <Toaster position="top-right" />
     </SaaSProvider>
