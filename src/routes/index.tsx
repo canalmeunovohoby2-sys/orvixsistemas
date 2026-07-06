@@ -743,7 +743,7 @@ function Footer() {
     <footer className="relative border-t border-[#1f1f1f] px-5 sm:px-8 py-12">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <img src={logoLight} alt="ORVIX SISTEMAS" className="h-6 w-auto opacity-90" />
+          <img src={logoLight} alt="ORVIX SISTEMAS" className="h-12 sm:h-14 w-auto opacity-95" />
         </div>
 
         <p className="text-xs text-slate-500 text-center order-3 sm:order-2">
