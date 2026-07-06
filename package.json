@@ -13,7 +13,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "electron:build": "electron-builder --win nsis --x64"
+    "electron:build": "electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
