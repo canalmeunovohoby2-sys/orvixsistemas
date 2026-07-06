@@ -152,7 +152,7 @@ export const ensureTestUser = createServerFn({ method: "POST" }).handler(async (
     plan: "ouro",
     status: "active",
     mrr: 0,
-    due_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+    due_date: new Date(Date.now() + 7 * 86400000).toISOString(),
     onboarding_pending: false,
     is_demo: true,
     phone: "(11) 99999-2026",
@@ -373,7 +373,7 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
         plan: data.plan,
         status: data.status,
         mrr: 0,
-        due_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+        due_date: new Date(Date.now() + (data.status === "trial" ? 7 : 30) * 86400000).toISOString(),
         onboarding_pending: data.onboardingPending,
         is_demo: data.isDemo,
       })
