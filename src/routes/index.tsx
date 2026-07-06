@@ -288,6 +288,13 @@ function Hero() {
               Ver planos e preços
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
+            <Link
+              to="/download"
+              className="group orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm"
+            >
+              <Sparkles className="w-4 h-4 text-[#ff5a5b]" />
+              Teste Grátis (7 dias)
+            </Link>
           </div>
         </Reveal>
 
