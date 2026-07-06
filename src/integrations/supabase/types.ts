@@ -398,31 +398,37 @@ export type Database = {
           contacted_at: string | null
           created_at: string
           email: string
+          full_name: string | null
           id: string
           is_trial: boolean
           last_seen_at: string
           trial_start_date: string
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           contacted_at?: string | null
           created_at?: string
           email: string
+          full_name?: string | null
           id?: string
           is_trial?: boolean
           last_seen_at?: string
           trial_start_date?: string
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           contacted_at?: string | null
           created_at?: string
           email?: string
+          full_name?: string | null
           id?: string
           is_trial?: boolean
           last_seen_at?: string
           trial_start_date?: string
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }

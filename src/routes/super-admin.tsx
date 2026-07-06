@@ -22,7 +22,7 @@ import {
   ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
   LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
-import { Send, Megaphone, Clock } from "lucide-react";
+import { Send, Megaphone, Clock, Phone } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { listRemarketingLeads, sendRemarketingEmail, type RemarketingLead } from "@/lib/remarketing.functions";
 import { toast } from "sonner";
@@ -1195,7 +1195,8 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
 function RemarketingTab() {
   const listFn = useServerFn(listRemarketingLeads);
   const sendFn = useServerFn(sendRemarketingEmail);
-  const [pending, setPending] = useState<RemarketingLead[]>([]);
+  const [active, setActive] = useState<RemarketingLead[]>([]);
+  const [expired, setExpired] = useState<RemarketingLead[]>([]);
   const [contacted, setContacted] = useState<RemarketingLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
@@ -1204,11 +1205,12 @@ function RemarketingTab() {
     setLoading(true);
     try {
       const res = await listFn();
-      setPending(res.pending);
+      setActive(res.active);
+      setExpired(res.expired);
       setContacted(res.contacted);
     } catch {
       toast.error("Falha ao carregar leads de remarketing.");
-      setPending([]); setContacted([]);
+      setActive([]); setExpired([]); setContacted([]);
     } finally {
       setLoading(false);
     }
@@ -1238,12 +1240,20 @@ function RemarketingTab() {
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  const fmtWhatsapp = (raw: string | null) => {
+    if (!raw) return "—";
+    const d = raw.replace(/\D/g, "");
+    if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+    if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return raw;
+  };
+
   return (
     <>
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Oportunidades de Remarketing</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Remarketing</h1>
         <p className="text-sm text-muted-foreground">
-          Usuários cujo teste expirou há mais de 7 dias e ainda não contrataram um plano. Envie uma estratégia de venda personalizada para reativar o interesse.
+          Acompanhe usuários em teste ativo e reative os que expiraram sem contratar um plano.
         </p>
       </div>
 
@@ -1251,27 +1261,82 @@ function RemarketingTab() {
         <p className="text-sm text-muted-foreground">Carregando leads…</p>
       ) : (
         <>
+          {/* SEÇÃO A — Ainda em teste */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-primary" />
-              <h2 className="font-semibold">Fila de contato <span className="text-muted-foreground font-normal">({pending.length})</span></h2>
+              <Clock className="w-4 h-4 text-sky-500" />
+              <h2 className="font-semibold">Ainda em Teste <span className="text-muted-foreground font-normal">({active.length})</span></h2>
             </div>
-            {pending.length === 0 ? (
+            {active.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nenhum lead pendente de contato no momento.
+                Nenhum usuário em período de teste no momento.
               </div>
             ) : (
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {pending.map((lead) => (
+                {active.map((lead) => (
                   <article key={lead.email} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
                     <header>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Lead de trial</p>
-                      <h3 className="font-semibold leading-tight truncate" title={lead.email}>{lead.email}</h3>
+                      <p className="text-[11px] uppercase tracking-wide text-sky-600 dark:text-sky-400 font-semibold">Teste ativo</p>
+                      <h3 className="font-semibold leading-tight truncate" title={lead.fullName ?? lead.email}>
+                        {lead.fullName ?? lead.email}
+                      </h3>
                     </header>
                     <dl className="text-xs text-muted-foreground space-y-1">
                       <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span className="truncate">{lead.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />
+                        <span className="tabular-nums">{fmtWhatsapp(lead.whatsapp)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Início do teste: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <span><b className="text-foreground tabular-nums">{lead.daysLeft}</b> dia(s) restante(s)</span>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* SEÇÃO B — Oportunidades de Venda (Expirados) */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <Megaphone className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold">Oportunidades de Venda — Expirados <span className="text-muted-foreground font-normal">({expired.length})</span></h2>
+            </div>
+            {expired.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Nenhuma oportunidade pendente no momento.
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {expired.map((lead) => (
+                  <article key={lead.email} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+                    <header>
+                      <p className="text-[11px] uppercase tracking-wide text-primary font-semibold">Teste expirado</p>
+                      <h3 className="font-semibold leading-tight truncate" title={lead.fullName ?? lead.email}>
+                        {lead.fullName ?? lead.email}
+                      </h3>
+                    </header>
+                    <dl className="text-xs text-muted-foreground space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span className="truncate">{lead.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />
+                        <span className="tabular-nums">{fmtWhatsapp(lead.whatsapp)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Início: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
@@ -1306,16 +1371,18 @@ function RemarketingTab() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
+                      <th className="text-left px-4 py-2 font-semibold">Nome</th>
                       <th className="text-left px-4 py-2 font-semibold">E-mail</th>
-                      <th className="text-left px-4 py-2 font-semibold">Início do teste</th>
+                      <th className="text-left px-4 py-2 font-semibold">WhatsApp</th>
                       <th className="text-left px-4 py-2 font-semibold">Contatado em</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contacted.map((lead) => (
                       <tr key={lead.email} className="border-t border-border">
+                        <td className="px-4 py-2">{lead.fullName ?? "—"}</td>
                         <td className="px-4 py-2">{lead.email}</td>
-                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{fmtDate(lead.trialStartDate)}</td>
+                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{fmtWhatsapp(lead.whatsapp)}</td>
                         <td className="px-4 py-2 tabular-nums text-muted-foreground">
                           {lead.contactedAt ? new Date(lead.contactedAt).toLocaleString("pt-BR") : "—"}
                         </td>
