@@ -383,24 +383,25 @@ const FEATURES = [
 
 function Bento() {
   return (
-    <section className="relative px-5 sm:px-8 py-28 sm:py-36">
-      <div aria-hidden className="orvix-mesh-a absolute top-10 -left-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
-      <div aria-hidden className="orvix-mesh-b absolute bottom-10 -right-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
+    <section className="relative px-5 sm:px-8 py-28 sm:py-36 bg-white text-neutral-900">
       <div
         aria-hidden
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] orvix-glow-soft pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(1000px 500px at 100% 0%, rgba(133,4,5,0.05), transparent 60%), radial-gradient(800px 500px at 0% 100%, rgba(133,4,5,0.04), transparent 60%)",
+        }}
       />
-
       <div className="relative max-w-7xl mx-auto">
         <Reveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-semibold tracking-[0.2em] text-[#850405] uppercase mb-4">
               A vitrine do produto
             </p>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight orvix-title-gradient leading-[1.1]">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.1] text-neutral-900">
               Tudo que o seu comércio precisa, em uma plataforma só.
             </h2>
-            <p className="mt-6 orvix-body text-base sm:text-lg">
+            <p className="mt-6 text-base sm:text-lg text-neutral-600 leading-relaxed">
               Recursos pensados por quem opera no varejo. Sem firulas, sem complexidade desnecessária.
             </p>
           </div>
@@ -411,24 +412,24 @@ function Bento() {
             const Icon = f.icon;
             return (
               <Reveal key={f.title} delay={i * 90} className={f.span}>
-                <div className="group orvix-card relative h-full rounded-2xl p-9 sm:p-10 overflow-hidden hover:-translate-y-1">
+                <div className="group relative h-full rounded-2xl p-9 sm:p-10 overflow-hidden hover:-translate-y-1 border border-neutral-200 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_-15px_rgba(133,4,5,0.25)] hover:border-[#850405]/40 transition-all duration-500">
                   <div
                     aria-hidden
-                    className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#850405]/0 group-hover:bg-[#850405]/20 blur-3xl transition-all duration-700"
+                    className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#850405]/0 group-hover:bg-[#850405]/10 blur-3xl transition-all duration-700"
                   />
                   <div className="relative flex flex-col h-full">
-                    <div className="orvix-icon-halo w-12 h-12 rounded-xl bg-[#850405]/12 border border-[#850405]/35 flex items-center justify-center mb-6 group-hover:bg-[#850405]/22 group-hover:border-[#850405] transition-all duration-300">
-                      <Icon className="w-5 h-5 text-[#ff5a5b]" strokeWidth={2} />
+                    <div className="w-12 h-12 rounded-xl bg-[#850405]/10 border border-[#850405]/30 flex items-center justify-center mb-6 group-hover:bg-[#850405]/15 group-hover:border-[#850405] transition-all duration-300">
+                      <Icon className="w-5 h-5 text-[#850405]" strokeWidth={2} />
                     </div>
                     <h3
-                      className={`font-semibold text-white tracking-tight ${
+                      className={`font-semibold text-neutral-900 tracking-tight ${
                         f.big ? "text-2xl sm:text-3xl" : "text-lg sm:text-xl"
                       }`}
                     >
                       {f.title}
                     </h3>
                     <p
-                      className={`mt-4 orvix-body ${
+                      className={`mt-4 text-neutral-600 leading-relaxed ${
                         f.big ? "text-base max-w-md" : "text-sm"
                       }`}
                     >
