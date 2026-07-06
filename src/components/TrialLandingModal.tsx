@@ -136,7 +136,7 @@ export function TrialLandingModal({
                 Teste Grátis — 7 dias
               </h2>
               <p className="text-xs text-white/60 mt-0.5">
-                Informe seu e-mail para liberar o instalador oficial.
+                Plano Bronze · 1 terminal · Informe seus dados para liberar o instalador.
               </p>
             </div>
           </div>
@@ -260,8 +260,10 @@ export function TrialLandingModal({
                 <div className="flex gap-2">
                   <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#e94f4f]" />
                   <span>
-                    O tempo do teste é contado pelo servidor da ORVIX. Alterar o
-                    relógio do computador <strong>não estende</strong> o período.
+                    O teste libera o <strong>Plano Bronze</strong> — 1 terminal (caixa).
+                    Para operar com mais terminais, escolha Prata ou Ouro ao final dos 7 dias.
+                    O tempo é contado pelo servidor da ORVIX; alterar o relógio do computador
+                    <strong> não estende</strong> o período.
                   </span>
                 </div>
               </div>
