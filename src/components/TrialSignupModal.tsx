@@ -110,7 +110,7 @@ export function TrialSignupModal({
             <div className="min-w-0">
               <h2 className="font-bold text-base leading-tight">Acesso de Teste — 7 dias grátis</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Sem cartão de crédito. Sem senha. A contagem começa neste momento.
+                Plano Bronze · 1 terminal · Sem cartão de crédito. A contagem começa neste momento.
               </p>
             </div>
           </div>
@@ -182,8 +182,9 @@ export function TrialSignupModal({
             <div className="flex gap-2">
               <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
               <span>
-                O tempo de teste é contado pelo servidor da ORVIX. Alterações no relógio do computador
-                <strong> não estendem</strong> o período.
+                Durante o teste você opera no <strong>Plano Bronze</strong> — 1 terminal (caixa). Para
+                adicionar mais terminais, contrate os planos Prata ou Ouro após o período. O tempo é
+                contado pelo servidor da ORVIX; alterar o relógio do computador <strong>não estende</strong> o teste.
               </span>
             </div>
           </div>
