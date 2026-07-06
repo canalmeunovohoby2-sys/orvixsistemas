@@ -218,6 +218,13 @@ function Header({ onOpenTrial }: { onOpenTrial: () => void }) {
           />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/download"
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-xs sm:text-sm font-semibold text-white hover:border-white/30 hover:bg-white/10 transition-all duration-300"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Área do Cliente
+          </Link>
           <button
             type="button"
             onClick={onOpenTrial}
