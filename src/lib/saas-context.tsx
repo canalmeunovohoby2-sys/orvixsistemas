@@ -43,6 +43,8 @@ export type Company = {
   segment?: string;
   onboardingPending?: boolean;
   isDemo?: boolean;
+  /** Última atualização da linha (proxy de "última atividade"). ISO. */
+  updatedAt?: string;
 };
 
 export type SaaSUser = {
@@ -126,6 +128,7 @@ type DbCompany = {
   onboarding_pending: boolean;
   is_demo: boolean;
   created_at: string;
+  updated_at?: string | null;
 };
 type DbAppUser = {
   id: string;
@@ -157,6 +160,7 @@ function mapCompany(c: DbCompany): Company {
     segment: c.segment ?? undefined,
     onboardingPending: c.onboarding_pending,
     isDemo: c.is_demo,
+    updatedAt: c.updated_at ?? c.created_at ?? undefined,
   };
 }
 function mapUser(u: DbAppUser): SaaSUser {
