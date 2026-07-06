@@ -11,6 +11,7 @@ import {
   updateSaaSSettings, resetCommercialData,
   type SupportTicket, type SystemLog, type SystemLogKind,
 } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useMockStore } from "@/hooks/use-mock-store";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
@@ -759,6 +760,64 @@ const STATUS_TICKET_LABEL: Record<SupportTicket["status"], string> = {
 
 function SupportTab() {
   useMockStore();
+  type DbTicket = {
+    id: string;
+    company_id: string;
+    company_name: string;
+    requester_name: string;
+    subject: string;
+    message: string;
+    priority: "baixa" | "media" | "alta";
+    status: "aberto" | "em_andamento" | "resolvido";
+    created_at: string;
+  };
+  const [tickets, setTickets] = useState<DbTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("id, company_id, company_name, requester_name, subject, message, priority, status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Erro ao carregar chamados de suporte.");
+      setTickets([]);
+    } else {
+      setTickets((data ?? []) as DbTicket[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    const channel = supabase
+      .channel("support_tickets_admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const setStatus = async (id: string, status: DbTicket["status"]) => {
+    const { error } = await supabase.from("support_tickets").update({ status }).eq("id", id);
+    if (error) return toast.error("Falha ao atualizar o status.");
+    toast.success(`Chamado atualizado: ${STATUS_TICKET_LABEL[status]}.`);
+    setTickets((prev) => prev.map((t) => t.id === id ? { ...t, status } : t));
+  };
+
+  const remove = async (t: DbTicket) => {
+    const { error } = await supabase.from("support_tickets").delete().eq("id", t.id);
+    if (error) return toast.error("Falha ao remover o chamado.");
+    logEvent({
+      kind: "SUPPORT_TICKET_CLOSED",
+      company_id: t.company_id,
+      companyName: t.company_name,
+      user: "Super Admin",
+      action: `Chamado ("${t.subject}") da empresa ${t.company_name} concluído/removido pelo Administrador.`,
+    });
+    toast.success("Chamado concluído e removido da fila.");
+    setTickets((prev) => prev.filter((x) => x.id !== t.id));
+  };
+
   return (
     <>
       <div>
@@ -766,12 +825,19 @@ function SupportTab() {
         <p className="text-sm text-muted-foreground">Chamados abertos pelos lojistas — atualize o status conforme a tratativa.</p>
       </div>
 
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Carregando chamados…</p>
+      ) : tickets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          Nenhuma requisição de suporte no momento.
+        </div>
+      ) : (
       <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-3">
-        {SUPPORT_TICKETS.map((t) => (
+        {tickets.map((t) => (
           <article key={t.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3 relative">
             <header className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{t.id} · {t.companyName}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{t.company_name}</p>
                 <h3 className="font-semibold leading-tight truncate">{t.subject}</h3>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -780,20 +846,8 @@ function SupportTab() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    const removed = deleteTicket(t.id);
-                    if (!removed) return;
-                    logEvent({
-                      kind: "SUPPORT_TICKET_CLOSED",
-                      company_id: removed.company_id,
-                      companyName: removed.companyName,
-                      user: "Super Admin",
-                      action: `Chamado ${removed.id} ("${removed.subject}") da empresa ${removed.companyName} concluído/removido pelo Administrador.`,
-                      undo: { ticketId: removed.id },
-                    });
-                    toast.success(`Chamado ${removed.id} concluído e removido da fila.`);
-                  }}
-                  aria-label={`Concluir e remover chamado ${t.id}`}
+                  onClick={() => remove(t)}
+                  aria-label={`Concluir e remover chamado`}
                   title="Concluir e remover chamado"
                   className="w-7 h-7 grid place-items-center rounded-md border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors"
                 >
@@ -804,19 +858,16 @@ function SupportTab() {
             <p className="text-sm text-muted-foreground line-clamp-3">{t.message}</p>
             <footer className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border text-xs">
               <div className="text-muted-foreground">
-                <p>{t.requester}</p>
-                <p className="tabular-nums">{new Date(t.openedAt).toLocaleString("pt-BR")}</p>
+                <p>{t.requester_name}</p>
+                <p className="tabular-nums">{new Date(t.created_at).toLocaleString("pt-BR")}</p>
               </div>
               <select
-                defaultValue={t.status}
-                onChange={(e) => {
-                  updateTicketStatus(t.id, e.target.value as SupportTicket["status"]);
-                  toast.success(`${t.id}: ${STATUS_TICKET_LABEL[e.target.value as SupportTicket["status"]]}.`);
-                }}
-                aria-label={`Status do chamado ${t.id}`}
+                value={t.status}
+                onChange={(e) => setStatus(t.id, e.target.value as DbTicket["status"])}
+                aria-label={`Status do chamado`}
                 className="h-8 px-2 rounded-md bg-secondary border border-border text-xs"
               >
-                {(["aberto", "em_andamento", "resolvido"] as SupportTicket["status"][]).map((s) => (
+                {(["aberto", "em_andamento", "resolvido"] as DbTicket["status"][]).map((s) => (
                   <option key={s} value={s}>{STATUS_TICKET_LABEL[s]}</option>
                 ))}
               </select>
@@ -824,6 +875,7 @@ function SupportTab() {
           </article>
         ))}
       </div>
+      )}
     </>
   );
 }
