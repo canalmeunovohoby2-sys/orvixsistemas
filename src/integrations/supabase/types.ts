@@ -379,6 +379,12 @@ export type Database = {
     }
     Functions: {
       next_company_id: { Args: never; Returns: string }
+      trial_server_now: {
+        Args: never
+        Returns: {
+          now: string
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "cashier"
