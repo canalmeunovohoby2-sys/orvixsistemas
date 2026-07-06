@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Plus,
   Sparkles,
+  Download,
 } from "lucide-react";
 import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
 import { TrialLandingModal } from "@/components/TrialLandingModal";
