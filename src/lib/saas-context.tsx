@@ -270,7 +270,6 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (!bootstrappedRef.current) {
         bootstrappedRef.current = true;
         try { await ensureSuperAdmin(); } catch (e) { console.warn("[ORVIX] ensureSuperAdmin", e); }
-        try { await ensureTestUser(); } catch (e) { console.warn("[ORVIX] ensureTestUser", e); }
       }
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
