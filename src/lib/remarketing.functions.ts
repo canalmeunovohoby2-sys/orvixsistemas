@@ -209,3 +209,19 @@ export const sendRemarketingEmail = createServerFn({ method: "POST" })
 
     return { ok: true, simulated };
   });
+
+export const deleteRemarketingLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { email: string }) =>
+    z.object({ email: z.string().trim().toLowerCase().email() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: true } | { ok: false; reason: string }> => {
+    await assertSuperAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("trial_accounts")
+      .delete()
+      .eq("email", data.email);
+    if (error) return { ok: false, reason: "Falha ao remover o lead." };
+    return { ok: true };
+  });
