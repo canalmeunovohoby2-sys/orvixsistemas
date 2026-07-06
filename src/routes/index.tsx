@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
+import { TrialLandingModal } from "@/components/TrialLandingModal";
 const logoLight = logoAsset.url;
 
 export const Route = createFileRoute("/")({
@@ -82,6 +83,7 @@ function Reveal({
 }
 
 function LandingPage() {
+  const [trialOpen, setTrialOpen] = useState(false);
   return (
     <div className="min-h-screen text-white font-sans antialiased overflow-x-hidden orvix-root">
       <style>{`
@@ -191,18 +193,19 @@ function LandingPage() {
         .orvix-pulse-glow { animation: orvix-pulse-glow 4.5s ease-in-out infinite; }
       `}</style>
 
-      <Header />
-      <Hero />
+      <Header onOpenTrial={() => setTrialOpen(true)} />
+      <Hero onOpenTrial={() => setTrialOpen(true)} />
       <Bento />
       <Pricing />
       <Guarantee />
       <FAQ />
       <Footer />
+      <TrialLandingModal open={trialOpen} onClose={() => setTrialOpen(false)} />
     </div>
   );
 }
 
-function Header() {
+function Header({ onOpenTrial }: { onOpenTrial: () => void }) {
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-[#050505]/70 backdrop-blur-xl border-b border-[#1f1f1f]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
@@ -214,28 +217,22 @@ function Header() {
           />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            to="/download"
+          <button
+            type="button"
+            onClick={onOpenTrial}
             className="group inline-flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-full bg-[#850405] text-xs sm:text-sm font-semibold text-white hover:bg-[#9a0507] shadow-[0_10px_30px_-10px_rgba(133,4,5,0.8)] transition-all duration-300 hover:scale-[1.03]"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline sm:inline">Teste Grátis</span>
+            <span>Teste Grátis</span>
             <span className="hidden sm:inline opacity-80">(7 dias)</span>
-          </Link>
-          <Link
-            to="/download"
-            className="group inline-flex items-center gap-2 px-3 sm:px-5 py-2 rounded-full border border-white/15 text-xs sm:text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
-          >
-            Área do Cliente
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </Link>
+          </button>
         </div>
       </div>
     </header>
   );
 }
 
-function Hero() {
+function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
   return (
     <section className="relative pt-32 sm:pt-40 pb-20 sm:pb-28 px-5 sm:px-8 overflow-hidden">
       <div aria-hidden className="absolute inset-0 orvix-grid-bg pointer-events-none" />
@@ -288,13 +285,14 @@ function Hero() {
               Ver planos e preços
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
-            <Link
-              to="/download"
+            <button
+              type="button"
+              onClick={onOpenTrial}
               className="group orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm"
             >
               <Sparkles className="w-4 h-4 text-[#ff5a5b]" />
               Teste Grátis (7 dias)
-            </Link>
+            </button>
           </div>
         </Reveal>
 
