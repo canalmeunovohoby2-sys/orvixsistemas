@@ -21,6 +21,7 @@ export type Database = {
           email: string
           id: string
           is_temporary_password: boolean
+          last_seen_at: string | null
           name: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           email: string
           id: string
           is_temporary_password?: boolean
+          last_seen_at?: string | null
           name?: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           email?: string
           id?: string
           is_temporary_password?: boolean
+          last_seen_at?: string | null
           name?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
