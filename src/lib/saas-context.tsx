@@ -262,6 +262,37 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     readyRef.current = ready;
   }, [ready]);
 
+  /* ---------- Heartbeat de presença (online real) ---------- */
+  // Atualiza `app_users.last_seen_at` a cada 45s enquanto houver sessão ativa
+  // e a aba estiver visível. Isso alimenta o indicador online/offline do painel
+  // Master com sinal real (não usa `updated_at` como proxy).
+  useEffect(() => {
+    if (!authUserId) return;
+    let stopped = false;
+    const ping = async () => {
+      if (stopped) return;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      try {
+        await supabase
+          .from("app_users")
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq("id", authUserId);
+      } catch (e) {
+        // silencioso — heartbeat é best-effort
+        void e;
+      }
+    };
+    void ping();
+    const iv = window.setInterval(ping, 45_000);
+    const onVis = () => { if (document.visibilityState === "visible") void ping(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stopped = true;
+      window.clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [authUserId]);
+
   /* ---------- Hidratação inicial: garante super admin + sessão ---------- */
   useEffect(() => {
     let alive = true;
