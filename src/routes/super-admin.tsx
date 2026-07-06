@@ -133,7 +133,7 @@ function SuperAdminPage() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75 animate-ping" />
                 <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-red-600 shadow-[0_0_12px_rgba(220,38,38,0.9)]" />
               </span>
-              <span className="text-xl md:text-2xl font-bold tracking-tight">Tiago Admin</span>
+              <span className="text-xl md:text-2xl font-bold tracking-tight">Tiago Lopes Admin</span>
               <span className="sr-only">Sistema ativo · monitoramento em tempo real</span>
             </div>
           </div>
