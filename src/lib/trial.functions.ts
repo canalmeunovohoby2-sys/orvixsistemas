@@ -10,6 +10,21 @@ const emailSchema = z
   .email({ message: "Informe um e-mail válido." })
   .max(254);
 
+const nameSchema = z
+  .string()
+  .trim()
+  .min(3, { message: "Informe seu nome completo." })
+  .max(120);
+
+// WhatsApp brasileiro: aceita com/sem máscara, valida 11 dígitos (DDD + 9XXXXXXXX)
+// ou 10 dígitos (DDD + fixo). Normaliza para dígitos apenas.
+const whatsappSchema = z
+  .string()
+  .transform((v) => (v ?? "").replace(/\D/g, ""))
+  .refine((d) => d.length === 10 || d.length === 11, {
+    message: "WhatsApp inválido. Use (XX) 9XXXX-XXXX.",
+  });
+
 export type TrialStatus = {
   ok: true;
   email: string;
@@ -28,8 +43,14 @@ export type TrialError = { ok: false; reason: string };
  * fraude por manipulação do relógio local (Windows).
  */
 export const startTrial = createServerFn({ method: "POST" })
-  .inputValidator((input: { email: string }) =>
-    z.object({ email: emailSchema }).parse(input),
+  .inputValidator((input: { email: string; fullName: string; whatsapp: string }) =>
+    z
+      .object({
+        email: emailSchema,
+        fullName: nameSchema,
+        whatsapp: whatsappSchema,
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<TrialStatus | TrialError> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -44,7 +65,11 @@ export const startTrial = createServerFn({ method: "POST" })
     if (!existing) {
       const { error: insertErr } = await supabaseAdmin
         .from("trial_accounts")
-        .insert({ email: data.email });
+        .insert({
+          email: data.email,
+          full_name: data.fullName,
+          whatsapp: data.whatsapp,
+        } as never);
       if (insertErr) {
         return { ok: false, reason: "Falha ao registrar teste. Tente novamente." };
       }
@@ -52,7 +77,11 @@ export const startTrial = createServerFn({ method: "POST" })
       // Atualiza last_seen (não reinicia a contagem).
       await supabaseAdmin
         .from("trial_accounts")
-        .update({ last_seen_at: new Date().toISOString() })
+        .update({
+          last_seen_at: new Date().toISOString(),
+          full_name: data.fullName,
+          whatsapp: data.whatsapp,
+        } as never)
         .eq("email", data.email);
     }
 
