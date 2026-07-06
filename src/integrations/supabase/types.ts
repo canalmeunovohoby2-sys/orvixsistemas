@@ -343,6 +343,56 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          company_id: string
+          company_name: string
+          created_at: string
+          id: string
+          message: string
+          priority: string
+          requester_name: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          company_name: string
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string
+          requester_name: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          company_name?: string
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string
+          requester_name?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_accounts: {
         Row: {
           created_at: string
@@ -378,6 +428,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_super_admin: { Args: { _uid: string }; Returns: boolean }
       next_company_id: { Args: never; Returns: string }
       trial_server_now: {
         Args: never
