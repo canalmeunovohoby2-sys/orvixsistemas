@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
-import { Mail, Sparkles, X, Loader2, ShieldCheck, Download, Check } from "lucide-react";
+import { Mail, Sparkles, X, Loader2, ShieldCheck, Download, Check, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { startTrial } from "@/lib/trial.functions";
+
+/** Máscara BR: (XX) 9XXXX-XXXX ou (XX) XXXX-XXXX. */
+function maskWhatsapp(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function isValidWhatsapp(masked: string) {
+  const d = masked.replace(/\D/g, "");
+  return d.length === 10 || d.length === 11;
+}
 
 const INSTALLER_URL =
   "https://drive.google.com/uc?export=download&id=19ze1QZeFptEGt1bQnG5jaEYVltDwI5vy";
@@ -23,6 +36,8 @@ export function TrialLandingModal({
   onClose: () => void;
 }) {
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<null | { email: string; daysLeft: number }>(null);
   const startTrialFn = useServerFn(startTrial);
@@ -40,6 +55,8 @@ export function TrialLandingModal({
     if (!open) {
       setDone(null);
       setEmail("");
+      setFullName("");
+      setWhatsapp("");
     }
   }, [open]);
 
@@ -63,9 +80,19 @@ export function TrialLandingModal({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    if (fullName.trim().length < 3) {
+      toast.error("Informe seu nome completo.");
+      return;
+    }
+    if (!isValidWhatsapp(whatsapp)) {
+      toast.error("WhatsApp inválido. Use o formato (XX) 9XXXX-XXXX.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await startTrialFn({ data: { email } });
+      const res = await startTrialFn({
+        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
+      });
       if (!res.ok) {
         toast.error(res.reason ?? "Falha ao registrar o teste.");
         return;
@@ -178,13 +205,48 @@ export function TrialLandingModal({
             <div className="px-6 py-5 space-y-4">
               <label className="block space-y-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  Nome completo
+                </span>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="w-full h-11 pl-9 pr-3 rounded-md bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#850405]"
+                  />
+                </div>
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  WhatsApp
+                </span>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                  <input
+                    type="tel"
+                    required
+                    inputMode="numeric"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(maskWhatsapp(e.target.value))}
+                    placeholder="(11) 9XXXX-XXXX"
+                    className="w-full h-11 pl-9 pr-3 rounded-md bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#850405]"
+                  />
+                </div>
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
                   Seu e-mail
                 </span>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
                   <input
                     type="email"
-                    autoFocus
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
