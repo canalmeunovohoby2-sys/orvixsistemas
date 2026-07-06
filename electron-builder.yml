@@ -24,8 +24,7 @@ publish:
   channel: latest
 
 win:
-  target:
-    - nsis
+  target: nsis
   icon: electron/assets/icon.ico
   publisherName: ORVIX SISTEMAS
   # Descomente após emitir certificado Authenticode:
