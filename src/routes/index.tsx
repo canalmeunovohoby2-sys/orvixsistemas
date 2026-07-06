@@ -11,6 +11,7 @@ import {
   Lock,
   PlayCircle,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
 const logoLight = logoAsset.url;
@@ -212,13 +213,23 @@ function Header() {
             className="h-8 sm:h-12 w-auto transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
-        <Link
-          to="/download"
-          className="group inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full border border-white/15 text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
-        >
-          Área do Cliente
-          <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/download"
+            className="group inline-flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-full bg-[#850405] text-xs sm:text-sm font-semibold text-white hover:bg-[#9a0507] shadow-[0_10px_30px_-10px_rgba(133,4,5,0.8)] transition-all duration-300 hover:scale-[1.03]"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline sm:inline">Teste Grátis</span>
+            <span className="hidden sm:inline opacity-80">(7 dias)</span>
+          </Link>
+          <Link
+            to="/download"
+            className="group inline-flex items-center gap-2 px-3 sm:px-5 py-2 rounded-full border border-white/15 text-xs sm:text-sm font-medium text-white hover:border-[#850405] hover:bg-[#850405]/10 transition-all duration-300 hover:scale-[1.03]"
+          >
+            Área do Cliente
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -277,6 +288,13 @@ function Hero() {
               Ver planos e preços
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </a>
+            <Link
+              to="/download"
+              className="group orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm"
+            >
+              <Sparkles className="w-4 h-4 text-[#ff5a5b]" />
+              Teste Grátis (7 dias)
+            </Link>
           </div>
         </Reveal>
 
