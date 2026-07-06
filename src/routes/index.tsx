@@ -490,7 +490,7 @@ const PLANS = [
       "Até 10 computadores/terminais simultâneos",
       "Suporte prioritário",
       "Relatórios gerenciais avançados",
-      "Lucratividade nítida e expansão estruturada",
+      "Ideal para empresas em crescimento e com maior volume de vendas.",
     ],
   },
 ] as const;
