@@ -1186,6 +1186,148 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
           </button>
         </footer>
       </form>
+
+/* ─────────────────────── Remarketing tab ─────────────────────── */
+
+function RemarketingTab() {
+  const listFn = useServerFn(listRemarketingLeads);
+  const sendFn = useServerFn(sendRemarketingEmail);
+  const [pending, setPending] = useState<RemarketingLead[]>([]);
+  const [contacted, setContacted] = useState<RemarketingLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await listFn();
+      setPending(res.pending);
+      setContacted(res.contacted);
+    } catch (err) {
+      toast.error("Falha ao carregar leads de remarketing.");
+      setPending([]); setContacted([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const handleSend = async (lead: RemarketingLead) => {
+    setSendingEmail(lead.email);
+    try {
+      const res = await sendFn({ data: { email: lead.email } });
+      if (res.ok) {
+        toast.success(res.simulated
+          ? `Estratégia registrada para ${lead.email} (provedor de e-mail não configurado — modo simulado).`
+          : `Estratégia de venda enviada para ${lead.email}.`);
+        await load();
+      } else {
+        toast.error(res.reason);
+      }
+    } catch (err) {
+      toast.error("Falha ao disparar o e-mail. Tente novamente.");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  return (
+    <>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Oportunidades de Remarketing</h1>
+        <p className="text-sm text-muted-foreground">
+          Usuários cujo teste expirou há mais de 7 dias e ainda não contrataram um plano. Envie uma estratégia de venda personalizada para reativar o interesse.
+        </p>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Carregando leads…</p>
+      ) : (
+        <>
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold">Fila de contato <span className="text-muted-foreground font-normal">({pending.length})</span></h2>
+            </div>
+            {pending.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Nenhum lead pendente de contato no momento.
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {pending.map((lead) => (
+                  <article key={lead.email} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+                    <header>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Lead de trial</p>
+                      <h3 className="font-semibold leading-tight truncate" title={lead.email}>{lead.email}</h3>
+                    </header>
+                    <dl className="text-xs text-muted-foreground space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Início do teste: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Expirado há <b className="text-foreground tabular-nums">{lead.daysSinceExpiry}</b> dia(s)</span>
+                      </div>
+                    </dl>
+                    <button
+                      onClick={() => handleSend(lead)}
+                      disabled={sendingEmail === lead.email}
+                      className="mt-auto h-10 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      {sendingEmail === lead.email ? "Enviando…" : "Enviar Estratégia de Venda"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <h2 className="font-semibold">Contatados <span className="text-muted-foreground font-normal">({contacted.length})</span></h2>
+            </div>
+            {contacted.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nenhum lead contatado ainda.
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">E-mail</th>
+                      <th className="text-left px-4 py-2 font-semibold">Início do teste</th>
+                      <th className="text-left px-4 py-2 font-semibold">Contatado em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacted.map((lead) => (
+                      <tr key={lead.email} className="border-t border-border">
+                        <td className="px-4 py-2">{lead.email}</td>
+                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{fmtDate(lead.trialStartDate)}</td>
+                        <td className="px-4 py-2 tabular-nums text-muted-foreground">
+                          {lead.contactedAt ? new Date(lead.contactedAt).toLocaleString("pt-BR") : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </>
+  );
+}
     </div>
   );
 }
