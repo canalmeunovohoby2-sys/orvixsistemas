@@ -1197,6 +1197,7 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
 function RemarketingTab() {
   const listFn = useServerFn(listRemarketingLeads);
   const sendFn = useServerFn(sendRemarketingEmail);
+  const deleteFn = useServerFn(deleteRemarketingLead);
   const [active, setActive] = useState<RemarketingLead[]>([]);
   const [expired, setExpired] = useState<RemarketingLead[]>([]);
   const [contacted, setContacted] = useState<RemarketingLead[]>([]);
@@ -1239,6 +1240,20 @@ function RemarketingTab() {
     }
   };
 
+  const handleDelete = async (lead: RemarketingLead) => {
+    try {
+      const res = await deleteFn({ data: { email: lead.email } });
+      if (res.ok) {
+        toast.success(`Lead ${lead.email} removido.`);
+        await load();
+      } else {
+        toast.error(res.reason);
+      }
+    } catch {
+      toast.error("Falha ao remover o lead.");
+    }
+  };
+
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -1248,6 +1263,124 @@ function RemarketingTab() {
     if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
     if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
     return raw;
+  };
+
+  const trialEndDate = (iso: string) => {
+    const d = new Date(iso);
+    d.setDate(d.getDate() + 7);
+    return d;
+  };
+
+  const buildWhatsappUrl = (lead: RemarketingLead) => {
+    const digits = (lead.whatsapp ?? "").replace(/\D/g, "");
+    if (!digits) return null;
+    const withCountry = digits.startsWith("55") ? digits : `55${digits}`;
+    const firstName = lead.fullName?.trim().split(" ")[0] ?? "Empreendedor";
+    const msg = lead.expired
+      ? `Olá ${firstName}, aqui é da ORVIX SISTEMAS 👋. Notamos que seu teste grátis encerrou. Podemos liberar uma condição especial para você continuar usando o PDV completo (offline, relatórios, estoque e vendas). Posso te enviar o link do plano mensal?`
+      : `Olá ${firstName}, aqui é da ORVIX SISTEMAS 👋. Vi que você está no período de teste do nosso PDV. Posso te ajudar com alguma dúvida sobre instalação, uso ou planos?`;
+    return `https://wa.me/${withCountry}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const LeadCard = ({
+    lead,
+    variant,
+  }: {
+    lead: RemarketingLead;
+    variant: "active" | "expired" | "contacted";
+  }) => {
+    const waUrl = buildWhatsappUrl(lead);
+    const endDate = trialEndDate(lead.trialStartDate);
+    const label =
+      variant === "active" ? "Teste ativo" :
+      variant === "expired" ? "Teste expirado" : "Já contatado";
+    const labelColor =
+      variant === "active" ? "text-sky-600 dark:text-sky-400" :
+      variant === "expired" ? "text-primary" : "text-emerald-600 dark:text-emerald-400";
+    return (
+      <article className="relative rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
+        <div className="absolute top-2 right-2">
+          <ConfirmDelete
+            title="Remover lead"
+            description={<>Deseja remover permanentemente o lead <b>{lead.email}</b>? Esta ação não pode ser desfeita.</>}
+            confirmLabel="Remover lead"
+            onConfirm={() => handleDelete(lead)}
+            triggerAriaLabel="Remover lead"
+            triggerTitle="Remover lead"
+          />
+        </div>
+        <header className="pr-10">
+          <p className={`text-[11px] uppercase tracking-wide font-semibold ${labelColor}`}>{label}</p>
+          <h3 className="font-semibold leading-tight truncate" title={lead.fullName ?? lead.email}>
+            {lead.fullName ?? lead.email}
+          </h3>
+        </header>
+        <dl className="text-xs text-muted-foreground space-y-1">
+          <div className="flex items-center gap-1.5">
+            <Mail className="w-3.5 h-3.5" />
+            <span className="truncate">{lead.email}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5" />
+            <span className="tabular-nums">{fmtWhatsapp(lead.whatsapp)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Início: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CalendarX2 className="w-3.5 h-3.5" />
+            <span>Fim do teste: <b className="text-foreground tabular-nums">{fmtDate(endDate.toISOString())}</b></span>
+          </div>
+          {variant === "active" && (
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span><b className="text-foreground tabular-nums">{lead.daysLeft}</b> dia(s) restante(s)</span>
+            </div>
+          )}
+          {variant === "expired" && (
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              <span>Expirado há <b className="text-foreground tabular-nums">{lead.daysSinceExpiry}</b> dia(s)</span>
+            </div>
+          )}
+          {variant === "contacted" && lead.contactedAt && (
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Contatado em <b className="text-foreground tabular-nums">{new Date(lead.contactedAt).toLocaleDateString("pt-BR")}</b></span>
+            </div>
+          )}
+        </dl>
+        <div className="mt-auto grid grid-cols-2 gap-2">
+          <a
+            href={waUrl ?? undefined}
+            target={waUrl ? "_blank" : undefined}
+            rel={waUrl ? "noopener noreferrer" : undefined}
+            aria-disabled={!waUrl}
+            onClick={(e) => { if (!waUrl) e.preventDefault(); }}
+            className={`h-10 inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold border transition-colors ${
+              waUrl
+                ? "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+                : "bg-secondary text-muted-foreground border-border cursor-not-allowed opacity-60"
+            }`}
+            title={waUrl ? "Abrir conversa no WhatsApp" : "WhatsApp não informado"}
+          >
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp
+          </a>
+          <button
+            type="button"
+            onClick={() => handleSend(lead)}
+            disabled={sendingEmail === lead.email || variant === "contacted"}
+            className="h-10 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-50"
+            title={variant === "contacted" ? "Lead já contatado por e-mail" : "Disparar e-mail de venda"}
+          >
+            <Send className="w-4 h-4" />
+            {sendingEmail === lead.email ? "Enviando…" : "E-mail"}
+          </button>
+        </div>
+      </article>
+    );
   };
 
   return (
@@ -1276,32 +1409,7 @@ function RemarketingTab() {
             ) : (
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {active.map((lead) => (
-                  <article key={lead.email} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-                    <header>
-                      <p className="text-[11px] uppercase tracking-wide text-sky-600 dark:text-sky-400 font-semibold">Teste ativo</p>
-                      <h3 className="font-semibold leading-tight truncate" title={lead.fullName ?? lead.email}>
-                        {lead.fullName ?? lead.email}
-                      </h3>
-                    </header>
-                    <dl className="text-xs text-muted-foreground space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span className="truncate">{lead.email}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5" />
-                        <span className="tabular-nums">{fmtWhatsapp(lead.whatsapp)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Início do teste: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        <span><b className="text-foreground tabular-nums">{lead.daysLeft}</b> dia(s) restante(s)</span>
-                      </div>
-                    </dl>
-                  </article>
+                  <LeadCard key={lead.email} lead={lead} variant="active" />
                 ))}
               </div>
             )}
@@ -1320,40 +1428,7 @@ function RemarketingTab() {
             ) : (
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {expired.map((lead) => (
-                  <article key={lead.email} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-                    <header>
-                      <p className="text-[11px] uppercase tracking-wide text-primary font-semibold">Teste expirado</p>
-                      <h3 className="font-semibold leading-tight truncate" title={lead.fullName ?? lead.email}>
-                        {lead.fullName ?? lead.email}
-                      </h3>
-                    </header>
-                    <dl className="text-xs text-muted-foreground space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span className="truncate">{lead.email}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5" />
-                        <span className="tabular-nums">{fmtWhatsapp(lead.whatsapp)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Início: <b className="text-foreground tabular-nums">{fmtDate(lead.trialStartDate)}</b></span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Expirado há <b className="text-foreground tabular-nums">{lead.daysSinceExpiry}</b> dia(s)</span>
-                      </div>
-                    </dl>
-                    <button
-                      onClick={() => handleSend(lead)}
-                      disabled={sendingEmail === lead.email}
-                      className="mt-auto h-10 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      <Send className="w-4 h-4" />
-                      {sendingEmail === lead.email ? "Enviando…" : "Enviar Estratégia de Venda"}
-                    </button>
-                  </article>
+                  <LeadCard key={lead.email} lead={lead} variant="expired" />
                 ))}
               </div>
             )}
@@ -1369,29 +1444,10 @@ function RemarketingTab() {
                 Nenhum lead contatado ainda.
               </div>
             ) : (
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-semibold">Nome</th>
-                      <th className="text-left px-4 py-2 font-semibold">E-mail</th>
-                      <th className="text-left px-4 py-2 font-semibold">WhatsApp</th>
-                      <th className="text-left px-4 py-2 font-semibold">Contatado em</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contacted.map((lead) => (
-                      <tr key={lead.email} className="border-t border-border">
-                        <td className="px-4 py-2">{lead.fullName ?? "—"}</td>
-                        <td className="px-4 py-2">{lead.email}</td>
-                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{fmtWhatsapp(lead.whatsapp)}</td>
-                        <td className="px-4 py-2 tabular-nums text-muted-foreground">
-                          {lead.contactedAt ? new Date(lead.contactedAt).toLocaleString("pt-BR") : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {contacted.map((lead) => (
+                  <LeadCard key={lead.email} lead={lead} variant="contacted" />
+                ))}
               </div>
             )}
           </section>
