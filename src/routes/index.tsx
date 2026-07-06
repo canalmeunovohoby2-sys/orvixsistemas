@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Plus,
   Sparkles,
+  Download,
 } from "lucide-react";
 import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
 import { TrialLandingModal } from "@/components/TrialLandingModal";
@@ -217,6 +218,13 @@ function Header({ onOpenTrial }: { onOpenTrial: () => void }) {
           />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/download"
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-xs sm:text-sm font-semibold text-white hover:border-white/30 hover:bg-white/10 transition-all duration-300"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Área do Cliente
+          </Link>
           <button
             type="button"
             onClick={onOpenTrial}
@@ -277,7 +285,7 @@ function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
         </Reveal>
 
         <Reveal delay={240}>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
             <a
               href="#planos"
               className="group orvix-btn-primary inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white font-semibold text-sm"
@@ -293,6 +301,13 @@ function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
               <Sparkles className="w-4 h-4 text-[#ff5a5b]" />
               Teste Grátis (7 dias)
             </button>
+            <Link
+              to="/download"
+              className="group orvix-btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm"
+            >
+              <Download className="w-4 h-4 text-[#ff5a5b]" />
+              Área do Cliente
+            </Link>
           </div>
         </Reveal>
 
@@ -368,24 +383,25 @@ const FEATURES = [
 
 function Bento() {
   return (
-    <section className="relative px-5 sm:px-8 py-28 sm:py-36">
-      <div aria-hidden className="orvix-mesh-a absolute top-10 -left-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
-      <div aria-hidden className="orvix-mesh-b absolute bottom-10 -right-24 w-[520px] h-[520px] pointer-events-none rounded-full" />
+    <section className="relative px-5 sm:px-8 py-28 sm:py-36 bg-white text-neutral-900">
       <div
         aria-hidden
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] orvix-glow-soft pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(1000px 500px at 100% 0%, rgba(133,4,5,0.05), transparent 60%), radial-gradient(800px 500px at 0% 100%, rgba(133,4,5,0.04), transparent 60%)",
+        }}
       />
-
       <div className="relative max-w-7xl mx-auto">
         <Reveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-semibold tracking-[0.2em] text-[#850405] uppercase mb-4">
               A vitrine do produto
             </p>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight orvix-title-gradient leading-[1.1]">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.1] text-neutral-900">
               Tudo que o seu comércio precisa, em uma plataforma só.
             </h2>
-            <p className="mt-6 orvix-body text-base sm:text-lg">
+            <p className="mt-6 text-base sm:text-lg text-neutral-600 leading-relaxed">
               Recursos pensados por quem opera no varejo. Sem firulas, sem complexidade desnecessária.
             </p>
           </div>
@@ -396,24 +412,24 @@ function Bento() {
             const Icon = f.icon;
             return (
               <Reveal key={f.title} delay={i * 90} className={f.span}>
-                <div className="group orvix-card relative h-full rounded-2xl p-9 sm:p-10 overflow-hidden hover:-translate-y-1">
+                <div className="group relative h-full rounded-2xl p-9 sm:p-10 overflow-hidden hover:-translate-y-1 border border-neutral-200 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_-15px_rgba(133,4,5,0.25)] hover:border-[#850405]/40 transition-all duration-500">
                   <div
                     aria-hidden
-                    className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#850405]/0 group-hover:bg-[#850405]/20 blur-3xl transition-all duration-700"
+                    className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#850405]/0 group-hover:bg-[#850405]/10 blur-3xl transition-all duration-700"
                   />
                   <div className="relative flex flex-col h-full">
-                    <div className="orvix-icon-halo w-12 h-12 rounded-xl bg-[#850405]/12 border border-[#850405]/35 flex items-center justify-center mb-6 group-hover:bg-[#850405]/22 group-hover:border-[#850405] transition-all duration-300">
-                      <Icon className="w-5 h-5 text-[#ff5a5b]" strokeWidth={2} />
+                    <div className="w-12 h-12 rounded-xl bg-[#850405]/10 border border-[#850405]/30 flex items-center justify-center mb-6 group-hover:bg-[#850405]/15 group-hover:border-[#850405] transition-all duration-300">
+                      <Icon className="w-5 h-5 text-[#850405]" strokeWidth={2} />
                     </div>
                     <h3
-                      className={`font-semibold text-white tracking-tight ${
+                      className={`font-semibold text-neutral-900 tracking-tight ${
                         f.big ? "text-2xl sm:text-3xl" : "text-lg sm:text-xl"
                       }`}
                     >
                       {f.title}
                     </h3>
                     <p
-                      className={`mt-4 orvix-body ${
+                      className={`mt-4 text-neutral-600 leading-relaxed ${
                         f.big ? "text-base max-w-md" : "text-sm"
                       }`}
                     >
@@ -478,13 +494,15 @@ const PLANS = [
 
 function Pricing() {
   return (
-    <section id="planos" className="relative px-5 sm:px-8 py-28 sm:py-36 border-t border-[#141414]">
+    <section id="planos" className="relative px-5 sm:px-8 py-28 sm:py-36 bg-neutral-50 text-neutral-900 border-t border-neutral-200">
       <div
         aria-hidden
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] orvix-glow-radial pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(900px 400px at 50% 0%, rgba(133,4,5,0.06), transparent 60%)",
+        }}
       />
-      <div aria-hidden className="orvix-mesh-a absolute top-1/3 -right-32 w-[560px] h-[560px] pointer-events-none rounded-full" />
-      <div aria-hidden className="orvix-mesh-b absolute bottom-0 -left-24 w-[480px] h-[480px] pointer-events-none rounded-full" />
 
       <div className="relative max-w-7xl mx-auto">
         <Reveal>
@@ -492,12 +510,21 @@ function Pricing() {
             <p className="text-xs font-semibold tracking-[0.2em] text-[#850405] uppercase mb-4">
               Planos e preços
             </p>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight orvix-title-gradient leading-[1.1]">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.1] text-neutral-900">
               Escolha o plano certo para o tamanho do seu negócio.
             </h2>
-            <p className="mt-6 orvix-body text-base sm:text-lg">
+            <p className="mt-6 text-base sm:text-lg text-neutral-600 leading-relaxed">
               Sem fidelidade. Sem taxas escondidas. Cancele quando quiser.
             </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/download"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-neutral-300 bg-white text-neutral-900 font-semibold text-sm hover:border-[#850405] hover:text-[#850405] transition-all duration-300 shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                Área do Cliente
+              </Link>
+            </div>
           </div>
         </Reveal>
 
@@ -505,10 +532,10 @@ function Pricing() {
           {PLANS.map((p, i) => (
             <Reveal key={p.name} delay={i * 100}>
               <div
-                className={`group relative h-full rounded-3xl p-9 sm:p-10 flex flex-col transition-all duration-500 hover:-translate-y-2 backdrop-blur-[10px] ${
+                className={`group relative h-full rounded-3xl p-9 sm:p-10 flex flex-col transition-all duration-500 hover:-translate-y-2 ${
                   p.featured
-                    ? "border border-[#850405] bg-gradient-to-b from-[#850405]/15 via-[#1a0203]/40 to-[#050505] shadow-[0_0_50px_-10px_rgba(133,4,5,0.55),inset_0_1px_0_0_rgba(255,255,255,0.05)]"
-                    : "orvix-card"
+                    ? "border-2 border-[#850405] bg-white shadow-[0_20px_60px_-15px_rgba(133,4,5,0.35)]"
+                    : "border border-neutral-200 bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)]"
                 }`}
               >
                 {p.featured && "badge" in p && p.badge && (
@@ -519,22 +546,22 @@ function Pricing() {
 
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-xl font-semibold text-white">Plano {p.name}</h3>
-                    <span className="text-xs text-slate-500">({p.tagline})</span>
+                    <h3 className="text-xl font-semibold text-neutral-900">Plano {p.name}</h3>
+                    <span className="text-xs text-neutral-500">({p.tagline})</span>
                   </div>
                   <div className="mt-5 flex items-baseline gap-1">
-                    <span className="text-sm text-slate-400">R$</span>
-                    <span className="text-5xl font-bold orvix-title-gradient tracking-tight">{p.price}</span>
-                    <span className="text-sm text-slate-400">/mês</span>
+                    <span className="text-sm text-neutral-500">R$</span>
+                    <span className="text-5xl font-bold tracking-tight text-neutral-900">{p.price}</span>
+                    <span className="text-sm text-neutral-500">/mês</span>
                   </div>
                 </div>
 
                 <ul className="space-y-3.5 mb-8 flex-1">
                   {p.benefits.map((b) => (
-                    <li key={b} className="flex items-start gap-3 text-sm text-[#e5e5e5]">
+                    <li key={b} className="flex items-start gap-3 text-sm text-neutral-700">
                       <span
-                        className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center orvix-icon-halo ${
-                          p.featured ? "bg-[#850405]" : "bg-white/10"
+                        className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                          p.featured ? "bg-[#850405]" : "bg-neutral-900"
                         }`}
                       >
                         <Check className="w-3 h-3 text-white" strokeWidth={3} />
@@ -549,7 +576,9 @@ function Pricing() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`block w-full text-center px-6 py-3.5 rounded-full font-semibold text-sm ${
-                    p.featured ? "orvix-btn-primary text-white" : "orvix-btn-ghost"
+                    p.featured
+                      ? "orvix-btn-primary text-white"
+                      : "border border-neutral-300 bg-white text-neutral-900 hover:border-[#850405] hover:text-[#850405] transition-colors"
                   }`}
                 >
                   {p.cta}
