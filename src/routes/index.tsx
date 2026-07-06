@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import logoAsset from "@/assets/orvix-logo-dark.png.asset.json";
 import { TrialLandingModal } from "@/components/TrialLandingModal";
+import { CrossMarquee } from "@/components/CrossMarquee";
 const logoLight = logoAsset.url;
 
 export const Route = createFileRoute("/")({
@@ -406,6 +407,8 @@ function Bento() {
             </p>
           </div>
         </Reveal>
+
+        <CrossMarquee />
 
         <div className="grid grid-cols-1 md:grid-cols-4 md:auto-rows-[minmax(220px,auto)] gap-4 sm:gap-5">
           {FEATURES.map((f, i) => {
