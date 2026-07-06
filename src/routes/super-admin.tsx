@@ -1186,6 +1186,9 @@ function ChangeSuperAdminPasswordModal({ onClose }: { onClose: () => void }) {
           </button>
         </footer>
       </form>
+    </div>
+  );
+}
 
 /* ─────────────────────── Remarketing tab ─────────────────────── */
 
@@ -1203,7 +1206,7 @@ function RemarketingTab() {
       const res = await listFn();
       setPending(res.pending);
       setContacted(res.contacted);
-    } catch (err) {
+    } catch {
       toast.error("Falha ao carregar leads de remarketing.");
       setPending([]); setContacted([]);
     } finally {
@@ -1225,7 +1228,7 @@ function RemarketingTab() {
       } else {
         toast.error(res.reason);
       }
-    } catch (err) {
+    } catch {
       toast.error("Falha ao disparar o e-mail. Tente novamente.");
     } finally {
       setSendingEmail(null);
@@ -1326,8 +1329,5 @@ function RemarketingTab() {
         </>
       )}
     </>
-  );
-}
-    </div>
   );
 }
