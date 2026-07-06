@@ -335,16 +335,36 @@ function CompaniesTab() {
 
   // "Now" que reavalia o status online/offline a cada 30s sem refetch da lista.
   const [now, setNow] = useState(() => Date.now());
+  // Mapa companyId -> último heartbeat (max de app_users.last_seen_at por empresa).
+  // Alimenta o indicador online/offline com sinal REAL de sessão ativa.
+  const [presence, setPresence] = useState<Record<string, number>>({});
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
+    let alive = true;
+    const fetchPresence = async () => {
+      const { data, error } = await supabase
+        .from("app_users")
+        .select("company_id, last_seen_at")
+        .not("last_seen_at", "is", null);
+      if (!alive || error || !data) return;
+      const map: Record<string, number> = {};
+      for (const row of data as Array<{ company_id: string | null; last_seen_at: string | null }>) {
+        if (!row.company_id || !row.last_seen_at) continue;
+        const t = new Date(row.last_seen_at).getTime();
+        if (!Number.isFinite(t)) continue;
+        if (!map[row.company_id] || t > map[row.company_id]) map[row.company_id] = t;
+      }
+      setPresence(map);
+      setNow(Date.now());
+    };
+    void fetchPresence();
+    const id = window.setInterval(fetchPresence, 30_000);
+    return () => { alive = false; window.clearInterval(id); };
   }, []);
-  // Considera "online" quando updated_at (proxy de última atividade) < 5 min.
-  const ONLINE_WINDOW_MS = 5 * 60_000;
-  const isOnline = (iso?: string) => {
-    if (!iso) return false;
-    const t = new Date(iso).getTime();
-    return Number.isFinite(t) && now - t < ONLINE_WINDOW_MS;
+  // Online = heartbeat nos últimos 2 minutos (heartbeat roda a cada 45s).
+  const ONLINE_WINDOW_MS = 2 * 60_000;
+  const isOnline = (companyId: string) => {
+    const t = presence[companyId];
+    return typeof t === "number" && now - t < ONLINE_WINDOW_MS;
   };
 
   return (
@@ -406,16 +426,16 @@ function CompaniesTab() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-                          isOnline(c.updatedAt)
+                          isOnline(c.id)
                             ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
                             : "bg-muted-foreground/40"
                         }`}
                         title={
-                          isOnline(c.updatedAt)
-                            ? "Online — atividade nos últimos 5 minutos"
-                            : "Offline — sem sincronização recente"
+                          isOnline(c.id)
+                            ? "Online — sessão ativa no momento"
+                            : "Offline — nenhuma sessão ativa"
                         }
-                        aria-label={isOnline(c.updatedAt) ? "Online" : "Offline"}
+                        aria-label={isOnline(c.id) ? "Online" : "Offline"}
                       />
                       <span className="font-semibold">{c.fantasia}</span>
                       {c.status === "trial" && (
