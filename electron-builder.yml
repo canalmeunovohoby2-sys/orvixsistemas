@@ -1,36 +1,20 @@
-# electron-builder — configuração de empacotamento e branding do ORVIX PDV.
-# Execute no pipeline Windows (ver README-ELECTRON.md):
-#   npx electron-builder --win nsis
-
 appId: com.orvixsistemas.app
 productName: ORVIX Sistemas
 copyright: © 2026 ORVIX SISTEMAS
 artifactName: OrvixSistemasSetup.${ext}
 
-directories:
-  output: dist-electron
-  buildResources: electron/assets
-
+# Arquivos incluídos no instalador
 files:
   - electron/**/*
   - package.json
-  # NÃO empacotamos /src ou /dist — o app carrega a URL SSR remota (/login).
 
-asar: true
-
-publish:
-  provider: generic
-  url: https://updates.orvixsistemas.com.br/pdv/
-  channel: latest
-
+# Configuração do instalador Windows
 win:
   target: nsis
   icon: electron/assets/icon.ico
   publisherName: ORVIX SISTEMAS
-  # Descomente após emitir certificado Authenticode:
-  # certificateFile: ./signing/orvix.pfx
-  # certificatePassword: ${env.CSC_KEY_PASSWORD}
 
+# Configuração específica do NSIS
 nsis:
   oneClick: false
   perMachine: false
@@ -42,20 +26,3 @@ nsis:
   installerIcon: electron/assets/icon.ico
   uninstallerIcon: electron/assets/icon.ico
   uninstallDisplayName: ORVIX Sistemas
-  runAfterFinish: true
-  deleteAppDataOnUninstall: false
-
-mac:
-  target:
-    - target: dmg
-      arch: [x64, arm64]
-  icon: electron/assets/icon.icns
-  category: public.app-category.business
-  artifactName: OrvixSistemas-${version}.${ext}
-
-linux:
-  target:
-    - AppImage
-  icon: electron/assets
-  category: Office
-  artifactName: OrvixSistemas-${version}.${ext}
