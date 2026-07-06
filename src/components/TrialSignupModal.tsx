@@ -59,6 +59,16 @@ export function TrialSignupModal({
     }
     setSubmitting(true);
     try {
+      // Limpa cache de UI de sessões anteriores (demo/mock) antes de ativar
+      // o novo teste, garantindo um Dashboard limpo para o novo usuário.
+      try {
+        const keep = new Set(["theme", "lovable-cookie-consent"]);
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && !keep.has(k)) localStorage.removeItem(k);
+        }
+        sessionStorage.clear();
+      } catch { /* storage bloqueado */ }
       const res = await startTrialFn({
         data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
       });
