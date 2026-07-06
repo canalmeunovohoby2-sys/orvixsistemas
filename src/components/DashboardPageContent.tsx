@@ -13,8 +13,9 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles, Sun, DoorClosed } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, Boxes, AlertTriangle, PackageX, Sparkles, Sun, DoorClosed, LifeBuoy } from "lucide-react";
 import { PlanDaysLeftBadge } from "@/components/PlanDaysLeftBadge";
+import { SupportTicketModal } from "@/components/SupportTicketModal";
 
 const CHART_COLORS = ["#8B0000", "#5A8FB8", "#5BA67C", "#C9A961", "#8B6F8E"];
 
@@ -78,6 +79,7 @@ function isSameLocalDay(iso: string, ref: Date): boolean {
 export function DashboardPage() {
   useMockStore();
   const { company, lastSync } = useSaaS();
+  const [supportOpen, setSupportOpen] = useState(false);
   const cid = company?.id ?? null;
   // Dashboard só mostra dados fictícios para empresas marcadas explicitamente
   // como demonstração (flag estável `isDemo`). Empresas reais — criadas via
@@ -220,9 +222,17 @@ export function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" breadcrumb={["Meu Saas", "Visão Geral"]}>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setSupportOpen(true)}
+          className="inline-flex items-center gap-2 h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 shadow-sm"
+          aria-label="Abrir requisição de suporte"
+        >
+          <LifeBuoy className="w-4 h-4" />
+          Abrir Requisição de Suporte
+        </button>
         <PlanDaysLeftBadge />
-        <span className="mx-2" />
         <span
           className={
             "inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs font-medium " +
@@ -241,6 +251,7 @@ export function DashboardPage() {
           {syncStatus.label}
         </span>
       </div>
+      <SupportTicketModal open={supportOpen} onClose={() => setSupportOpen(false)} />
       {!demo && (
         <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary grid place-items-center shrink-0">
