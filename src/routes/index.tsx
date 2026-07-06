@@ -268,9 +268,9 @@ function Hero({ onOpenTrial }: { onOpenTrial: () => void }) {
         </Reveal>
 
         <Reveal delay={80}>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] orvix-title-gradient">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.15] pb-2 orvix-title-gradient">
             Controle o seu comércio com a{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-[#850405]">
+            <span className="inline-block bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-[#850405] pb-1">
               velocidade e precisão
             </span>{" "}
             que o mercado exige.
