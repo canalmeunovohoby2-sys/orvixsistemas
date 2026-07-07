@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mail, Sparkles, X, Loader2, ShieldCheck, User, Phone } from "lucide-react";
+import { Mail, Sparkles, X, Loader2, ShieldCheck, User, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { startTrial } from "@/lib/trial.functions";
@@ -34,6 +34,9 @@ export function TrialSignupModal({
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const startTrialFn = useServerFn(startTrial);
 
@@ -57,6 +60,14 @@ export function TrialSignupModal({
       toast.error("WhatsApp inválido. Use o formato (XX) 9XXXX-XXXX.");
       return;
     }
+    if (password.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("As senhas não conferem.");
+      return;
+    }
     setSubmitting(true);
     try {
       // Limpa cache de UI de sessões anteriores (demo/mock) antes de ativar
@@ -70,7 +81,7 @@ export function TrialSignupModal({
         sessionStorage.clear();
       } catch { /* storage bloqueado */ }
       const res = await startTrialFn({
-        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
+        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, ""), password },
       });
       if (!res.ok) {
         toast.error(res.reason ?? "Falha ao iniciar o teste.");
@@ -173,6 +184,52 @@ export function TrialSignupModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="voce@suaempresa.com.br"
+                className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Senha (mín. 8 caracteres)
+            </span>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Crie uma senha forte"
+                className="w-full h-11 pl-9 pr-10 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Confirmar senha
+            </span>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repita a senha"
                 className="w-full h-11 pl-9 pr-3 rounded-md bg-background border border-input text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
