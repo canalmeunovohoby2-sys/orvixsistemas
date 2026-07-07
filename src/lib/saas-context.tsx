@@ -742,12 +742,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
         plan: "bronze",
-        status: "active",
+        status: "trial",
         mrr: 0,
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
         onboardingPending: true,
         isDemo: false,
+        isMock: true,
       };
     const newUser: SaaSUser =
       SAAS_USERS.find((u) => u.id === res.ownerId) ?? {
