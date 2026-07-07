@@ -428,12 +428,45 @@ function CompaniesTab() {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
+          <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mr-1">
+            Conexão
+          </span>
+          {([
+            { id: "all",     label: `Todos (${companies.length})` },
+            { id: "online",  label: `Online (${onlineCount})` },
+            { id: "offline", label: `Offline (${offlineCount})` },
+          ] as const).map((opt) => {
+            const active = connFilter === opt.id;
+            const dot =
+              opt.id === "online"  ? "bg-emerald-500" :
+              opt.id === "offline" ? "bg-red-500"     :
+                                     "bg-muted-foreground/50";
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setConnFilter(opt.id)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className={`inline-block w-2 h-2 rounded-full ${dot}`} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[1000px]">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead className="bg-secondary/60 text-muted-foreground text-[11px] uppercase tracking-wide">
               <tr>
                 <th className="text-left px-4 py-3">Empresa</th>
                 <th className="text-left px-4 py-3">CNPJ</th>
+                <th className="text-left px-4 py-3">Conexão</th>
                 <th className="text-left px-4 py-3">Plano</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Vencimento</th>
@@ -443,7 +476,14 @@ function CompaniesTab() {
               </tr>
             </thead>
             <tbody>
-              {companies.map((c) => (
+              {visibleCompanies.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Nenhuma empresa {connFilter === "online" ? "online" : connFilter === "offline" ? "offline" : ""} no momento.
+                  </td>
+                </tr>
+              )}
+              {visibleCompanies.map((c) => (
                 <tr key={c.id} className="border-t border-border align-middle">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 flex-wrap">
