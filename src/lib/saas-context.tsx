@@ -723,10 +723,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         razaoSocial: `Cliente ORVIX ${seq} LTDA`,
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
-        plan: "bronze", status: "active",
+        plan: "bronze", status: "trial",
         ownerName: `Admin Loja #${seq}`,
         ownerEmail, ownerPassword: tempPassword,
-        isDemo: false, onboardingPending: true,
+        isDemo: false, isMock: true, onboardingPending: true,
       },
     });
     if (!res.ok) return { ok: false, reason: res.reason };
