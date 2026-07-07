@@ -335,6 +335,8 @@ function CompaniesTab() {
 
   // "Now" que reavalia o status online/offline a cada 30s sem refetch da lista.
   const [now, setNow] = useState(() => Date.now());
+  // Filtro de conexão para a listagem de empresas.
+  const [connFilter, setConnFilter] = useState<"all" | "online" | "offline">("all");
   // Mapa companyId -> último heartbeat (max de app_users.last_seen_at por empresa).
   // Alimenta o indicador online/offline com sinal REAL de sessão ativa.
   const [presence, setPresence] = useState<Record<string, number>>({});
@@ -360,12 +362,33 @@ function CompaniesTab() {
     const id = window.setInterval(fetchPresence, 30_000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
-  // Online = heartbeat nos últimos 2 minutos (heartbeat roda a cada 45s).
-  const ONLINE_WINDOW_MS = 2 * 60_000;
+  // Online = heartbeat nos últimos 5 minutos (heartbeat roda a cada 45s).
+  const ONLINE_WINDOW_MS = 5 * 60_000;
   const isOnline = (companyId: string) => {
     const t = presence[companyId];
     return typeof t === "number" && now - t < ONLINE_WINDOW_MS;
   };
+
+  // "Tick" leve para recalcular Online/Offline sem refazer o fetch de presença.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const visibleCompanies = useMemo(() => {
+    if (connFilter === "all") return companies;
+    return companies.filter((c) =>
+      connFilter === "online" ? isOnline(c.id) : !isOnline(c.id),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies, connFilter, presence, now]);
+
+  const onlineCount = useMemo(
+    () => companies.filter((c) => isOnline(c.id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [companies, presence, now],
+  );
+  const offlineCount = companies.length - onlineCount;
 
   return (
     <>
