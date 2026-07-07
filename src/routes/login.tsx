@@ -9,7 +9,6 @@ import { PasswordRules } from "@/components/PasswordRules";
 import { isStrongPassword } from "@/lib/password-policy";
 import { TrialSignupModal } from "@/components/TrialSignupModal";
 import { TRIAL_EMAIL_KEY, TRIAL_ACTIVE_KEY } from "@/components/TrialGate";
-import { TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD } from "@/lib/saas-context";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -82,19 +81,17 @@ function LoginPage() {
   };
 
   const handleTrialActivated = async (trialEmail: string) => {
+    // Não faz auto-login: apenas guarda o marcador do trial para o TrialGate
+    // continuar contando os 7 dias e devolve o usuário à tela de login, já
+    // com o e-mail preenchido, para entrar com a senha que ele acabou de criar.
     try {
       localStorage.setItem(TRIAL_EMAIL_KEY, trialEmail);
       localStorage.setItem(TRIAL_ACTIVE_KEY, "1");
     } catch { /* storage bloqueado — segue mesmo assim */ }
     setTrialOpen(false);
-    // Entra no ambiente de demonstração (sandbox isolado). O TrialGate global
-    // continua contando os 7 dias no servidor e bloqueia quando expira.
-    const res = await loginWithCredentials(TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD);
-    if (!res.ok || !res.user) {
-      toast.error("Não foi possível abrir o ambiente de teste. Contate o suporte.");
-      return;
-    }
-    routeForRole(res.user.role);
+    setEmail(trialEmail);
+    setPassword("");
+    toast.success("Conta de teste criada! Faça login com o e-mail e a senha que você acabou de definir.");
   };
 
   return (
