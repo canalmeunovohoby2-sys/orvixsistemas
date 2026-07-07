@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mail, Sparkles, X, Loader2, ShieldCheck, Download, Check, User, Phone } from "lucide-react";
+import { Mail, Sparkles, X, Loader2, ShieldCheck, Download, Check, User, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { startTrial } from "@/lib/trial.functions";
@@ -38,6 +38,9 @@ export function TrialLandingModal({
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<null | { email: string; daysLeft: number }>(null);
   const startTrialFn = useServerFn(startTrial);
@@ -57,6 +60,9 @@ export function TrialLandingModal({
       setEmail("");
       setFullName("");
       setWhatsapp("");
+      setPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
     }
   }, [open]);
 
@@ -88,10 +94,18 @@ export function TrialLandingModal({
       toast.error("WhatsApp inválido. Use o formato (XX) 9XXXX-XXXX.");
       return;
     }
+    if (password.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("As senhas não conferem.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await startTrialFn({
-        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
+        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, ""), password },
       });
       if (!res.ok) {
         toast.error(res.reason ?? "Falha ao registrar o teste.");
