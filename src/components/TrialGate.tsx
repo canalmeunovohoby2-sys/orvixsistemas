@@ -154,23 +154,7 @@ export function TrialGate() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-40 pointer-events-none">
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/assinatura" })}
-          className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border backdrop-blur-md px-3 py-1.5 text-xs font-semibold shadow-lg hover:brightness-110 transition ${badgeAccent}`}
-        >
-          {in24hWindow ? (
-            <AlertTriangle className="w-3.5 h-3.5" />
-          ) : (
-            <Sparkles className="w-3.5 h-3.5 text-[#e94f4f]" />
-          )}
-          Teste: {state.hoursLeft <= 24
-            ? `${state.hoursLeft}h restantes`
-            : `${state.daysLeft} ${state.daysLeft === 1 ? "dia restante" : "dias restantes"}`}
-          <ArrowRight className="w-3 h-3 opacity-70" />
-        </button>
-      </div>
+      {/* Badge flutuante removido a pedido do usuário */}
 
       {in24hWindow && !warn24Dismissed && pathname !== "/assinatura" && (
         <AlertDialog open>
