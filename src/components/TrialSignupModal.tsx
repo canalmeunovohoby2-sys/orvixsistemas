@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mail, Sparkles, X, Loader2, ShieldCheck, User, Phone } from "lucide-react";
+import { Mail, Sparkles, X, Loader2, ShieldCheck, User, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { startTrial } from "@/lib/trial.functions";
@@ -34,6 +34,9 @@ export function TrialSignupModal({
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const startTrialFn = useServerFn(startTrial);
 
@@ -57,6 +60,14 @@ export function TrialSignupModal({
       toast.error("WhatsApp inválido. Use o formato (XX) 9XXXX-XXXX.");
       return;
     }
+    if (password.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("As senhas não conferem.");
+      return;
+    }
     setSubmitting(true);
     try {
       // Limpa cache de UI de sessões anteriores (demo/mock) antes de ativar
@@ -70,7 +81,7 @@ export function TrialSignupModal({
         sessionStorage.clear();
       } catch { /* storage bloqueado */ }
       const res = await startTrialFn({
-        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, "") },
+        data: { email, fullName: fullName.trim(), whatsapp: whatsapp.replace(/\D/g, ""), password },
       });
       if (!res.ok) {
         toast.error(res.reason ?? "Falha ao iniciar o teste.");
