@@ -149,15 +149,16 @@ export const ensureTestUser = createServerFn({ method: "POST" }).handler(async (
     razao_social: "ORVIX Loja de Testes LTDA",
     fantasia: "ORVIX Loja de Testes",
     cnpj: "00.000.000/0001-91",
-    plan: "ouro",
-    status: "active",
+    plan: "bronze",
+    status: "trial",
     mrr: 0,
     due_date: new Date(Date.now() + 7 * 86400000).toISOString(),
     onboarding_pending: false,
     is_demo: true,
+    is_mock: true,
     phone: "(11) 99999-2026",
     segment: "Homologação / PDV",
-  });
+  } as never);
   if (companyErr) return { ok: false as const, reason: companyErr.message };
 
   const admin = await ensureAuthUser(supabaseAdmin, {
@@ -344,6 +345,7 @@ const CreateCompanySchema = z.object({
   ownerEmail: z.string().email(),
   ownerPassword: z.string().min(6),
   isDemo: z.boolean().default(false),
+  isMock: z.boolean().default(false),
   onboardingPending: z.boolean().default(true),
 });
 
@@ -376,7 +378,8 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
         due_date: new Date(Date.now() + (data.status === "trial" ? 7 : 30) * 86400000).toISOString(),
         onboarding_pending: data.onboardingPending,
         is_demo: data.isDemo,
-      })
+        is_mock: data.isMock,
+      } as never)
       .select()
       .single();
     if (cErr || !company) return { ok: false as const, reason: cErr?.message ?? "Falha ao criar empresa." };

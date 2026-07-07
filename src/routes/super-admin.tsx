@@ -447,6 +447,24 @@ function CompaniesTab() {
                           Teste 7 dias
                         </span>
                       )}
+                      {c.isMock && (
+                        <span
+                          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-semibold uppercase tracking-wide"
+                          title="Cliente fictício gerado por script/mock — não é uma venda real"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Fictício
+                        </span>
+                      )}
+                      {!c.isMock && c.status !== "trial" && (
+                        <span
+                          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold uppercase tracking-wide"
+                          title="Cliente real com plano contratado"
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          Real
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">{c.razaoSocial}</div>
                   </td>

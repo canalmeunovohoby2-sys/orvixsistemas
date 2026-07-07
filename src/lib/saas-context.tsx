@@ -43,6 +43,8 @@ export type Company = {
   segment?: string;
   onboardingPending?: boolean;
   isDemo?: boolean;
+  /** Cliente fictício gerado por scripts/mocks (não é venda real). */
+  isMock?: boolean;
   /** Última atualização da linha (proxy de "última atividade"). ISO. */
   updatedAt?: string;
 };
@@ -127,6 +129,7 @@ type DbCompany = {
   segment: string | null;
   onboarding_pending: boolean;
   is_demo: boolean;
+  is_mock?: boolean;
   created_at: string;
   updated_at?: string | null;
 };
@@ -160,6 +163,7 @@ function mapCompany(c: DbCompany): Company {
     segment: c.segment ?? undefined,
     onboardingPending: c.onboarding_pending,
     isDemo: c.is_demo,
+    isMock: Boolean(c.is_mock),
     updatedAt: c.updated_at ?? c.created_at ?? undefined,
   };
 }
@@ -719,10 +723,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         razaoSocial: `Cliente ORVIX ${seq} LTDA`,
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
-        plan: "bronze", status: "active",
+        plan: "bronze", status: "trial",
         ownerName: `Admin Loja #${seq}`,
         ownerEmail, ownerPassword: tempPassword,
-        isDemo: false, onboardingPending: true,
+        isDemo: false, isMock: true, onboardingPending: true,
       },
     });
     if (!res.ok) return { ok: false, reason: res.reason };
@@ -738,12 +742,13 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
         plan: "bronze",
-        status: "active",
+        status: "trial",
         mrr: 0,
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
         onboardingPending: true,
         isDemo: false,
+        isMock: true,
       };
     const newUser: SaaSUser =
       SAAS_USERS.find((u) => u.id === res.ownerId) ?? {
