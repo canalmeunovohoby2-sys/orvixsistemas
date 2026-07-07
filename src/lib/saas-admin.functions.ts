@@ -345,6 +345,7 @@ const CreateCompanySchema = z.object({
   ownerEmail: z.string().email(),
   ownerPassword: z.string().min(6),
   isDemo: z.boolean().default(false),
+  isMock: z.boolean().default(false),
   onboardingPending: z.boolean().default(true),
 });
 
@@ -377,7 +378,8 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
         due_date: new Date(Date.now() + (data.status === "trial" ? 7 : 30) * 86400000).toISOString(),
         onboarding_pending: data.onboardingPending,
         is_demo: data.isDemo,
-      })
+        is_mock: data.isMock,
+      } as never)
       .select()
       .single();
     if (cErr || !company) return { ok: false as const, reason: cErr?.message ?? "Falha ao criar empresa." };
