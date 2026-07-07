@@ -66,6 +66,7 @@ export type Database = {
           fantasia: string
           id: string
           is_demo: boolean
+          is_mock: boolean
           mrr: number
           onboarding_pending: boolean
           phone: string | null
@@ -82,6 +83,7 @@ export type Database = {
           fantasia: string
           id: string
           is_demo?: boolean
+          is_mock?: boolean
           mrr?: number
           onboarding_pending?: boolean
           phone?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           fantasia?: string
           id?: string
           is_demo?: boolean
+          is_mock?: boolean
           mrr?: number
           onboarding_pending?: boolean
           phone?: string | null
