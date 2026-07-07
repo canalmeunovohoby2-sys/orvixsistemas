@@ -270,6 +270,52 @@ export function TrialLandingModal({
                 </div>
               </label>
 
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  Senha (mín. 8 caracteres)
+                </span>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Crie uma senha forte"
+                    className="w-full h-11 pl-9 pr-10 rounded-md bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#850405]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/60 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                  Confirmar senha
+                </span>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita a senha"
+                    className="w-full h-11 pl-9 pr-3 rounded-md bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#850405]"
+                  />
+                </div>
+              </label>
+
               <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs text-white/70 leading-relaxed">
                 <div className="flex gap-2">
                   <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#e94f4f]" />
@@ -297,7 +343,7 @@ export function TrialLandingModal({
                 {submitting ? "Registrando…" : "Confirmar e baixar instalador"}
               </button>
               <p className="mt-3 text-[10px] uppercase tracking-widest text-center text-white/40">
-                Sem cartão · Sem senha · Acesso pelo app instalado
+                Sem cartão · Login com e-mail e senha criados agora
               </p>
             </footer>
           </form>
