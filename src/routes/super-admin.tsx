@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
@@ -23,6 +23,7 @@ import {
   LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
 import { Send, Megaphone, Clock, Phone } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { listRemarketingLeads, sendRemarketingEmail, deleteRemarketingLead, type RemarketingLead } from "@/lib/remarketing.functions";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -340,28 +341,42 @@ function CompaniesTab() {
   // Mapa companyId -> último heartbeat (max de app_users.last_seen_at por empresa).
   // Alimenta o indicador online/offline com sinal REAL de sessão ativa.
   const [presence, setPresence] = useState<Record<string, number>>({});
-  useEffect(() => {
-    let alive = true;
-    const fetchPresence = async () => {
-      const { data, error } = await supabase
-        .from("app_users")
-        .select("company_id, last_seen_at")
-        .not("last_seen_at", "is", null);
-      if (!alive || error || !data) return;
-      const map: Record<string, number> = {};
-      for (const row of data as Array<{ company_id: string | null; last_seen_at: string | null }>) {
-        if (!row.company_id || !row.last_seen_at) continue;
-        const t = new Date(row.last_seen_at).getTime();
-        if (!Number.isFinite(t)) continue;
-        if (!map[row.company_id] || t > map[row.company_id]) map[row.company_id] = t;
-      }
-      setPresence(map);
-      setNow(Date.now());
-    };
-    void fetchPresence();
-    const id = window.setInterval(fetchPresence, 30_000);
-    return () => { alive = false; window.clearInterval(id); };
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const aliveRef = useRef(true);
+  const fetchPresence = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("app_users")
+      .select("company_id, last_seen_at")
+      .not("last_seen_at", "is", null);
+    if (!aliveRef.current || error || !data) return;
+    const map: Record<string, number> = {};
+    for (const row of data as Array<{ company_id: string | null; last_seen_at: string | null }>) {
+      if (!row.company_id || !row.last_seen_at) continue;
+      const t = new Date(row.last_seen_at).getTime();
+      if (!Number.isFinite(t)) continue;
+      if (!map[row.company_id] || t > map[row.company_id]) map[row.company_id] = t;
+    }
+    setPresence(map);
+    setNow(Date.now());
   }, []);
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refresh(), fetchPresence()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refresh, fetchPresence]);
+  useEffect(() => {
+    aliveRef.current = true;
+    void fetchPresence();
+    // Auto-refresh a cada 10s: lista de empresas + presença (silencioso, sem flicker).
+    const id = window.setInterval(() => {
+      void refresh();
+      void fetchPresence();
+    }, 10_000);
+    return () => { aliveRef.current = false; window.clearInterval(id); };
+  }, [fetchPresence, refresh]);
   // Online = heartbeat nos últimos 5 minutos (heartbeat roda a cada 45s).
   const ONLINE_WINDOW_MS = 5 * 60_000;
   const isOnline = (companyId: string) => {
@@ -459,6 +474,17 @@ function CompaniesTab() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            aria-label="Atualizar lista de empresas"
+            title="Atualizar agora"
+            className="ml-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            Atualizar
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[1100px]">
