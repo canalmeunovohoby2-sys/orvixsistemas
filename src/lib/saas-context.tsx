@@ -727,10 +727,12 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         razaoSocial: `Cliente ORVIX ${seq} LTDA`,
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
-        plan: "bronze", status: "trial",
+        // Cliente Fictício NUNCA é trial e NUNCA sobe pra Ouro por padrão.
+        // Fica como ativo/bronze e é identificado pelo badge "Dado Fictício".
+        plan: "bronze", status: "active",
         ownerName: `Admin Loja #${seq}`,
         ownerEmail, ownerPassword: tempPassword,
-        isDemo: false, isMock: true, onboardingPending: true,
+        isDemo: false, isMock: true, isTrial: false, onboardingPending: true,
       },
     });
     if (!res.ok) return { ok: false, reason: res.reason };
@@ -746,13 +748,14 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         fantasia: `Loja ORVIX #${seq}`,
         cnpj: "00.000.000/0001-00",
         plan: "bronze",
-        status: "trial",
+        status: "active",
         mrr: 0,
         createdAt: new Date().toISOString().slice(0, 10),
         dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
         onboardingPending: true,
         isDemo: false,
         isMock: true,
+        isTrial: false,
       };
     const newUser: SaaSUser =
       SAAS_USERS.find((u) => u.id === res.ownerId) ?? {
