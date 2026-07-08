@@ -346,6 +346,7 @@ const CreateCompanySchema = z.object({
   ownerPassword: z.string().min(6),
   isDemo: z.boolean().default(false),
   isMock: z.boolean().default(false),
+  isTrial: z.boolean().default(false),
   onboardingPending: z.boolean().default(true),
 });
 
@@ -365,6 +366,12 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
     const companyId = String(nextIdRow);
 
     // Cria empresa
+    // Blindagem de faturamento:
+    //  • Trial ⇒ força plano Bronze e status 'trial', nunca Ouro.
+    //  • Fictício ⇒ nunca é trial (mesmo que venha marcado).
+    const isTrial = data.isTrial && !data.isMock;
+    const effectivePlan: "bronze" | "prata" | "ouro" = isTrial ? "bronze" : data.plan;
+    const effectiveStatus = isTrial ? "trial" : data.status;
     const { data: company, error: cErr } = await supabaseAdmin
       .from("companies")
       .insert({
@@ -372,13 +379,14 @@ export const adminCreateCompanyWithOwner = createServerFn({ method: "POST" })
         razao_social: data.razaoSocial,
         fantasia: data.fantasia,
         cnpj: data.cnpj,
-        plan: data.plan,
-        status: data.status,
+        plan: effectivePlan,
+        status: effectiveStatus,
         mrr: 0,
-        due_date: new Date(Date.now() + (data.status === "trial" ? 7 : 30) * 86400000).toISOString(),
+        due_date: new Date(Date.now() + (effectiveStatus === "trial" ? 7 : 30) * 86400000).toISOString(),
         onboarding_pending: data.onboardingPending,
         is_demo: data.isDemo,
         is_mock: data.isMock,
+        is_trial: isTrial,
       } as never)
       .select()
       .single();
