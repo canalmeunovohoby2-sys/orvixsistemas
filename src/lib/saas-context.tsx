@@ -45,6 +45,8 @@ export type Company = {
   isDemo?: boolean;
   /** Cliente fictício gerado por scripts/mocks (não é venda real). */
   isMock?: boolean;
+  /** Cliente em período de teste de 7 dias (Trial). Mutuamente exclusivo com `isMock`. */
+  isTrial?: boolean;
   /** Última atualização da linha (proxy de "última atividade"). ISO. */
   updatedAt?: string;
 };
@@ -130,6 +132,7 @@ type DbCompany = {
   onboarding_pending: boolean;
   is_demo: boolean;
   is_mock?: boolean;
+  is_trial?: boolean;
   created_at: string;
   updated_at?: string | null;
 };
@@ -164,6 +167,7 @@ function mapCompany(c: DbCompany): Company {
     onboardingPending: c.onboarding_pending,
     isDemo: c.is_demo,
     isMock: Boolean(c.is_mock),
+    isTrial: Boolean(c.is_trial),
     updatedAt: c.updated_at ?? c.created_at ?? undefined,
   };
 }
