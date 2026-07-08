@@ -607,29 +607,12 @@ function CompaniesTab() {
                       const limitLbl = String(limit);
                       const full = used >= limit;
                       return (
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs tabular-nums ${full ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>
-                            {used}/{limitLbl}
-                          </span>
-                          <button
-                            onClick={async () => {
-                              const res = await inviteUser(c.id, "cashier");
-                              if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
-                              else if (res.user) {
-                                setTempCredentials({
-                                  email: res.user.email,
-                                  password: res.password ?? "",
-                                  subtitle: `Novo usuário em ${c.fantasia}`,
-                                });
-                                setIsCredentialsModalOpen(true);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-semibold hover:bg-accent transition-colors"
-                            title="Convidar novo usuário (respeita o limite do plano)"
-                          >
-                            <UserPlus className="w-3 h-3" /> Convidar
-                          </button>
-                        </div>
+                        <span
+                          className={`text-xs tabular-nums ${full ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}
+                          title="Uso de usuários no plano contratado"
+                        >
+                          {used}/{limitLbl}
+                        </span>
                       );
                     })()}
                   </td>
