@@ -85,7 +85,7 @@ export function DashboardPage() {
   // como demonstração (flag estável `isDemo`). Empresas reais — criadas via
   // Super Admin, webhook MP ou self-signup — começam SEMPRE zeradas, mesmo
   // após delete/recreate (a flag não é herdada por ID reciclado).
-  const demo = company?.isDemo === true;
+  const demo = company?.isMock === true;
 
   // Em empresas reais (não-demo) os dados ficam zerados até o lojista operar o sistema.
   const dataCompanyId = demo ? DEMO_SEED_COMPANY_ID : cid;

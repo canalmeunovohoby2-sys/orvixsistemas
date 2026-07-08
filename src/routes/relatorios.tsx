@@ -116,12 +116,12 @@ function RelatoriosPage() {
   const [period, setPeriod] = useState<Period>("Mensal");
   const [exporting, setExporting] = useState(false);
   const advancedUnlocked = company ? PLAN_LIMITS[company.plan].advancedReports : false;
-  const reportProducts = company?.isDemo === true
+  const reportProducts = company?.isMock === true
     ? PRODUCTS.filter((p) => p.company_id === DEMO_SEED_COMPANY_ID)
     : company?.id
       ? PRODUCTS.filter((p) => p.company_id === company.id)
       : [];
-  const reportSales = getReportSales(company?.id, !company?.id || company?.isDemo === true);
+  const reportSales = getReportSales(company?.id, !company?.id || company?.isMock === true);
   const filteredSales = useMemo(
     () => filterSalesByPeriod(reportSales, period),
     [period, company?.id, reportSales.length],
