@@ -19,7 +19,7 @@ import { CredentialsModal } from "@/components/CredentialsModal";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, Eraser,
   LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
 import { Send, Megaphone, Clock, Phone } from "lucide-react";
@@ -326,7 +326,7 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany, refresh } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, deleteCompany, refresh } = useSaaS();
   const navigate = useNavigate();
   const [tempCredentials, setTempCredentials] = useState<{ email: string; password: string; subtitle: string } | null>(null);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
