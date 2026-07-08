@@ -211,6 +211,7 @@ async function provisionTrialAccount(
     onboarding_pending: true,
     is_demo: false,
     is_mock: false,
+    is_trial: true,
   } as never);
   if (cErr) return { ok: false, reason: `Falha ao criar empresa (${cErr.message}).` };
 
