@@ -533,6 +533,32 @@ function CompaniesTab() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{c.cnpj}</td>
                   <td className="px-4 py-3">
+                    {isOnline(c.id) ? (
+                      <span
+                        className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold"
+                        title={`Online — último sinal ${new Date(presence[c.id]).toLocaleString("pt-BR")}`}
+                      >
+                        <span className="relative inline-flex w-2 h-2">
+                          <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
+                          <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+                        </span>
+                        Online
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 text-[11px] font-semibold"
+                        title={
+                          presence[c.id]
+                            ? `Offline — último sinal ${new Date(presence[c.id]).toLocaleString("pt-BR")}`
+                            : "Offline — nenhum sinal registrado"
+                        }
+                      >
+                        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                        Offline
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     <select
                       value={c.plan}
                       onChange={(e) => {
