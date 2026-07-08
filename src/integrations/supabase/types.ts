@@ -67,6 +67,7 @@ export type Database = {
           id: string
           is_demo: boolean
           is_mock: boolean
+          is_trial: boolean
           mrr: number
           onboarding_pending: boolean
           phone: string | null
@@ -84,6 +85,7 @@ export type Database = {
           id: string
           is_demo?: boolean
           is_mock?: boolean
+          is_trial?: boolean
           mrr?: number
           onboarding_pending?: boolean
           phone?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           is_mock?: boolean
+          is_trial?: boolean
           mrr?: number
           onboarding_pending?: boolean
           phone?: string | null
