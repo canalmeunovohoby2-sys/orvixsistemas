@@ -474,6 +474,17 @@ function CompaniesTab() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            aria-label="Atualizar lista de empresas"
+            title="Atualizar agora"
+            className="ml-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            Atualizar
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[1100px]">
