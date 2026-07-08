@@ -335,6 +335,8 @@ function CompaniesTab() {
 
   // "Now" que reavalia o status online/offline a cada 30s sem refetch da lista.
   const [now, setNow] = useState(() => Date.now());
+  // Filtro de conexão para a listagem de empresas.
+  const [connFilter, setConnFilter] = useState<"all" | "online" | "offline">("all");
   // Mapa companyId -> último heartbeat (max de app_users.last_seen_at por empresa).
   // Alimenta o indicador online/offline com sinal REAL de sessão ativa.
   const [presence, setPresence] = useState<Record<string, number>>({});
@@ -360,12 +362,33 @@ function CompaniesTab() {
     const id = window.setInterval(fetchPresence, 30_000);
     return () => { alive = false; window.clearInterval(id); };
   }, []);
-  // Online = heartbeat nos últimos 2 minutos (heartbeat roda a cada 45s).
-  const ONLINE_WINDOW_MS = 2 * 60_000;
+  // Online = heartbeat nos últimos 5 minutos (heartbeat roda a cada 45s).
+  const ONLINE_WINDOW_MS = 5 * 60_000;
   const isOnline = (companyId: string) => {
     const t = presence[companyId];
     return typeof t === "number" && now - t < ONLINE_WINDOW_MS;
   };
+
+  // "Tick" leve para recalcular Online/Offline sem refazer o fetch de presença.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const visibleCompanies = useMemo(() => {
+    if (connFilter === "all") return companies;
+    return companies.filter((c) =>
+      connFilter === "online" ? isOnline(c.id) : !isOnline(c.id),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies, connFilter, presence, now]);
+
+  const onlineCount = useMemo(
+    () => companies.filter((c) => isOnline(c.id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [companies, presence, now],
+  );
+  const offlineCount = companies.length - onlineCount;
 
   return (
     <>
@@ -405,12 +428,45 @@ function CompaniesTab() {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
+          <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mr-1">
+            Conexão
+          </span>
+          {([
+            { id: "all",     label: `Todos (${companies.length})` },
+            { id: "online",  label: `Online (${onlineCount})` },
+            { id: "offline", label: `Offline (${offlineCount})` },
+          ] as const).map((opt) => {
+            const active = connFilter === opt.id;
+            const dot =
+              opt.id === "online"  ? "bg-emerald-500" :
+              opt.id === "offline" ? "bg-red-500"     :
+                                     "bg-muted-foreground/50";
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setConnFilter(opt.id)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className={`inline-block w-2 h-2 rounded-full ${dot}`} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[1000px]">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead className="bg-secondary/60 text-muted-foreground text-[11px] uppercase tracking-wide">
               <tr>
                 <th className="text-left px-4 py-3">Empresa</th>
                 <th className="text-left px-4 py-3">CNPJ</th>
+                <th className="text-left px-4 py-3">Conexão</th>
                 <th className="text-left px-4 py-3">Plano</th>
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">Vencimento</th>
@@ -420,7 +476,14 @@ function CompaniesTab() {
               </tr>
             </thead>
             <tbody>
-              {companies.map((c) => (
+              {visibleCompanies.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Nenhuma empresa {connFilter === "online" ? "online" : connFilter === "offline" ? "offline" : ""} no momento.
+                  </td>
+                </tr>
+              )}
+              {visibleCompanies.map((c) => (
                 <tr key={c.id} className="border-t border-border align-middle">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -469,6 +532,32 @@ function CompaniesTab() {
                     <div className="text-xs text-muted-foreground">{c.razaoSocial}</div>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{c.cnpj}</td>
+                  <td className="px-4 py-3">
+                    {isOnline(c.id) ? (
+                      <span
+                        className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold"
+                        title={`Online — último sinal ${new Date(presence[c.id]).toLocaleString("pt-BR")}`}
+                      >
+                        <span className="relative inline-flex w-2 h-2">
+                          <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
+                          <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+                        </span>
+                        Online
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 text-[11px] font-semibold"
+                        title={
+                          presence[c.id]
+                            ? `Offline — último sinal ${new Date(presence[c.id]).toLocaleString("pt-BR")}`
+                            : "Offline — nenhum sinal registrado"
+                        }
+                      >
+                        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                        Offline
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <select
                       value={c.plan}
