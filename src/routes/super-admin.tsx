@@ -501,31 +501,32 @@ function CompaniesTab() {
                         aria-label={isOnline(c.id) ? "Online" : "Offline"}
                       />
                       <span className="font-semibold">{c.fantasia}</span>
-                      {c.status === "trial" && (
+                      {/* Categorias mutuamente exclusivas, com prioridade
+                          Fictício > Trial > Pago. Um cliente pagante NUNCA
+                          pode aparecer como "Teste 7 dias". */}
+                      {c.isMock ? (
+                        <span
+                          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-muted text-muted-foreground border border-border text-[10px] font-semibold uppercase tracking-wide"
+                          title="Dado fictício gerado manualmente pelo painel — não é venda real"
+                        >
+                          <Database className="w-3 h-3" />
+                          Dado Fictício
+                        </span>
+                      ) : c.isTrial ? (
                         <span
                           className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-[10px] font-semibold uppercase tracking-wide"
-                          title="Cliente em período de teste de 7 dias"
+                          title="Cliente em período de teste de 7 dias (plano Bronze)"
                         >
                           <Sparkles className="w-3 h-3" />
                           Teste 7 dias
                         </span>
-                      )}
-                      {c.isMock && (
-                        <span
-                          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-semibold uppercase tracking-wide"
-                          title="Cliente fictício gerado por script/mock — não é uma venda real"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          Fictício
-                        </span>
-                      )}
-                      {!c.isMock && c.status !== "trial" && (
+                      ) : (
                         <span
                           className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold uppercase tracking-wide"
-                          title="Cliente real com plano contratado"
+                          title={`Cliente pagante — plano ${PLAN_LABEL[c.plan]}`}
                         >
                           <ShieldCheck className="w-3 h-3" />
-                          Real
+                          Pago
                         </span>
                       )}
                     </div>
