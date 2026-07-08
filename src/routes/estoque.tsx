@@ -27,7 +27,7 @@ export const Route = createFileRoute("/estoque")({
 function EstoquePage() {
   useMockStore();
   const { user, company } = useSaaS();
-  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
+  const cid = company?.isMock === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const tenantMovements = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
   const totalEntradas = tenantMovements.filter(m => m.type === "Entrada").reduce((a, m) => a + m.qty, 0);
   const totalSaidas = tenantMovements.filter(m => m.type === "Saída").reduce((a, m) => a + m.qty, 0);
@@ -87,7 +87,7 @@ function EstoquePage() {
 
 function AuditLog() {
   const { user, company } = useSaaS();
-  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
+  const cid = company?.isMock === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const rows = cid ? MOVEMENTS.filter((m) => m.company_id === cid) : [];
   return (
     <section className="mt-8">
@@ -139,7 +139,7 @@ function AuditLog() {
 function InventorySummary() {
   const [onlyLow, setOnlyLow] = useState(false);
   const { user, company } = useSaaS();
-  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
+  const cid = company?.isMock === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const tenantProducts = cid ? PRODUCTS.filter((p) => p.company_id === cid) : [];
   const lowCount = tenantProducts.filter((p) => p.stock <= p.minStock).length;
   const rows = onlyLow ? tenantProducts.filter((p) => p.stock <= p.minStock) : tenantProducts;

@@ -29,7 +29,7 @@ export const Route = createFileRoute("/produtos")({
 function ProdutosPage() {
   useMockStore();
   const { user, company } = useSaaS();
-  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
+  const cid = company?.isMock === true ? DEMO_SEED_COMPANY_ID : user?.companyId ?? null;
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "low" | "inactive">("all");
 

@@ -275,7 +275,7 @@ export function VendasPage() {
   const [openingFloat, setOpeningFloat] = useState<string>("");
   const [closingCash, setClosingCash] = useState<string>("");
 
-  const cid = company?.isDemo === true ? DEMO_SEED_COMPANY_ID : company?.id ?? user?.companyId ?? null;
+  const cid = company?.isMock === true ? DEMO_SEED_COMPANY_ID : company?.id ?? user?.companyId ?? null;
 
   // ── Trava de Caixas Simultâneos por plano ──
   // Cada aba registra um id único em `localStorage` com heartbeat. Se o número
