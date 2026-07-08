@@ -19,7 +19,7 @@ import { CredentialsModal } from "@/components/CredentialsModal";
 import {
   Crown, Building2, TrendingUp, AlertTriangle, CheckCircle2, LayoutDashboard,
   ShieldCheck, Settings, LifeBuoy, LogIn, KeyRound, Mail, CreditCard,
-  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, UserPlus, Eraser,
+  ArrowRightLeft, Database, FileWarning, UserCog, Sparkles, X, Eraser,
   LogOut, Trash2, Undo2, Eye, EyeOff,
 } from "lucide-react";
 import { Send, Megaphone, Clock, Phone } from "lucide-react";
@@ -326,7 +326,7 @@ function DashboardTab() {
 /* ─────────────────────── Empresas tab ─────────────────────── */
 
 function CompaniesTab() {
-  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, inviteUser, deleteCompany, refresh } = useSaaS();
+  const { companies, setCompanyStatus, setCompanyPlan, setCompanyDueDate, startImpersonation, createDemoAccess, countUsers, deleteCompany, refresh } = useSaaS();
   const navigate = useNavigate();
   const [tempCredentials, setTempCredentials] = useState<{ email: string; password: string; subtitle: string } | null>(null);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
@@ -607,29 +607,12 @@ function CompaniesTab() {
                       const limitLbl = String(limit);
                       const full = used >= limit;
                       return (
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs tabular-nums ${full ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>
-                            {used}/{limitLbl}
-                          </span>
-                          <button
-                            onClick={async () => {
-                              const res = await inviteUser(c.id, "cashier");
-                              if (!res.ok) toast.error(res.reason ?? "Limite atingido.");
-                              else if (res.user) {
-                                setTempCredentials({
-                                  email: res.user.email,
-                                  password: res.password ?? "",
-                                  subtitle: `Novo usuário em ${c.fantasia}`,
-                                });
-                                setIsCredentialsModalOpen(true);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] font-semibold hover:bg-accent transition-colors"
-                            title="Convidar novo usuário (respeita o limite do plano)"
-                          >
-                            <UserPlus className="w-3 h-3" /> Convidar
-                          </button>
-                        </div>
+                        <span
+                          className={`text-xs tabular-nums ${full ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}
+                          title="Uso de usuários no plano contratado"
+                        >
+                          {used}/{limitLbl}
+                        </span>
                       );
                     })()}
                   </td>
