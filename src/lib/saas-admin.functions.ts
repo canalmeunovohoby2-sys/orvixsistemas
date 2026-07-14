@@ -6,6 +6,10 @@ import { z } from "zod";
 const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
 /** Senha padrão de primeiro acesso — usada APENAS quando ainda não existe Super Admin. */
 const SUPER_ADMIN_DEFAULT_PASSWORD = "OrvixAdmin@2026";
+/** Segundo Super Admin (sócio Luiz). Bootstrap idempotente. */
+const SUPER_ADMIN_LUIZ_EMAIL = "orvixsistemasluiz@gmail.com";
+const SUPER_ADMIN_LUIZ_PASSWORD = "OrvixAdminluiz@2026";
+const SUPER_ADMIN_LUIZ_NAME = "Luiz (Orvix Sistemas)";
 /** Credencial master de homologação solicitada para destravar testes. */
 const TEST_ADMIN_EMAIL = "teste@orvix.com";
 const TEST_ADMIN_PASSWORD = "Orvix@2026";
