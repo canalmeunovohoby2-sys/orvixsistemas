@@ -105,6 +105,7 @@ export const TEST_ADMIN_PASSWORD = "Orvix@2026";
 export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
 export const TEST_CASHIER_PASSWORD = "OrvixCaixa@2026";
 const TEST_COMPANY_ID = "EMP_TESTE";
+export const CURRENT_ADMIN_EMAIL_KEY = "orvix_current_admin_email";
 
 /* ============================================================
  * Snapshots de reversão (mantidos para auditoria — Phase 1 cobre
@@ -266,12 +267,16 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const bootstrappedRef = useRef(false);
   const readyRef = useRef(false);
   const activeLoadUidRef = useRef<string | null>(null);
+  const realUserIdRef = useRef<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
 
   useEffect(() => {
     readyRef.current = ready;
   }, [ready]);
+  useEffect(() => {
+    realUserIdRef.current = realUser?.id ?? null;
+  }, [realUser]);
 
   /* ---------- Heartbeat de presença (online real) ---------- */
   // Atualiza `app_users.last_seen_at` a cada 45s enquanto houver sessão ativa
@@ -317,12 +322,32 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
       const sessionUserId = data.session?.user.id ?? null;
+      const sessionEmail = data.session?.user.email?.trim().toLowerCase() ?? null;
+      try {
+        if (sessionEmail) localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, sessionEmail);
+        else localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY);
+      } catch { /* storage indisponível */ }
       setAuthUserId(sessionUserId);
       setAuthInitialized(true);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        setAuthUserId(session?.user.id ?? null);
+        const nextUserId = session?.user.id ?? null;
+        const nextEmail = session?.user.email?.trim().toLowerCase() ?? null;
+        try {
+          if (nextEmail) localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, nextEmail);
+          else localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY);
+        } catch { /* storage indisponível */ }
+        const accountChanged = nextUserId !== realUserIdRef.current;
+        if (event === "SIGNED_OUT" || accountChanged) {
+          activeLoadUidRef.current = nextUserId;
+          setRealUser(null);
+          setImpersonatedCompanyId(null);
+          COMPANIES.length = 0; SAAS_USERS.length = 0;
+          tick();
+          setReady(false);
+        }
+        setAuthUserId(nextUserId);
         setAuthInitialized(true);
       }
     });
@@ -423,6 +448,30 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const normalized = email.trim().toLowerCase();
       if (!normalized || !password) return { ok: false, reason: "Informe e-mail e senha." };
 
+      const { data: currentSession } = await supabase.auth.getSession();
+      const currentEmail = currentSession.session?.user.email?.trim().toLowerCase() ?? null;
+      if (currentEmail && currentEmail !== normalized) {
+        await supabase.auth.signOut();
+      }
+      activeLoadUidRef.current = null;
+      setAuthUserId(null);
+      setRealUser(null);
+      setImpersonatedCompanyId(null);
+      try { localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, normalized); } catch { /* storage indisponível */ }
+      COMPANIES.length = 0; SAAS_USERS.length = 0;
+      tick();
+      setReady(false);
+
+      const failLogin = (reason: string): { ok: false; reason: string } => {
+        setAuthUserId(null);
+        setRealUser(null);
+        setImpersonatedCompanyId(null);
+        COMPANIES.length = 0; SAAS_USERS.length = 0;
+        tick();
+        setReady(true);
+        return { ok: false, reason };
+      };
+
       const activateLocalTestBypass = (role: Role): SaaSUser => {
         const companyRow: Company = {
           id: TEST_COMPANY_ID,
@@ -502,11 +551,11 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (error && normalized === TEST_CASHIER_EMAIL && password === TEST_CASHIER_PASSWORD) {
         return { ok: true, user: activateLocalTestBypass("cashier") };
       }
-      if (error) return { ok: false, reason: "E-mail ou senha incorretos." };
+      if (error) return failLogin("E-mail ou senha incorretos.");
 
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id ?? null;
-      if (!uid) return { ok: false, reason: "Sessão não estabelecida." };
+      if (!uid) return failLogin("Sessão não estabelecida.");
       const { data: meRow } = await supabase
         .from("app_users")
         .select("id, name, email, role, company_id, is_temporary_password")
@@ -518,7 +567,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
       if (!resolved.ok) {
         await supabase.auth.signOut();
-        return { ok: false, reason: resolved.reason ?? "Usuário sem perfil cadastrado na plataforma." };
+        return failLogin(resolved.reason ?? "Usuário sem perfil cadastrado na plataforma.");
       }
 
       const me: SaaSUser = {
@@ -528,8 +577,9 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       };
       if (!me) {
         await supabase.auth.signOut();
-        return { ok: false, reason: "Usuário sem perfil cadastrado na plataforma." };
+        return failLogin("Usuário sem perfil cadastrado na plataforma.");
       }
+      setAuthUserId(uid);
       setRealUser(me);
       setImpersonatedCompanyId(null);
       tick();
@@ -546,22 +596,29 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    activeLoadUidRef.current = null;
+    setAuthUserId(null);
     setRealUser(null);
     setImpersonatedCompanyId(null);
+    try { localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY); } catch { /* storage indisponível */ }
     COMPANIES.length = 0; SAAS_USERS.length = 0;
     tick();
+    setReady(true);
+    await supabase.auth.signOut();
   }, [tick]);
 
   /* ---------- Usuário efetivo (com impersonação) ---------- */
-  let user: SaaSUser | null = realUser;
-  let company: Company | null = realUser?.companyId
-    ? COMPANIES.find((c) => c.id === realUser.companyId) ?? null
+  const profileMatchesSession = !authUserId || realUser?.id === authUserId;
+  const readyForCurrentSession = ready && authInitialized && (!authUserId || !realUser || profileMatchesSession);
+  const sessionRealUser = profileMatchesSession ? realUser : null;
+  let user: SaaSUser | null = sessionRealUser;
+  let company: Company | null = sessionRealUser?.companyId
+    ? COMPANIES.find((c) => c.id === sessionRealUser.companyId) ?? null
     : null;
   const impersonatedCompany = impersonatedCompanyId ? COMPANIES.find((c) => c.id === impersonatedCompanyId) ?? null : null;
-  if (realUser?.role === "super_admin" && impersonatedCompany) {
+  if (sessionRealUser?.role === "super_admin" && impersonatedCompany) {
     user = {
-      id: realUser.id, name: `${realUser.name} (Suporte)`, email: realUser.email,
+      id: sessionRealUser.id, name: `${sessionRealUser.name} (Suporte)`, email: sessionRealUser.email,
       role: "admin", companyId: impersonatedCompany.id, password: "", isTemporaryPassword: false,
     };
     company = impersonatedCompany;
@@ -1033,7 +1090,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      user, company, companies: COMPANIES, users: SAAS_USERS, ready,
+      user, company, companies: COMPANIES, users: SAAS_USERS, ready: readyForCurrentSession,
       loginWithCredentials, logout, hasRole,
       setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
       updatePassword, changeOwnPassword, completeOnboarding,

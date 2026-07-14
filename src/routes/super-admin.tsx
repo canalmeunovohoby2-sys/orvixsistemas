@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
-  SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL, type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL, CURRENT_ADMIN_EMAIL_KEY, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
@@ -67,8 +67,8 @@ function SuperAdminEmailGate({ children }: { children: React.ReactNode }) {
 
 type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "remarketing" | "config";
 
-function getMasterDisplayName(user: ReturnType<typeof useSaaS>["user"]): string {
-  const email = (user?.email ?? "").trim().toLowerCase();
+function getMasterDisplayName(user: ReturnType<typeof useSaaS>["user"], sessionEmail?: string | null): string {
+  const email = (sessionEmail || user?.email || "").trim().toLowerCase();
   const name = (user?.name ?? "").trim().toLowerCase();
   if (email === SUPER_ADMIN_LUIZ_EMAIL.toLowerCase() || email.includes("luiz") || name.includes("luiz")) {
     return "Luiz Sub Admin";
@@ -82,7 +82,31 @@ function SuperAdminPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
   const [pwdModal, setPwdModal] = useState(false);
-  const masterDisplayName = getMasterDisplayName(user);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const masterDisplayName = getMasterDisplayName(user, sessionEmail);
+
+  useEffect(() => {
+    let alive = true;
+    try { setSessionEmail(localStorage.getItem(CURRENT_ADMIN_EMAIL_KEY)); } catch { /* storage indisponível */ }
+    supabase.auth.getSession().then(({ data }) => {
+      if (alive) {
+        setSessionEmail(data.session?.user.email ?? null);
+        setSessionChecked(true);
+      }
+    }).catch(() => {
+      if (alive) setSessionChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionEmail(session?.user.email ?? null);
+      setSessionChecked(true);
+    });
+    return () => { alive = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  if (!sessionChecked) {
+    return <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">Carregando…</div>;
+  }
 
   // Poller do webhook do Mercado Pago — drena eventos pendentes da fila server-side
   // e materializa empresas + auditoria. Só roda enquanto o Super Admin está logado.
