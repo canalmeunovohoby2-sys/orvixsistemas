@@ -83,19 +83,30 @@ function SuperAdminPage() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [pwdModal, setPwdModal] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const masterDisplayName = getMasterDisplayName(user, sessionEmail);
 
   useEffect(() => {
     let alive = true;
     try { setSessionEmail(localStorage.getItem(CURRENT_ADMIN_EMAIL_KEY)); } catch { /* storage indisponível */ }
     supabase.auth.getSession().then(({ data }) => {
-      if (alive) setSessionEmail(data.session?.user.email ?? null);
+      if (alive) {
+        setSessionEmail(data.session?.user.email ?? null);
+        setSessionChecked(true);
+      }
+    }).catch(() => {
+      if (alive) setSessionChecked(true);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setSessionEmail(session?.user.email ?? null);
+      setSessionChecked(true);
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
+
+  if (!sessionChecked) {
+    return <div className="min-h-[60vh] grid place-items-center text-sm text-muted-foreground">Carregando…</div>;
+  }
 
   // Poller do webhook do Mercado Pago — drena eventos pendentes da fila server-side
   // e materializa empresas + auditoria. Só roda enquanto o Super Admin está logado.
