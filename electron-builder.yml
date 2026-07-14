@@ -15,6 +15,7 @@ files:
 nsis:
   oneClick: false
   perMachine: false
+  differentialPackage: false
   allowElevation: true
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
