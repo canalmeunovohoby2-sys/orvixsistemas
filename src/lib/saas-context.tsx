@@ -588,11 +588,14 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    activeLoadUidRef.current = null;
+    setAuthUserId(null);
     setRealUser(null);
     setImpersonatedCompanyId(null);
     COMPANIES.length = 0; SAAS_USERS.length = 0;
     tick();
+    setReady(true);
+    await supabase.auth.signOut();
   }, [tick]);
 
   /* ---------- Usuário efetivo (com impersonação) ---------- */
