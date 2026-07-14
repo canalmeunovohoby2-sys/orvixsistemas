@@ -600,7 +600,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const sessionRealUser = profileMatchesSession ? realUser : null;
   let user: SaaSUser | null = sessionRealUser;
   let company: Company | null = sessionRealUser?.companyId
-    ? COMPANIES.find((c) => c.id === realUser.companyId) ?? null
+    ? COMPANIES.find((c) => c.id === sessionRealUser.companyId) ?? null
     : null;
   const impersonatedCompany = impersonatedCompanyId ? COMPANIES.find((c) => c.id === impersonatedCompanyId) ?? null : null;
   if (sessionRealUser?.role === "super_admin" && impersonatedCompany) {
