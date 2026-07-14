@@ -27,6 +27,7 @@ if (!gotLock) {
 }
 
 let mainWindow = /** @type {BrowserWindow | null} */ (null);
+let lastNativeContextMenuAt = 0;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -54,15 +55,20 @@ function createWindow() {
   // Menu de contexto nativo (Copiar / Colar / Recortar / Selecionar tudo /
   // Desfazer / Refazer). Essencial para que o operador consiga colar
   // credenciais e editar campos de input dentro do app instalado.
-  mainWindow.webContents.on("context-menu", (_event, params) => {
+  // Menu de contexto — sempre exibe as ações essenciais habilitadas.
+  // Mesmo em <input type="password">, onde o Chromium reporta editFlags
+  // vazios, mantemos Copiar/Colar/Recortar ativos: os roles nativos do
+  // Electron simplesmente não fazem nada quando não há o que copiar,
+  // mas o menu abre e Colar funciona normalmente na tela de login.
+  const showContextMenu = (params) => {
     if (!mainWindow) return;
-    const editFlags = params.editFlags || {};
-    const isEditable = Boolean(params.isEditable);
-    const hasSelection = !!(params.selectionText && params.selectionText.trim());
+    const isEditable = Boolean(params && params.isEditable);
+    const suggestions =
+      params && Array.isArray(params.dictionarySuggestions) ? params.dictionarySuggestions : [];
     const template = [];
 
-    if (params.misspelledWord && Array.isArray(params.dictionarySuggestions) && params.dictionarySuggestions.length) {
-      for (const suggestion of params.dictionarySuggestions) {
+    if (params && params.misspelledWord && suggestions.length) {
+      for (const suggestion of suggestions) {
         template.push({
           label: suggestion,
           click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
@@ -71,30 +77,46 @@ function createWindow() {
       template.push({ type: "separator" });
     }
 
-    // Sempre expõe os comandos essenciais — mesmo com editFlags "falsos",
-    // deixamos o item habilitado para que Copiar/Colar funcionem quando o
-    // Chromium ainda não reportou seleção (comum em <input type="password">).
     if (isEditable) {
       template.push({ role: "undo" });
       template.push({ role: "redo" });
       template.push({ type: "separator" });
-    }
-    template.push({ role: "cut", enabled: isEditable && (editFlags.canCut || hasSelection) });
-    template.push({ role: "copy", enabled: editFlags.canCopy || hasSelection });
-    template.push({ role: "paste", enabled: isEditable });
-    if (isEditable) {
+      template.push({ role: "cut" });
+      template.push({ role: "copy" });
+      template.push({ role: "paste" });
       template.push({ role: "pasteAndMatchStyle" });
-      template.push({ role: "delete", enabled: editFlags.canDelete || hasSelection });
+      template.push({ role: "delete" });
+      template.push({ type: "separator" });
+      template.push({ role: "selectAll" });
+    } else {
+      template.push({ role: "copy" });
+      template.push({ role: "selectAll" });
     }
-    template.push({ type: "separator" });
-    template.push({ role: "selectAll" });
 
     try {
       const menu = Menu.buildFromTemplate(template);
-      menu.popup({ window: mainWindow, x: params.x, y: params.y });
+      // Sem x/y explícitos → Electron abre na posição atual do cursor,
+      // evitando bugs de coordenada em telas com DPI/scale alto.
+      menu.popup({ window: mainWindow });
     } catch (err) {
       console.warn("[orvix] context-menu popup falhou:", err);
     }
+  };
+
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    showContextMenu(params);
+    lastNativeContextMenuAt = Date.now();
+  });
+
+  // Fallback: se algum overlay do site chamar preventDefault no evento
+  // "contextmenu" do DOM, o `context-menu` nativo do Electron não dispara.
+  // O preload injeta um listener em fase de captura e nos avisa via IPC.
+  ipcMain.on("orvix:context-menu-fallback", (event, data) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) return;
+    // Se o evento nativo já tratou nos últimos 200ms, ignoramos o fallback
+    // para evitar duplicação do menu.
+    if (Date.now() - lastNativeContextMenuAt < 200) return;
+    showContextMenu({ isEditable: Boolean(data && data.isEditable) });
   });
 
   mainWindow.once("ready-to-show", () => {
