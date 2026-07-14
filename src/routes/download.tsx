@@ -10,7 +10,7 @@ import logoDark from "@/assets/orvix-logo-dark.png.asset.json";
  * negócio. Clique no botão dispara o download imediatamente.
  */
 const INSTALLER_URL =
-  "https://drive.google.com/uc?export=download&id=19ze1QZeFptEGt1bQnG5jaEYVltDwI5vy";
+  "https://github.com/canalmeunovohoby2-sys/orvixsistemas/releases/download/INSTALADOR/OrvixSistemasSetup.exe";
 const INSTALLER_FILENAME = "OrvixSistemasSetup.exe";
 
 export const Route = createFileRoute("/download")({
