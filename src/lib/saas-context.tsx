@@ -105,6 +105,7 @@ export const TEST_ADMIN_PASSWORD = "Orvix@2026";
 export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
 export const TEST_CASHIER_PASSWORD = "OrvixCaixa@2026";
 const TEST_COMPANY_ID = "EMP_TESTE";
+export const CURRENT_ADMIN_EMAIL_KEY = "orvix_current_admin_email";
 
 /* ============================================================
  * Snapshots de reversão (mantidos para auditoria — Phase 1 cobre
@@ -327,6 +328,11 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         const nextUserId = session?.user.id ?? null;
+        const nextEmail = session?.user.email?.trim().toLowerCase() ?? null;
+        try {
+          if (nextEmail) localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, nextEmail);
+          else localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY);
+        } catch { /* storage indisponível */ }
         const accountChanged = nextUserId !== realUserIdRef.current;
         if (event === "SIGNED_OUT" || accountChanged) {
           activeLoadUidRef.current = nextUserId;
@@ -446,6 +452,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       setAuthUserId(null);
       setRealUser(null);
       setImpersonatedCompanyId(null);
+      try { localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, normalized); } catch { /* storage indisponível */ }
       COMPANIES.length = 0; SAAS_USERS.length = 0;
       tick();
       setReady(false);
@@ -588,6 +595,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     setAuthUserId(null);
     setRealUser(null);
     setImpersonatedCompanyId(null);
+    try { localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY); } catch { /* storage indisponível */ }
     COMPANIES.length = 0; SAAS_USERS.length = 0;
     tick();
     setReady(true);
