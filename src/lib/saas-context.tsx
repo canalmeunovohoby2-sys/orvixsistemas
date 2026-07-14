@@ -265,6 +265,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const [impersonatedCompanyId, setImpersonatedCompanyId] = useState<string | null>(null);
   const bootstrappedRef = useRef(false);
   const readyRef = useRef(false);
+  const activeLoadUidRef = useRef<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
 
@@ -330,6 +331,8 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Carrega perfil + empresas/usuários conforme o papel ---------- */
   const loadAll = useCallback(async (uid: string | null) => {
+    activeLoadUidRef.current = uid;
+    const isCurrentLoad = () => activeLoadUidRef.current === uid;
     // Não derruba `ready` durante refetches manuais do Painel Master.
     // Antes isso desmontava `CompaniesTab` enquanto o fluxo de criação ainda
     // aguardava `createDemoAccess()`, descartando o estado que abre o CredentialsModal.
@@ -350,6 +353,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
     const resolvedMe = meRow
       ? { ok: true as const, user: mapUser(meRow as DbAppUser) }
       : await resolveLoginProfile();
+    if (!isCurrentLoad()) return;
     if (!resolvedMe.ok) {
       setRealUser(null);
       COMPANIES.length = 0; SAAS_USERS.length = 0;
@@ -374,6 +378,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       supabase.from("companies").select("*").order("created_at", { ascending: true }),
       supabase.from("app_users").select("id, name, email, role, company_id, is_temporary_password"),
     ]);
+    if (!isCurrentLoad()) return;
     if (companiesRes.error) {
       console.error("[ORVIX][CRÍTICO] Erro ao buscar empresas na inicialização.", companiesRes.error);
     }
@@ -525,6 +530,9 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
         return { ok: false, reason: "Usuário sem perfil cadastrado na plataforma." };
       }
+      setRealUser(me);
+      setImpersonatedCompanyId(null);
+      tick();
       await loadAll(uid);
       const comp = me.companyId ? COMPANIES.find((c) => c.id === me.companyId) : null;
       logEvent({
