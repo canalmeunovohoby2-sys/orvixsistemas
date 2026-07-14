@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
-  SUPER_ADMIN_EMAIL, type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
@@ -56,7 +56,8 @@ function SuperAdminEmailGate({ children }: { children: React.ReactNode }) {
   const { user, logout } = useSaaS();
   const navigate = useNavigate();
   if (!user) return null;
-  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+  const allowed = [SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL].map((e) => e.toLowerCase());
+  if (!allowed.includes(user.email.toLowerCase())) {
     logout();
     navigate({ to: "/login" });
     return null;
