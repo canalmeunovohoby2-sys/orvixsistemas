@@ -477,6 +477,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
         try { await ensureSuperAdmin(); } catch {}
         ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
       }
+      if (error && normalized === SUPER_ADMIN_LUIZ_EMAIL) {
+        try { await ensureLuizAdmin(); } catch {}
+        ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
       // Se a senha de teste foi digitada corretamente mas a sessão ainda falhou
       // por inconsistência de migração, refaz o bootstrap e tenta uma última vez.
       if (error && normalized === TEST_ADMIN_EMAIL && password === TEST_ADMIN_PASSWORD) {
