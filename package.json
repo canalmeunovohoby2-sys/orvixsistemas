@@ -86,7 +86,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "docx": "^9.7.1",
-    "electron": "^43.0.0",
+    "electron": "^43.1.1",
     "electron-builder": "^26.15.3",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
