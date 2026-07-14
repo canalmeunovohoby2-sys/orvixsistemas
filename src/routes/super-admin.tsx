@@ -67,12 +67,22 @@ function SuperAdminEmailGate({ children }: { children: React.ReactNode }) {
 
 type TabId = "dashboard" | "empresas" | "auditoria" | "suporte" | "remarketing" | "config";
 
+function getMasterDisplayName(user: ReturnType<typeof useSaaS>["user"]): string {
+  const email = (user?.email ?? "").trim().toLowerCase();
+  const name = (user?.name ?? "").trim().toLowerCase();
+  if (email === SUPER_ADMIN_LUIZ_EMAIL.toLowerCase() || email.includes("luiz") || name.includes("luiz")) {
+    return "Luiz Sub Admin";
+  }
+  return "Tiago Lopes Admin";
+}
+
 function SuperAdminPage() {
   useMockStore();
   const { user, logout, processWebhookPayment } = useSaaS();
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
   const [pwdModal, setPwdModal] = useState(false);
+  const masterDisplayName = getMasterDisplayName(user);
 
   // Poller do webhook do Mercado Pago — drena eventos pendentes da fila server-side
   // e materializa empresas + auditoria. Só roda enquanto o Super Admin está logado.
@@ -134,7 +144,7 @@ function SuperAdminPage() {
             <Crown className="w-4 h-4 text-amber-500 shrink-0 hidden sm:block" />
             <div className="min-w-0 hidden md:block">
               <p className="font-semibold text-sm leading-tight truncate">Painel Master</p>
-              <p className="text-[11px] text-muted-foreground truncate">Plataforma · {user?.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">Plataforma · {masterDisplayName}</p>
             </div>
             <div className="h-8 w-px bg-border mx-1 hidden md:block" />
             <div className="flex items-center gap-2.5">
@@ -143,9 +153,7 @@ function SuperAdminPage() {
                 <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-red-600 shadow-[0_0_12px_rgba(220,38,38,0.9)]" />
               </span>
               <span className="text-xl md:text-2xl font-bold tracking-tight">
-                {(user?.email ?? "").toLowerCase() === SUPER_ADMIN_LUIZ_EMAIL.toLowerCase()
-                  ? "Luiz Sub Admin"
-                  : "Tiago Lopes Admin"}
+                {masterDisplayName}
               </span>
               <span className="sr-only">Sistema ativo · monitoramento em tempo real</span>
             </div>
