@@ -82,13 +82,12 @@ function SuperAdminPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
   const [pwdModal, setPwdModal] = useState(false);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(() => {
-    try { return localStorage.getItem(CURRENT_ADMIN_EMAIL_KEY); } catch { return null; }
-  });
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const masterDisplayName = getMasterDisplayName(user, sessionEmail);
 
   useEffect(() => {
     let alive = true;
+    try { setSessionEmail(localStorage.getItem(CURRENT_ADMIN_EMAIL_KEY)); } catch { /* storage indisponível */ }
     supabase.auth.getSession().then(({ data }) => {
       if (alive) setSessionEmail(data.session?.user.email ?? null);
     });
