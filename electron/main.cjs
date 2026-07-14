@@ -27,7 +27,6 @@ if (!gotLock) {
 }
 
 let mainWindow = /** @type {BrowserWindow | null} */ (null);
-let lastNativeContextMenuAt = 0;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -52,73 +51,20 @@ function createWindow() {
 
   mainWindow.removeMenu();
 
-  // Menu de contexto nativo (Copiar / Colar / Recortar / Selecionar tudo /
-  // Desfazer / Refazer). Essencial para que o operador consiga colar
-  // credenciais e editar campos de input dentro do app instalado.
-  // Menu de contexto — sempre exibe as ações essenciais habilitadas.
-  // Mesmo em <input type="password">, onde o Chromium reporta editFlags
-  // vazios, mantemos Copiar/Colar/Recortar ativos: os roles nativos do
-  // Electron simplesmente não fazem nada quando não há o que copiar,
-  // mas o menu abre e Colar funciona normalmente na tela de login.
-  const showContextMenu = (params) => {
-    if (!mainWindow) return;
-    const isEditable = Boolean(params && params.isEditable);
-    const suggestions =
-      params && Array.isArray(params.dictionarySuggestions) ? params.dictionarySuggestions : [];
-    const template = [];
-
-    if (params && params.misspelledWord && suggestions.length) {
-      for (const suggestion of suggestions) {
-        template.push({
-          label: suggestion,
-          click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
-        });
-      }
-      template.push({ type: "separator" });
-    }
-
-    if (isEditable) {
-      template.push({ role: "undo", label: "Desfazer" });
-      template.push({ role: "redo", label: "Refazer" });
-      template.push({ type: "separator" });
-      template.push({ role: "cut", label: "Recortar" });
-      template.push({ role: "copy", label: "Copiar" });
-      template.push({ role: "paste", label: "Colar" });
-      template.push({ role: "pasteAndMatchStyle", label: "Colar sem formatação" });
-      template.push({ role: "delete", label: "Excluir" });
-      template.push({ type: "separator" });
-      template.push({ role: "selectAll", label: "Selecionar tudo" });
-    } else {
-      template.push({ role: "copy", label: "Copiar" });
-      template.push({ role: "selectAll", label: "Selecionar tudo" });
-      template.push({ type: "separator" });
-      template.push({ role: "reload", label: "Recarregar" });
-    }
-
-    try {
-      const menu = Menu.buildFromTemplate(template);
-      // Sem x/y explícitos → Electron abre na posição atual do cursor,
-      // evitando bugs de coordenada em telas com DPI/scale alto.
-      menu.popup({ window: mainWindow });
-    } catch (err) {
-      console.warn("[orvix] context-menu popup falhou:", err);
-    }
-  };
-
-  mainWindow.webContents.on("context-menu", (_event, params) => {
-    showContextMenu(params);
-    lastNativeContextMenuAt = Date.now();
-  });
-
-  // Fallback: se algum overlay do site chamar preventDefault no evento
-  // "contextmenu" do DOM, o `context-menu` nativo do Electron não dispara.
-  // O preload injeta um listener em fase de captura e nos avisa via IPC.
-  ipcMain.on("orvix:context-menu-fallback", (event, data) => {
-    if (!mainWindow || event.sender !== mainWindow.webContents) return;
-    // Se o evento nativo já tratou nos últimos 200ms, ignoramos o fallback
-    // para evitar duplicação do menu.
-    if (Date.now() - lastNativeContextMenuAt < 50) return;
-    showContextMenu({ isEditable: Boolean(data && data.isEditable) });
+  // Menu de contexto nativo — implementação de força bruta.
+  // Sempre exibe as ações essenciais em PT-BR, sem depender de nada
+  // vindo do preload/DOM. O Electron habilita/desabilita cada role
+  // automaticamente conforme o contexto (campo editável, seleção, etc.).
+  mainWindow.webContents.on("context-menu", (_event, _params) => {
+    const menu = Menu.buildFromTemplate([
+      { label: "Recortar", role: "cut" },
+      { label: "Copiar", role: "copy" },
+      { label: "Colar", role: "paste" },
+      { label: "Selecionar tudo", role: "selectAll" },
+      { type: "separator" },
+      { label: "Recarregar", role: "reload" },
+    ]);
+    menu.popup({ window: mainWindow });
   });
 
   mainWindow.once("ready-to-show", () => {
