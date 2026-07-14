@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   ensureSuperAdmin,
+  ensureLuizAdmin,
   ensureTestUser,
   resolveLoginProfile,
   adminCreateCompanyWithOwner,
