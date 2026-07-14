@@ -31,13 +31,17 @@ export function TrialGate() {
   const [state, setState] = useState<
     { daysLeft: number; hoursLeft: number; expired: boolean; expiresAt: string } | null
   >(null);
-  const [warn24Dismissed, setWarn24Dismissed] = useState<boolean>(() => {
+  const [warn24Dismissed, setWarn24Dismissed] = useState<boolean>(false);
+
+  // Lê a dispensa do aviso 24h somente no cliente, após hidratação,
+  // para evitar mismatch entre SSR e client (React error #310).
+  useEffect(() => {
     try {
-      return sessionStorage.getItem(WARN_24H_ACK_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+      if (sessionStorage.getItem(WARN_24H_ACK_KEY) === "1") {
+        setWarn24Dismissed(true);
+      }
+    } catch { /* storage indisponível */ }
+  }, []);
 
   // Lê a chave de teste no mount.
   useEffect(() => {
