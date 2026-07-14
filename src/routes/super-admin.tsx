@@ -144,7 +144,7 @@ function SuperAdminPage() {
             <Crown className="w-4 h-4 text-amber-500 shrink-0 hidden sm:block" />
             <div className="min-w-0 hidden md:block">
               <p className="font-semibold text-sm leading-tight truncate">Painel Master</p>
-              <p className="text-[11px] text-muted-foreground truncate">Plataforma · {user?.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">Plataforma · {masterDisplayName}</p>
             </div>
             <div className="h-8 w-px bg-border mx-1 hidden md:block" />
             <div className="flex items-center gap-2.5">
