@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   PLAN_LABEL, PLAN_PRICE, PLAN_LIMITS, STATUS_LABEL, useSaaS, getPlanUsersLimit,
-  SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL, type Plan, type SubscriptionStatus,
+  SUPER_ADMIN_EMAIL, SUPER_ADMIN_LUIZ_EMAIL, CURRENT_ADMIN_EMAIL_KEY, type Plan, type SubscriptionStatus,
 } from "@/lib/saas-context";
 import {
   BRL, SYSTEM_LOGS, SUPPORT_TICKETS, SAAS_SETTINGS, logEvent,
@@ -82,7 +82,9 @@ function SuperAdminPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("dashboard");
   const [pwdModal, setPwdModal] = useState(false);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(() => {
+    try { return localStorage.getItem(CURRENT_ADMIN_EMAIL_KEY); } catch { return null; }
+  });
   const masterDisplayName = getMasterDisplayName(user, sessionEmail);
 
   useEffect(() => {
