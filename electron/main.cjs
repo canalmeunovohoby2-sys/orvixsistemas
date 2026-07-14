@@ -106,25 +106,12 @@ function createWindow() {
     showContextMenu(params);
   });
 
-  // Fallback: alguns overlays/modais chamam preventDefault no evento
-  // "contextmenu" do DOM, o que impede o `context-menu` do Electron de
-  // disparar. Escutamos o mousedown do botão direito diretamente do
-  // Chromium (before-input-event não cobre mouse, então usamos o input
-  // do sistema via webContents).
-  mainWindow.webContents.on("input-event", (_e, input) => {
-    if (
-      input &&
-      input.type === "mouseDown" &&
-      input.button === "right" &&
-      mainWindow
-    ) {
-      // Deixa o evento nativo tentar primeiro; se o site cancelar, este
-      // timeout garante que ainda mostraremos algo útil ao operador.
-      setTimeout(() => {
-        if (!mainWindow) return;
-        showContextMenu({ isEditable: true });
-      }, 60);
-    }
+  // Fallback: se algum overlay do site chamar preventDefault no evento
+  // "contextmenu" do DOM, o `context-menu` nativo do Electron não dispara.
+  // O preload injeta um listener em fase de captura e nos avisa via IPC.
+  ipcMain.on("orvix:context-menu-fallback", (event, data) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) return;
+    showContextMenu({ isEditable: Boolean(data && data.isEditable) });
   });
 
   mainWindow.once("ready-to-show", () => {
