@@ -596,6 +596,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Usuário efetivo (com impersonação) ---------- */
   const profileMatchesSession = !authUserId || realUser?.id === authUserId;
+  const readyForCurrentSession = ready && authInitialized && (!authUserId || !realUser || profileMatchesSession);
   const sessionRealUser = profileMatchesSession ? realUser : null;
   let user: SaaSUser | null = sessionRealUser;
   let company: Company | null = sessionRealUser?.companyId
@@ -1076,7 +1077,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      user, company, companies: COMPANIES, users: SAAS_USERS, ready: ready && authInitialized && profileMatchesSession,
+      user, company, companies: COMPANIES, users: SAAS_USERS, ready: readyForCurrentSession,
       loginWithCredentials, logout, hasRole,
       setCompanyStatus, setCompanyPlan, setCompanyDueDate, activateRevenue,
       updatePassword, changeOwnPassword, completeOnboarding,
