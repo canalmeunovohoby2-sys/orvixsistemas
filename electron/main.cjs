@@ -27,7 +27,6 @@ if (!gotLock) {
 }
 
 let mainWindow = /** @type {BrowserWindow | null} */ (null);
-let lastNativeContextMenuAt = 0;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
