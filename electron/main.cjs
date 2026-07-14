@@ -54,15 +54,20 @@ function createWindow() {
   // Menu de contexto nativo (Copiar / Colar / Recortar / Selecionar tudo /
   // Desfazer / Refazer). Essencial para que o operador consiga colar
   // credenciais e editar campos de input dentro do app instalado.
-  mainWindow.webContents.on("context-menu", (_event, params) => {
+  // Menu de contexto — sempre exibe as ações essenciais habilitadas.
+  // Mesmo em <input type="password">, onde o Chromium reporta editFlags
+  // vazios, mantemos Copiar/Colar/Recortar ativos: os roles nativos do
+  // Electron simplesmente não fazem nada quando não há o que copiar,
+  // mas o menu abre e Colar funciona normalmente na tela de login.
+  const showContextMenu = (params) => {
     if (!mainWindow) return;
-    const editFlags = params.editFlags || {};
-    const isEditable = Boolean(params.isEditable);
-    const hasSelection = !!(params.selectionText && params.selectionText.trim());
+    const isEditable = Boolean(params && params.isEditable);
+    const suggestions =
+      params && Array.isArray(params.dictionarySuggestions) ? params.dictionarySuggestions : [];
     const template = [];
 
-    if (params.misspelledWord && Array.isArray(params.dictionarySuggestions) && params.dictionarySuggestions.length) {
-      for (const suggestion of params.dictionarySuggestions) {
+    if (params && params.misspelledWord && suggestions.length) {
+      for (const suggestion of suggestions) {
         template.push({
           label: suggestion,
           click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
@@ -71,29 +76,54 @@ function createWindow() {
       template.push({ type: "separator" });
     }
 
-    // Sempre expõe os comandos essenciais — mesmo com editFlags "falsos",
-    // deixamos o item habilitado para que Copiar/Colar funcionem quando o
-    // Chromium ainda não reportou seleção (comum em <input type="password">).
     if (isEditable) {
       template.push({ role: "undo" });
       template.push({ role: "redo" });
       template.push({ type: "separator" });
-    }
-    template.push({ role: "cut", enabled: isEditable && (editFlags.canCut || hasSelection) });
-    template.push({ role: "copy", enabled: editFlags.canCopy || hasSelection });
-    template.push({ role: "paste", enabled: isEditable });
-    if (isEditable) {
+      template.push({ role: "cut" });
+      template.push({ role: "copy" });
+      template.push({ role: "paste" });
       template.push({ role: "pasteAndMatchStyle" });
-      template.push({ role: "delete", enabled: editFlags.canDelete || hasSelection });
+      template.push({ role: "delete" });
+      template.push({ type: "separator" });
+      template.push({ role: "selectAll" });
+    } else {
+      template.push({ role: "copy" });
+      template.push({ role: "selectAll" });
     }
-    template.push({ type: "separator" });
-    template.push({ role: "selectAll" });
 
     try {
       const menu = Menu.buildFromTemplate(template);
-      menu.popup({ window: mainWindow, x: params.x, y: params.y });
+      // Sem x/y explícitos → Electron abre na posição atual do cursor,
+      // evitando bugs de coordenada em telas com DPI/scale alto.
+      menu.popup({ window: mainWindow });
     } catch (err) {
       console.warn("[orvix] context-menu popup falhou:", err);
+    }
+  };
+
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    showContextMenu(params);
+  });
+
+  // Fallback: alguns overlays/modais chamam preventDefault no evento
+  // "contextmenu" do DOM, o que impede o `context-menu` do Electron de
+  // disparar. Escutamos o mousedown do botão direito diretamente do
+  // Chromium (before-input-event não cobre mouse, então usamos o input
+  // do sistema via webContents).
+  mainWindow.webContents.on("input-event", (_e, input) => {
+    if (
+      input &&
+      input.type === "mouseDown" &&
+      input.button === "right" &&
+      mainWindow
+    ) {
+      // Deixa o evento nativo tentar primeiro; se o site cancelar, este
+      // timeout garante que ainda mostraremos algo útil ao operador.
+      setTimeout(() => {
+        if (!mainWindow) return;
+        showContextMenu({ isEditable: true });
+      }, 60);
     }
   });
 
