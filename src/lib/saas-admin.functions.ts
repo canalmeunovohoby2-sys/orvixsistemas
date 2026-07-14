@@ -141,6 +141,36 @@ export const ensureSuperAdmin = createServerFn({ method: "POST" }).handler(async
 });
 
 /* ============================================================
+ * Bootstrap do segundo Super Admin (Luiz — sócio). Idempotente.
+ * Cria/garante o usuário Auth e a linha em app_users com role
+ * super_admin, sem alterar estrutura do banco.
+ * ============================================================ */
+export const ensureLuizAdmin = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const authResult = await ensureAuthUser(supabaseAdmin, {
+    email: SUPER_ADMIN_LUIZ_EMAIL,
+    password: SUPER_ADMIN_LUIZ_PASSWORD,
+    name: SUPER_ADMIN_LUIZ_NAME,
+    companyId: null,
+    role: "super_admin",
+  });
+  if (!authResult.ok) return { ok: false, reason: authResult.reason };
+
+  const { error: upErr } = await supabaseAdmin.from("app_users").upsert({
+    id: authResult.userId,
+    name: SUPER_ADMIN_LUIZ_NAME,
+    email: SUPER_ADMIN_LUIZ_EMAIL,
+    role: "super_admin",
+    company_id: null,
+    is_temporary_password: false,
+  });
+  if (upErr) return { ok: false, reason: upErr.message };
+
+  return { ok: true, email: SUPER_ADMIN_LUIZ_EMAIL };
+});
+
+/* ============================================================
  * Bootstrap público de homologação (idempotente).
  * Garante login imediato em teste@orvix.com / Orvix@2026 e uma
  * empresa ativa com um terminal de caixa associado.
