@@ -78,19 +78,21 @@ function createWindow() {
     }
 
     if (isEditable) {
-      template.push({ role: "undo" });
-      template.push({ role: "redo" });
+      template.push({ role: "undo", label: "Desfazer" });
+      template.push({ role: "redo", label: "Refazer" });
       template.push({ type: "separator" });
-      template.push({ role: "cut" });
-      template.push({ role: "copy" });
-      template.push({ role: "paste" });
-      template.push({ role: "pasteAndMatchStyle" });
-      template.push({ role: "delete" });
+      template.push({ role: "cut", label: "Recortar" });
+      template.push({ role: "copy", label: "Copiar" });
+      template.push({ role: "paste", label: "Colar" });
+      template.push({ role: "pasteAndMatchStyle", label: "Colar sem formatação" });
+      template.push({ role: "delete", label: "Excluir" });
       template.push({ type: "separator" });
-      template.push({ role: "selectAll" });
+      template.push({ role: "selectAll", label: "Selecionar tudo" });
     } else {
-      template.push({ role: "copy" });
-      template.push({ role: "selectAll" });
+      template.push({ role: "copy", label: "Copiar" });
+      template.push({ role: "selectAll", label: "Selecionar tudo" });
+      template.push({ type: "separator" });
+      template.push({ role: "reload", label: "Recarregar" });
     }
 
     try {
@@ -115,7 +117,7 @@ function createWindow() {
     if (!mainWindow || event.sender !== mainWindow.webContents) return;
     // Se o evento nativo já tratou nos últimos 200ms, ignoramos o fallback
     // para evitar duplicação do menu.
-    if (Date.now() - lastNativeContextMenuAt < 200) return;
+    if (Date.now() - lastNativeContextMenuAt < 50) return;
     showContextMenu({ isEditable: Boolean(data && data.isEditable) });
   });
 
