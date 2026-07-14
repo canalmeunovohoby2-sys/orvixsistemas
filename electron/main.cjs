@@ -55,35 +55,46 @@ function createWindow() {
   // Desfazer / Refazer). Essencial para que o operador consiga colar
   // credenciais e editar campos de input dentro do app instalado.
   mainWindow.webContents.on("context-menu", (_event, params) => {
-    const { editFlags, isEditable, selectionText, misspelledWord, dictionarySuggestions } = params;
-    const menu = new Menu();
+    if (!mainWindow) return;
+    const editFlags = params.editFlags || {};
+    const isEditable = Boolean(params.isEditable);
+    const hasSelection = !!(params.selectionText && params.selectionText.trim());
+    const template = [];
 
-    if (misspelledWord && Array.isArray(dictionarySuggestions) && dictionarySuggestions.length) {
-      for (const suggestion of dictionarySuggestions) {
-        menu.append(new MenuItem({
+    if (params.misspelledWord && Array.isArray(params.dictionarySuggestions) && params.dictionarySuggestions.length) {
+      for (const suggestion of params.dictionarySuggestions) {
+        template.push({
           label: suggestion,
           click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
-        }));
+        });
       }
-      menu.append(new MenuItem({ type: "separator" }));
+      template.push({ type: "separator" });
     }
 
+    // Sempre expõe os comandos essenciais — mesmo com editFlags "falsos",
+    // deixamos o item habilitado para que Copiar/Colar funcionem quando o
+    // Chromium ainda não reportou seleção (comum em <input type="password">).
     if (isEditable) {
-      menu.append(new MenuItem({ role: "undo", enabled: editFlags.canUndo }));
-      menu.append(new MenuItem({ role: "redo", enabled: editFlags.canRedo }));
-      menu.append(new MenuItem({ type: "separator" }));
+      template.push({ role: "undo" });
+      template.push({ role: "redo" });
+      template.push({ type: "separator" });
     }
-    menu.append(new MenuItem({ role: "cut", enabled: editFlags.canCut }));
-    menu.append(new MenuItem({ role: "copy", enabled: editFlags.canCopy || !!selectionText }));
-    menu.append(new MenuItem({ role: "paste", enabled: editFlags.canPaste }));
+    template.push({ role: "cut", enabled: isEditable && (editFlags.canCut || hasSelection) });
+    template.push({ role: "copy", enabled: editFlags.canCopy || hasSelection });
+    template.push({ role: "paste", enabled: isEditable });
     if (isEditable) {
-      menu.append(new MenuItem({ role: "pasteAndMatchStyle", enabled: editFlags.canPaste }));
-      menu.append(new MenuItem({ role: "delete", enabled: editFlags.canDelete }));
+      template.push({ role: "pasteAndMatchStyle" });
+      template.push({ role: "delete", enabled: editFlags.canDelete || hasSelection });
     }
-    menu.append(new MenuItem({ type: "separator" }));
-    menu.append(new MenuItem({ role: "selectAll", enabled: editFlags.canSelectAll }));
+    template.push({ type: "separator" });
+    template.push({ role: "selectAll" });
 
-    if (mainWindow) menu.popup({ window: mainWindow });
+    try {
+      const menu = Menu.buildFromTemplate(template);
+      menu.popup({ window: mainWindow, x: params.x, y: params.y });
+    } catch (err) {
+      console.warn("[orvix] context-menu popup falhou:", err);
+    }
   });
 
   mainWindow.once("ready-to-show", () => {
