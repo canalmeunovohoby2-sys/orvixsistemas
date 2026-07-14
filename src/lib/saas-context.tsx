@@ -266,7 +266,6 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   const bootstrappedRef = useRef(false);
   const readyRef = useRef(false);
   const activeLoadUidRef = useRef<string | null>(null);
-  const authUserIdRef = useRef<string | null>(null);
   const realUserIdRef = useRef<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const updateLastSync = useCallback(() => { setLastSync(new Date()); }, []);
@@ -274,9 +273,6 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     readyRef.current = ready;
   }, [ready]);
-  useEffect(() => {
-    authUserIdRef.current = authUserId;
-  }, [authUserId]);
   useEffect(() => {
     realUserIdRef.current = realUser?.id ?? null;
   }, [realUser]);
