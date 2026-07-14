@@ -99,6 +99,7 @@ export const SAAS_USERS: SaaSUser[] = [];
 
 /** E-mail oficial do Super Admin. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
+export const SUPER_ADMIN_LUIZ_EMAIL = "orvixsistemasluiz@gmail.com";
 export const TEST_ADMIN_EMAIL = "teste@orvix.com";
 export const TEST_ADMIN_PASSWORD = "Orvix@2026";
 export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
