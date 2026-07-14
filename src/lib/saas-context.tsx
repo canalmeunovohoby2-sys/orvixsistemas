@@ -322,6 +322,11 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
       const sessionUserId = data.session?.user.id ?? null;
+      const sessionEmail = data.session?.user.email?.trim().toLowerCase() ?? null;
+      try {
+        if (sessionEmail) localStorage.setItem(CURRENT_ADMIN_EMAIL_KEY, sessionEmail);
+        else localStorage.removeItem(CURRENT_ADMIN_EMAIL_KEY);
+      } catch { /* storage indisponível */ }
       setAuthUserId(sessionUserId);
       setAuthInitialized(true);
     })();
