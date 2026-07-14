@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   ensureSuperAdmin,
+  ensureLuizAdmin,
   ensureTestUser,
   resolveLoginProfile,
   adminCreateCompanyWithOwner,
@@ -98,6 +99,7 @@ export const SAAS_USERS: SaaSUser[] = [];
 
 /** E-mail oficial do Super Admin. */
 export const SUPER_ADMIN_EMAIL = "orvixsistemas@gmail.com";
+export const SUPER_ADMIN_LUIZ_EMAIL = "orvixsistemasluiz@gmail.com";
 export const TEST_ADMIN_EMAIL = "teste@orvix.com";
 export const TEST_ADMIN_PASSWORD = "Orvix@2026";
 export const TEST_CASHIER_EMAIL = "caixa.teste@orvix.com";
@@ -309,6 +311,7 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       if (!bootstrappedRef.current) {
         bootstrappedRef.current = true;
         try { await ensureSuperAdmin(); } catch (e) { console.warn("[ORVIX] ensureSuperAdmin", e); }
+        try { await ensureLuizAdmin(); } catch (e) { console.warn("[ORVIX] ensureLuizAdmin", e); }
       }
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
@@ -472,6 +475,10 @@ export function SaaSProvider({ children }: { children: ReactNode }) {
       // Auto-bootstrap do super admin se ele tentar com a senha padrão e ainda não existir.
       if (error && normalized === SUPER_ADMIN_EMAIL) {
         try { await ensureSuperAdmin(); } catch {}
+        ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
+      }
+      if (error && normalized === SUPER_ADMIN_LUIZ_EMAIL) {
+        try { await ensureLuizAdmin(); } catch {}
         ({ error } = await supabase.auth.signInWithPassword({ email: normalized, password }));
       }
       // Se a senha de teste foi digitada corretamente mas a sessão ainda falhou
