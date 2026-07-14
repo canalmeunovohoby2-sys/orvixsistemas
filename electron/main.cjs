@@ -104,6 +104,7 @@ function createWindow() {
 
   mainWindow.webContents.on("context-menu", (_event, params) => {
     showContextMenu(params);
+    lastNativeContextMenuAt = Date.now();
   });
 
   // Fallback: se algum overlay do site chamar preventDefault no evento
@@ -111,6 +112,9 @@ function createWindow() {
   // O preload injeta um listener em fase de captura e nos avisa via IPC.
   ipcMain.on("orvix:context-menu-fallback", (event, data) => {
     if (!mainWindow || event.sender !== mainWindow.webContents) return;
+    // Se o evento nativo já tratou nos últimos 200ms, ignoramos o fallback
+    // para evitar duplicação do menu.
+    if (Date.now() - lastNativeContextMenuAt < 200) return;
     showContextMenu({ isEditable: Boolean(data && data.isEditable) });
   });
 
